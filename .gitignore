@@ -1,0 +1,50 @@
+# === Maven / Java Build ===
+target/
+build/
+*.jar
+*.war
+*.class
+
+# === Node.js / Frontend ===
+node_modules/
+.next/
+out/
+next-env.d.ts
+
+# === IDE ===
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+logs/
+
+# === Environment / Secrets ===
+.env
+.env.local
+*.local
+
+# === Local Tools & Cache ===
+.tools/
+.m2/
+.mvn-logging/
+
+# === Maven ===
+*.lastUpdated
+
+# === Temp ===
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# === Build Artifacts ===
+build-output.txt
