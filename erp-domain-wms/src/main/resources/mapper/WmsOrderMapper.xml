@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.wms.infrastructure.mapper.WmsOrderMapper">
+
+    <insert id="insertInboundOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.InboundOrderDO">
+        INSERT INTO wms_inbound_order (order_id, tenant_id, warehouse_id, reference_type, reference_id, status, remark, created_at, updated_at)
+        VALUES (#{orderId}, #{tenantId}, #{warehouseId}, #{referenceType}, #{referenceId}, #{status}, #{remark}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateInboundOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.InboundOrderDO">
+        UPDATE wms_inbound_order SET status = #{status}, remark = #{remark}, updated_at = #{updatedAt}
+        WHERE order_id = #{orderId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectInboundOrder" resultType="com.aidotnet.erp.wms.infrastructure.data.InboundOrderDO">
+        SELECT order_id, tenant_id, warehouse_id, reference_type, reference_id, status, remark, created_at, updated_at
+        FROM wms_inbound_order WHERE tenant_id = #{tenantId} AND order_id = #{orderId}
+    </select>
+
+    <select id="selectInboundOrders" resultType="com.aidotnet.erp.wms.infrastructure.data.InboundOrderDO">
+        SELECT order_id, tenant_id, warehouse_id, reference_type, reference_id, status, remark, created_at, updated_at
+        FROM wms_inbound_order WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertInboundOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.InboundOrderLineDO">
+        INSERT INTO wms_inbound_order_line (line_id, order_id, seller_sku, location_id, expected_quantity, received_quantity, unit_cost, batch_no)
+        VALUES (#{lineId}, #{orderId}, #{sellerSku}, #{locationId}, #{expectedQuantity}, #{receivedQuantity}, #{unitCost}, #{batchNo})
+    </insert>
+
+    <update id="updateInboundOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.InboundOrderLineDO">
+        UPDATE wms_inbound_order_line SET received_quantity = #{receivedQuantity}, batch_no = #{batchNo}
+        WHERE line_id = #{lineId}
+    </update>
+
+    <select id="selectInboundOrderLines" resultType="com.aidotnet.erp.wms.infrastructure.data.InboundOrderLineDO">
+        SELECT line_id, order_id, seller_sku, location_id, expected_quantity, received_quantity, unit_cost, batch_no
+        FROM wms_inbound_order_line WHERE order_id = #{orderId}
+    </select>
+
+    <insert id="insertOutboundOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.OutboundOrderDO">
+        INSERT INTO wms_outbound_order (order_id, tenant_id, warehouse_id, reference_type, reference_id, status, remark, created_at, updated_at)
+        VALUES (#{orderId}, #{tenantId}, #{warehouseId}, #{referenceType}, #{referenceId}, #{status}, #{remark}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateOutboundOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.OutboundOrderDO">
+        UPDATE wms_outbound_order SET status = #{status}, remark = #{remark}, updated_at = #{updatedAt}
+        WHERE order_id = #{orderId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectOutboundOrder" resultType="com.aidotnet.erp.wms.infrastructure.data.OutboundOrderDO">
+        SELECT order_id, tenant_id, warehouse_id, reference_type, reference_id, status, remark, created_at, updated_at
+        FROM wms_outbound_order WHERE tenant_id = #{tenantId} AND order_id = #{orderId}
+    </select>
+
+    <select id="selectOutboundOrders" resultType="com.aidotnet.erp.wms.infrastructure.data.OutboundOrderDO">
+        SELECT order_id, tenant_id, warehouse_id, reference_type, reference_id, status, remark, created_at, updated_at
+        FROM wms_outbound_order WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertOutboundOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.OutboundOrderLineDO">
+        INSERT INTO wms_outbound_order_line (line_id, order_id, seller_sku, location_id, required_quantity, picked_quantity, batch_no)
+        VALUES (#{lineId}, #{orderId}, #{sellerSku}, #{locationId}, #{requiredQuantity}, #{pickedQuantity}, #{batchNo})
+    </insert>
+
+    <update id="updateOutboundOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.OutboundOrderLineDO">
+        UPDATE wms_outbound_order_line SET picked_quantity = #{pickedQuantity}
+        WHERE line_id = #{lineId}
+    </update>
+
+    <select id="selectOutboundOrderLines" resultType="com.aidotnet.erp.wms.infrastructure.data.OutboundOrderLineDO">
+        SELECT line_id, order_id, seller_sku, location_id, required_quantity, picked_quantity, batch_no
+        FROM wms_outbound_order_line WHERE order_id = #{orderId}
+    </select>
+
+    <insert id="insertMovement" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryMovementDO">
+        INSERT INTO wms_inventory_movement (movement_id, tenant_id, warehouse_id, seller_sku, from_location_id, to_location_id, quantity, type, reference_type, reference_id, moved_at)
+        VALUES (#{movementId}, #{tenantId}, #{warehouseId}, #{sellerSku}, #{fromLocationId}, #{toLocationId}, #{quantity}, #{type}, #{referenceType}, #{referenceId}, #{movedAt})
+    </insert>
+
+    <select id="selectMovements" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryMovementDO">
+        SELECT movement_id, tenant_id, warehouse_id, seller_sku, from_location_id, to_location_id, quantity, type, reference_type, reference_id, moved_at
+        FROM wms_inventory_movement WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY moved_at DESC
+    </select>
+
+    <insert id="insertQualityCheck" parameterType="com.aidotnet.erp.wms.infrastructure.data.QualityCheckDO">
+        INSERT INTO wms_quality_check (check_id, tenant_id, warehouse_id, inbound_order_id, seller_sku, sample_quantity, pass_quantity, fail_quantity, result, inspector, remark, checked_at, created_at)
+        VALUES (#{checkId}, #{tenantId}, #{warehouseId}, #{inboundOrderId}, #{sellerSku}, #{sampleQuantity}, #{passQuantity}, #{failQuantity}, #{result}, #{inspector}, #{remark}, #{checkedAt}, #{createdAt})
+    </insert>
+
+    <select id="selectQualityCheck" resultType="com.aidotnet.erp.wms.infrastructure.data.QualityCheckDO">
+        SELECT check_id, tenant_id, warehouse_id, inbound_order_id, seller_sku, sample_quantity, pass_quantity, fail_quantity, result, inspector, remark, checked_at, created_at
+        FROM wms_quality_check WHERE tenant_id = #{tenantId} AND check_id = #{checkId}
+    </select>
+
+    <select id="selectQualityChecks" resultType="com.aidotnet.erp.wms.infrastructure.data.QualityCheckDO">
+        SELECT check_id, tenant_id, warehouse_id, inbound_order_id, seller_sku, sample_quantity, pass_quantity, fail_quantity, result, inspector, remark, checked_at, created_at
+        FROM wms_quality_check WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY checked_at DESC
+    </select>
+
+    <select id="selectQualityChecksByInboundOrder" resultType="com.aidotnet.erp.wms.infrastructure.data.QualityCheckDO">
+        SELECT check_id, tenant_id, warehouse_id, inbound_order_id, seller_sku, sample_quantity, pass_quantity, fail_quantity, result, inspector, remark, checked_at, created_at
+        FROM wms_quality_check WHERE tenant_id = #{tenantId} AND inbound_order_id = #{inboundOrderId}
+        ORDER BY checked_at DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,126 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: erp-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+      config:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        file-extension: yml
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+      eager: true
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+            methods: GET
+            backoff:
+              firstBackoff: 100ms
+              maxBackoff: 500ms
+              factor: 2
+              basedOnPreviousValue: false
+      routes:
+        - id: iam-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/iam/api/**
+          filters:
+            - StripPrefix=0
+        - id: pdm-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/pdm/api/**
+          filters:
+            - StripPrefix=0
+        - id: som-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/som/api/**
+          filters:
+            - StripPrefix=0
+        - id: ads-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/ads/api/**
+          filters:
+            - StripPrefix=0
+        - id: oms-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/oms/api/**
+          filters:
+            - StripPrefix=0
+        - id: scm-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/scm/api/**
+          filters:
+            - StripPrefix=0
+        - id: wms-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/wms/api/**
+          filters:
+            - StripPrefix=0
+        - id: fba-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/fba/api/**
+          filters:
+            - StripPrefix=0
+        - id: tms-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/tms/api/**
+          filters:
+            - StripPrefix=0
+        - id: crm-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/crm/api/**
+          filters:
+            - StripPrefix=0
+        - id: fms-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/fms/api/**
+          filters:
+            - StripPrefix=0
+        - id: bi-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/bi/api/**
+          filters:
+            - StripPrefix=0
+        - id: sys-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/sys/api/**
+          filters:
+            - StripPrefix=0
+        - id: dashboard-route
+          uri: lb://erp-app
+          predicates:
+            - Path=/dashboard/api/**
+          filters:
+            - StripPrefix=0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

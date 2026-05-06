@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.UserDataScopeMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.UserDataScopeDO">
+        INSERT INTO iam_data_scope (scope_id, user_id, tenant_id, resource_type, resource_ids, scope_type)
+        VALUES (#{scopeId}, #{userId}, #{tenantId}, #{resourceType}, #{resourceIds}, #{scopeType})
+    </insert>
+
+    <select id="selectByUserId" resultType="com.aidotnet.erp.iam.infrastructure.data.UserDataScopeDO">
+        SELECT scope_id, user_id, tenant_id, resource_type, resource_ids, scope_type
+        FROM iam_data_scope
+        WHERE user_id = #{userId}
+    </select>
+
+    <delete id="deleteByUserIdAndResourceType">
+        DELETE FROM iam_data_scope
+        WHERE user_id = #{userId} AND resource_type = #{resourceType}
+    </delete>
+
+</mapper>

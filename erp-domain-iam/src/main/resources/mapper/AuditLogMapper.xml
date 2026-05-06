@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.AuditLogMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.AuditLogDO">
+        INSERT INTO iam_audit_log (audit_id, tenant_id, actor, action, module, target, trace_id, success, occurred_at)
+        VALUES (#{auditId}, #{tenantId}, #{actor}, #{action}, #{module}, #{target}, #{traceId}, #{success}, #{occurredAt})
+    </insert>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.iam.infrastructure.data.AuditLogDO">
+        SELECT audit_id, tenant_id, actor, action, module, target, trace_id, success, occurred_at
+        FROM iam_audit_log
+        WHERE tenant_id = #{tenantId}
+        ORDER BY occurred_at DESC
+    </select>
+
+    <select id="selectByTenantAndModule" resultType="com.aidotnet.erp.iam.infrastructure.data.AuditLogDO">
+        SELECT audit_id, tenant_id, actor, action, module, target, trace_id, success, occurred_at
+        FROM iam_audit_log
+        WHERE tenant_id = #{tenantId} AND module = #{module}
+        ORDER BY occurred_at DESC
+    </select>
+
+    <select id="selectByTenantAndActor" resultType="com.aidotnet.erp.iam.infrastructure.data.AuditLogDO">
+        SELECT audit_id, tenant_id, actor, action, module, target, trace_id, success, occurred_at
+        FROM iam_audit_log
+        WHERE tenant_id = #{tenantId} AND actor = #{actor}
+        ORDER BY occurred_at DESC
+    </select>
+
+</mapper>

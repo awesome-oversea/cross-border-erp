@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.oms.infrastructure.mapper.FulfillmentPlanMapper">
+
+    <insert id="insertPlan" parameterType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPlanDO">
+        INSERT INTO oms_fulfillment_plan (
+            plan_id, tenant_id, order_id, status, split_shipment, partial_shipment,
+            estimated_shipping_cost, created_at, updated_at
+        )
+        VALUES (
+            #{planId}, #{tenantId}, #{orderId}, #{status}, #{splitShipment}, #{partialShipment},
+            #{estimatedShippingCost}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updatePlan" parameterType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPlanDO">
+        UPDATE oms_fulfillment_plan
+        SET status = #{status},
+            split_shipment = #{splitShipment},
+            partial_shipment = #{partialShipment},
+            estimated_shipping_cost = #{estimatedShippingCost},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND order_id = #{orderId}
+    </update>
+
+    <select id="selectPlanByOrderId" resultType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPlanDO">
+        SELECT plan_id, tenant_id, order_id, status, split_shipment, partial_shipment,
+               estimated_shipping_cost, created_at, updated_at
+        FROM oms_fulfillment_plan
+        WHERE tenant_id = #{tenantId}
+          AND order_id = #{orderId}
+    </select>
+
+    <select id="selectPlanById" resultType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPlanDO">
+        SELECT plan_id, tenant_id, order_id, status, split_shipment, partial_shipment,
+               estimated_shipping_cost, created_at, updated_at
+        FROM oms_fulfillment_plan
+        WHERE tenant_id = #{tenantId}
+          AND plan_id = #{planId}
+    </select>
+
+    <insert id="insertPackage" parameterType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPackageDO">
+        INSERT INTO oms_fulfillment_package (
+            package_id, plan_id, warehouse_id, warehouse_code, carrier_id, carrier_code, carrier_name,
+            destination_country, service_level, status, total_quantity, total_amount,
+            estimated_shipping_cost, estimated_delivery_days, note, shipment_id, tracking_no,
+            shipped_at, platform_sync_status, platform_sync_attempts, platform_sync_error, platform_synced_at
+        )
+        VALUES (
+            #{packageId}, #{planId}, #{warehouseId}, #{warehouseCode}, #{carrierId}, #{carrierCode}, #{carrierName},
+            #{destinationCountry}, #{serviceLevel}, #{status}, #{totalQuantity}, #{totalAmount},
+            #{estimatedShippingCost}, #{estimatedDeliveryDays}, #{note}, #{shipmentId}, #{trackingNo},
+            #{shippedAt}, #{platformSyncStatus}, #{platformSyncAttempts}, #{platformSyncError}, #{platformSyncedAt}
+        )
+    </insert>
+
+    <select id="selectPackagesByPlanId" resultType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPackageDO">
+        SELECT package_id, plan_id, warehouse_id, warehouse_code, carrier_id, carrier_code, carrier_name,
+               destination_country, service_level, status, total_quantity, total_amount,
+               estimated_shipping_cost, estimated_delivery_days, note, shipment_id, tracking_no,
+               shipped_at, platform_sync_status, platform_sync_attempts, platform_sync_error, platform_synced_at
+        FROM oms_fulfillment_package
+        WHERE plan_id = #{planId}
+        ORDER BY package_id ASC
+    </select>
+
+    <delete id="deletePackagesByPlanId">
+        DELETE FROM oms_fulfillment_package
+        WHERE plan_id = #{planId}
+    </delete>
+
+    <insert id="insertPackageLine" parameterType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPackageLineDO">
+        INSERT INTO oms_fulfillment_package_line (
+            package_line_id, package_id, order_line_id, seller_sku, title, quantity, unit_price, line_amount
+        )
+        VALUES (
+            #{packageLineId}, #{packageId}, #{orderLineId}, #{sellerSku}, #{title}, #{quantity}, #{unitPrice}, #{lineAmount}
+        )
+    </insert>
+
+    <select id="selectPackageLinesByPackageId" resultType="com.aidotnet.erp.oms.infrastructure.data.FulfillmentPackageLineDO">
+        SELECT package_line_id, package_id, order_line_id, seller_sku, title, quantity, unit_price, line_amount
+        FROM oms_fulfillment_package_line
+        WHERE package_id = #{packageId}
+        ORDER BY package_line_id ASC
+    </select>
+
+    <delete id="deletePackageLinesByPlanId">
+        DELETE FROM oms_fulfillment_package_line
+        WHERE package_id IN (
+            SELECT package_id
+            FROM oms_fulfillment_package
+            WHERE plan_id = #{planId}
+        )
+    </delete>
+
+</mapper>

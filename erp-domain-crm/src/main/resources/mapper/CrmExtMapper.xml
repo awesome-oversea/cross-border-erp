@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.crm.infrastructure.mapper.CrmExtMapper">
+
+    <insert id="insertReplyTemplate" parameterType="com.aidotnet.erp.crm.infrastructure.data.ReplyTemplateDO">
+        INSERT INTO crm_reply_template (template_id, tenant_id, name, category, content, language, enabled, created_at, updated_at)
+        VALUES (#{templateId}, #{tenantId}, #{name}, #{category}, #{content}, #{language}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateReplyTemplate" parameterType="com.aidotnet.erp.crm.infrastructure.data.ReplyTemplateDO">
+        UPDATE crm_reply_template SET name = #{name}, category = #{category}, content = #{content},
+               language = #{language}, enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE template_id = #{templateId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectReplyTemplate" resultType="com.aidotnet.erp.crm.infrastructure.data.ReplyTemplateDO">
+        SELECT template_id, tenant_id, name, category, content, language, enabled, created_at, updated_at
+        FROM crm_reply_template WHERE tenant_id = #{tenantId} AND template_id = #{templateId}
+    </select>
+
+    <select id="selectReplyTemplates" resultType="com.aidotnet.erp.crm.infrastructure.data.ReplyTemplateDO">
+        SELECT template_id, tenant_id, name, category, content, language, enabled, created_at, updated_at
+        FROM crm_reply_template WHERE tenant_id = #{tenantId}
+        <if test="category != null">AND category = #{category}</if>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertComplaint" parameterType="com.aidotnet.erp.crm.infrastructure.data.ComplaintDO">
+        INSERT INTO crm_complaint (complaint_id, tenant_id, customer_id, order_id, channel, type, severity, status,
+                                   subject, description, handler_id, resolution, complained_at, resolved_at, created_at, updated_at)
+        VALUES (#{complaintId}, #{tenantId}, #{customerId}, #{orderId}, #{channel}, #{type}, #{severity}, #{status},
+                #{subject}, #{description}, #{handlerId}, #{resolution}, #{complainedAt}, #{resolvedAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateComplaint" parameterType="com.aidotnet.erp.crm.infrastructure.data.ComplaintDO">
+        UPDATE crm_complaint SET status = #{status}, handler_id = #{handlerId}, resolution = #{resolution},
+               resolved_at = #{resolvedAt}, updated_at = #{updatedAt}
+        WHERE complaint_id = #{complaintId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectComplaint" resultType="com.aidotnet.erp.crm.infrastructure.data.ComplaintDO">
+        SELECT complaint_id, tenant_id, customer_id, order_id, channel, type, severity, status,
+               subject, description, handler_id, resolution, complained_at, resolved_at, created_at, updated_at
+        FROM crm_complaint WHERE tenant_id = #{tenantId} AND complaint_id = #{complaintId}
+    </select>
+
+    <select id="selectComplaints" resultType="com.aidotnet.erp.crm.infrastructure.data.ComplaintDO">
+        SELECT complaint_id, tenant_id, customer_id, order_id, channel, type, severity, status,
+               subject, description, handler_id, resolution, complained_at, resolved_at, created_at, updated_at
+        FROM crm_complaint WHERE tenant_id = #{tenantId}
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY complained_at DESC
+    </select>
+
+    <select id="selectComplaintsByCustomer" resultType="com.aidotnet.erp.crm.infrastructure.data.ComplaintDO">
+        SELECT complaint_id, tenant_id, customer_id, order_id, channel, type, severity, status,
+               subject, description, handler_id, resolution, complained_at, resolved_at, created_at, updated_at
+        FROM crm_complaint WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+        ORDER BY complained_at DESC
+    </select>
+
+    <insert id="insertCustomerTag" parameterType="com.aidotnet.erp.crm.infrastructure.data.CustomerTagDO">
+        INSERT INTO crm_customer_tag (tag_id, tenant_id, customer_id, tag_name, tag_value, tagged_at)
+        VALUES (#{tagId}, #{tenantId}, #{customerId}, #{tagName}, #{tagValue}, #{taggedAt})
+    </insert>
+
+    <delete id="deleteCustomerTag">
+        DELETE FROM crm_customer_tag WHERE tenant_id = #{tenantId} AND tag_id = #{tagId}
+    </delete>
+
+    <select id="selectCustomerTags" resultType="com.aidotnet.erp.crm.infrastructure.data.CustomerTagDO">
+        SELECT tag_id, tenant_id, customer_id, tag_name, tag_value, tagged_at
+        FROM crm_customer_tag WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+        ORDER BY tagged_at DESC
+    </select>
+
+    <insert id="insertReview" parameterType="com.aidotnet.erp.crm.infrastructure.data.ReviewDO">
+        INSERT INTO crm_review (review_id, tenant_id, customer_id, product_id, order_id, platform, rating,
+                                title, text, sentiment, verified, responded, review_date, created_at, updated_at)
+        VALUES (#{reviewId}, #{tenantId}, #{customerId}, #{productId}, #{orderId}, #{platform}, #{rating},
+                #{title}, #{text}, #{sentiment}, #{verified}, #{responded}, #{reviewDate}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateReview" parameterType="com.aidotnet.erp.crm.infrastructure.data.ReviewDO">
+        UPDATE crm_review SET sentiment = #{sentiment}, verified = #{verified}, responded = #{responded}, updated_at = #{updatedAt}
+        WHERE review_id = #{reviewId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectReview" resultType="com.aidotnet.erp.crm.infrastructure.data.ReviewDO">
+        SELECT review_id, tenant_id, customer_id, product_id, order_id, platform, rating,
+               title, text, sentiment, verified, responded, review_date, created_at, updated_at
+        FROM crm_review WHERE tenant_id = #{tenantId} AND review_id = #{reviewId}
+    </select>
+
+    <select id="selectReviews" resultType="com.aidotnet.erp.crm.infrastructure.data.ReviewDO">
+        SELECT review_id, tenant_id, customer_id, product_id, order_id, platform, rating,
+               title, text, sentiment, verified, responded, review_date, created_at, updated_at
+        FROM crm_review WHERE tenant_id = #{tenantId}
+        ORDER BY review_date DESC
+    </select>
+
+    <select id="selectReviewsByCustomer" resultType="com.aidotnet.erp.crm.infrastructure.data.ReviewDO">
+        SELECT review_id, tenant_id, customer_id, product_id, order_id, platform, rating,
+               title, text, sentiment, verified, responded, review_date, created_at, updated_at
+        FROM crm_review WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+        ORDER BY review_date DESC
+    </select>
+
+    <select id="selectNegativeReviews" resultType="com.aidotnet.erp.crm.infrastructure.data.ReviewDO">
+        SELECT review_id, tenant_id, customer_id, product_id, order_id, platform, rating,
+               title, text, sentiment, verified, responded, review_date, created_at, updated_at
+        FROM crm_review WHERE tenant_id = #{tenantId} AND (rating &lt;= 2 OR sentiment = 'NEGATIVE')
+        ORDER BY review_date DESC
+    </select>
+
+    <insert id="insertMessage" parameterType="com.aidotnet.erp.crm.infrastructure.data.MessageDO">
+        INSERT INTO crm_message (message_id, tenant_id, platform, customer_id, subject, body, direction,
+                                 assigned_to, status, message_date, created_at, updated_at)
+        VALUES (#{messageId}, #{tenantId}, #{platform}, #{customerId}, #{subject}, #{body}, #{direction},
+                #{assignedTo}, #{status}, #{messageDate}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateMessage" parameterType="com.aidotnet.erp.crm.infrastructure.data.MessageDO">
+        UPDATE crm_message SET assigned_to = #{assignedTo}, status = #{status}, updated_at = #{updatedAt}
+        WHERE message_id = #{messageId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectMessage" resultType="com.aidotnet.erp.crm.infrastructure.data.MessageDO">
+        SELECT message_id, tenant_id, platform, customer_id, subject, body, direction, assigned_to, status, message_date, created_at, updated_at
+        FROM crm_message WHERE tenant_id = #{tenantId} AND message_id = #{messageId}
+    </select>
+
+    <select id="selectMessages" resultType="com.aidotnet.erp.crm.infrastructure.data.MessageDO">
+        SELECT message_id, tenant_id, platform, customer_id, subject, body, direction, assigned_to, status, message_date, created_at, updated_at
+        FROM crm_message WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+        ORDER BY message_date DESC
+    </select>
+
+    <select id="selectUnreadMessages" resultType="com.aidotnet.erp.crm.infrastructure.data.MessageDO">
+        SELECT message_id, tenant_id, platform, customer_id, subject, body, direction, assigned_to, status, message_date, created_at, updated_at
+        FROM crm_message WHERE tenant_id = #{tenantId} AND status = 'UNREAD'
+        ORDER BY message_date DESC
+    </select>
+
+</mapper>

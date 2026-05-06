@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.crm.infrastructure.mapper.CrmMapper">
+
+    <insert id="insertCustomer" parameterType="com.aidotnet.erp.crm.infrastructure.data.CustomerDO">
+        INSERT INTO crm_customer (customer_id, tenant_id, name, email, phone, country_code, platform,
+                                  store_id, total_orders, total_spent, last_order_at, tags, created_at, updated_at)
+        VALUES (#{customerId}, #{tenantId}, #{name}, #{email}, #{phone}, #{countryCode}, #{platform},
+                #{storeId}, #{totalOrders}, #{totalSpent}, #{lastOrderAt}, #{tags}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <select id="selectCustomer" resultType="com.aidotnet.erp.crm.infrastructure.data.CustomerDO">
+        SELECT customer_id, tenant_id, name, email, phone, country_code, platform,
+               store_id, total_orders, total_spent, last_order_at, tags, created_at, updated_at
+        FROM crm_customer WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+    </select>
+
+    <select id="selectCustomers" resultType="com.aidotnet.erp.crm.infrastructure.data.CustomerDO">
+        SELECT customer_id, tenant_id, name, email, phone, country_code, platform,
+               store_id, total_orders, total_spent, last_order_at, tags, created_at, updated_at
+        FROM crm_customer WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertTicket" parameterType="com.aidotnet.erp.crm.infrastructure.data.ServiceTicketDO">
+        INSERT INTO crm_service_ticket (ticket_id, tenant_id, customer_id, subject, description,
+                                        assignee, status, resolution, created_at, updated_at)
+        VALUES (#{ticketId}, #{tenantId}, #{customerId}, #{subject}, #{description},
+                #{assignee}, #{status}, #{resolution}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateTicket" parameterType="com.aidotnet.erp.crm.infrastructure.data.ServiceTicketDO">
+        UPDATE crm_service_ticket
+        SET status = #{status}, assignee = #{assignee}, resolution = #{resolution}, updated_at = #{updatedAt}
+        WHERE ticket_id = #{ticketId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectTicket" resultType="com.aidotnet.erp.crm.infrastructure.data.ServiceTicketDO">
+        SELECT ticket_id, tenant_id, customer_id, subject, description, assignee, status, resolution, created_at, updated_at
+        FROM crm_service_ticket
+        WHERE ticket_id = #{ticketId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectTickets" resultType="com.aidotnet.erp.crm.infrastructure.data.ServiceTicketDO">
+        SELECT ticket_id, tenant_id, customer_id, subject, description, assignee, status, resolution, created_at, updated_at
+        FROM crm_service_ticket WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertReturn" parameterType="com.aidotnet.erp.crm.infrastructure.data.ReturnRefundDO">
+        INSERT INTO crm_return_refund (return_id, tenant_id, order_id, seller_sku, customer_id, quantity,
+                                       refund_amount, currency, reason, status, created_at, updated_at)
+        VALUES (#{returnId}, #{tenantId}, #{orderId}, #{sellerSku}, #{customerId}, #{quantity},
+                #{refundAmount}, #{currency}, #{reason}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateReturn" parameterType="com.aidotnet.erp.crm.infrastructure.data.ReturnRefundDO">
+        UPDATE crm_return_refund SET status = #{status}, updated_at = #{updatedAt}
+        WHERE return_id = #{returnId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectReturn" resultType="com.aidotnet.erp.crm.infrastructure.data.ReturnRefundDO">
+        SELECT return_id, tenant_id, order_id, seller_sku, customer_id, quantity,
+               refund_amount, currency, reason, status, created_at, updated_at
+        FROM crm_return_refund WHERE tenant_id = #{tenantId} AND return_id = #{returnId}
+    </select>
+
+    <select id="selectReturns" resultType="com.aidotnet.erp.crm.infrastructure.data.ReturnRefundDO">
+        SELECT return_id, tenant_id, order_id, seller_sku, customer_id, quantity,
+               refund_amount, currency, reason, status, created_at, updated_at
+        FROM crm_return_refund WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertReviewAnalysis" parameterType="com.aidotnet.erp.crm.infrastructure.data.ReviewAnalysisDO">
+        INSERT INTO crm_review_analysis (analysis_id, tenant_id, seller_sku, marketplace_id, average_rating,
+                                         total_reviews, positive_count, neutral_count, negative_count,
+                                         sentiment_summary, analyzed_at)
+        VALUES (#{analysisId}, #{tenantId}, #{sellerSku}, #{marketplaceId}, #{averageRating},
+                #{totalReviews}, #{positiveCount}, #{neutralCount}, #{negativeCount},
+                #{sentimentSummary}, #{analyzedAt})
+    </insert>
+
+    <select id="selectReviewAnalyses" resultType="com.aidotnet.erp.crm.infrastructure.data.ReviewAnalysisDO">
+        SELECT analysis_id, tenant_id, seller_sku, marketplace_id, average_rating, total_reviews,
+               positive_count, neutral_count, negative_count, sentiment_summary, analyzed_at
+        FROM crm_review_analysis WHERE tenant_id = #{tenantId}
+        ORDER BY analyzed_at DESC
+    </select>
+
+    <select id="selectReviewAnalysesBySku" resultType="com.aidotnet.erp.crm.infrastructure.data.ReviewAnalysisDO">
+        SELECT analysis_id, tenant_id, seller_sku, marketplace_id, average_rating, total_reviews,
+               positive_count, neutral_count, negative_count, sentiment_summary, analyzed_at
+        FROM crm_review_analysis WHERE tenant_id = #{tenantId} AND seller_sku = #{sellerSku}
+        ORDER BY analyzed_at DESC
+    </select>
+
+</mapper>

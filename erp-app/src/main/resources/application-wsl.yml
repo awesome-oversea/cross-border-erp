@@ -1,0 +1,46 @@
+spring:
+  config:
+    activate:
+      on-profile: wsl
+  datasource:
+    url: jdbc:postgresql://localhost:25432/erp
+    username: erp
+    password: erp
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: SET search_path TO platform, iam, pdm, som, ads, oms, scm, wms, fba, tms, crm, fms, bi, sys, dashboard, public
+  data:
+    redis:
+      host: localhost
+      port: 26379
+      password: ""
+      database: 2
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:28848
+        namespace: erp-wsl
+      config:
+        server-addr: localhost:28848
+        namespace: erp-wsl
+        file-extension: yml
+    stream:
+      binders:
+        kafka:
+          type: kafka
+          environment:
+            spring:
+              kafka:
+                bootstrap-servers: localhost:29092
+  kafka:
+    bootstrap-servers: localhost:29092
+
+erp:
+  minio:
+    endpoint: http://localhost:19000
+    access-key: minioadmin
+    secret-key: minioadmin
+    default-bucket: erp-files
+  elasticsearch:
+    host: localhost
+    port: 29200

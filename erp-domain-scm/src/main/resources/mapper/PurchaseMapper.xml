@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.PurchaseMapper">
+
+    <insert id="insertOrder" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseOrderDO">
+        INSERT INTO scm_purchase_order (po_id, tenant_id, supplier_id, po_number, currency, total_amount,
+                                        status, payment_terms, shipping_terms, purchase_type,
+                                        expected_delivery_date, actual_delivery_date, notes,
+                                        created_by, approved_by, created_at, updated_at)
+        VALUES (#{poId}, #{tenantId}, #{supplierId}, #{poNumber}, #{currency}, #{totalAmount},
+                #{status}, #{paymentTerms}, #{shippingTerms}, #{purchaseType},
+                #{expectedDeliveryDate}, #{actualDeliveryDate}, #{notes},
+                #{createdBy}, #{approvedBy}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateOrder" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseOrderDO">
+        UPDATE scm_purchase_order
+        SET supplier_id = #{supplierId}, po_number = #{poNumber}, currency = #{currency},
+            total_amount = #{totalAmount}, status = #{status}, payment_terms = #{paymentTerms},
+            shipping_terms = #{shippingTerms}, purchase_type = #{purchaseType},
+            expected_delivery_date = #{expectedDeliveryDate}, actual_delivery_date = #{actualDeliveryDate},
+            notes = #{notes}, created_by = #{createdBy}, approved_by = #{approvedBy}, updated_at = #{updatedAt}
+        WHERE po_id = #{poId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectOrder" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseOrderDO">
+        SELECT po_id, tenant_id, supplier_id, po_number, currency, total_amount, status,
+               payment_terms, shipping_terms, purchase_type, expected_delivery_date, actual_delivery_date,
+               notes, created_by, approved_by, created_at, updated_at
+        FROM scm_purchase_order
+        WHERE po_id = #{poId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectOrders" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseOrderDO">
+        SELECT po_id, tenant_id, supplier_id, po_number, currency, total_amount, status,
+               payment_terms, shipping_terms, purchase_type, expected_delivery_date, actual_delivery_date,
+               notes, created_by, approved_by, created_at, updated_at
+        FROM scm_purchase_order
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertLine" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseOrderLineDO">
+        INSERT INTO scm_purchase_order_line (po_id, line_id, product_id, seller_sku, quantity,
+                                             received_quantity, unit_cost, total_price, expected_date)
+        VALUES (#{poId}, #{lineId}, #{productId}, #{sellerSku}, #{quantity},
+                #{receivedQuantity}, #{unitCost}, #{totalPrice}, #{expectedDate})
+    </insert>
+
+    <select id="selectLines" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseOrderLineDO">
+        SELECT po_id, line_id, product_id, seller_sku, quantity, received_quantity,
+               unit_cost, total_price, expected_date
+        FROM scm_purchase_order_line
+        WHERE po_id = #{poId}
+        ORDER BY line_id
+    </select>
+
+    <delete id="deleteLines">
+        DELETE FROM scm_purchase_order_line WHERE po_id = #{poId}
+    </delete>
+
+</mapper>

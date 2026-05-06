@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.DepartmentMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.DepartmentDO">
+        INSERT INTO iam_department (dept_id, tenant_id, name, parent_dept_id, org_id, manager_id, enabled, created_at, updated_at)
+        VALUES (#{deptId}, #{tenantId}, #{name}, #{parentDeptId}, #{orgId}, #{managerId}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <select id="selectById" resultType="com.aidotnet.erp.iam.infrastructure.data.DepartmentDO">
+        SELECT dept_id, tenant_id, name, parent_dept_id, org_id, manager_id, enabled, created_at, updated_at
+        FROM iam_department
+        WHERE tenant_id = #{tenantId} AND dept_id = #{deptId}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.iam.infrastructure.data.DepartmentDO">
+        SELECT dept_id, tenant_id, name, parent_dept_id, org_id, manager_id, enabled, created_at, updated_at
+        FROM iam_department
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at
+    </select>
+
+    <select id="selectByOrg" resultType="com.aidotnet.erp.iam.infrastructure.data.DepartmentDO">
+        SELECT dept_id, tenant_id, name, parent_dept_id, org_id, manager_id, enabled, created_at, updated_at
+        FROM iam_department
+        WHERE tenant_id = #{tenantId} AND org_id = #{orgId}
+        ORDER BY created_at
+    </select>
+
+    <update id="update" parameterType="com.aidotnet.erp.iam.infrastructure.data.DepartmentDO">
+        UPDATE iam_department
+        SET name = #{name}, parent_dept_id = #{parentDeptId}, manager_id = #{managerId}, enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND dept_id = #{deptId}
+    </update>
+
+</mapper>

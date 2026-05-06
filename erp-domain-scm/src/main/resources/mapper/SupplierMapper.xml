@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.SupplierMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierDO">
+        INSERT INTO scm_supplier (supplier_id, tenant_id, name, company_name, contact_name, country_code,
+                                  credit_rating, lead_time_days, moq, status, created_at, updated_at)
+        VALUES (#{supplierId}, #{tenantId}, #{name}, #{companyName}, #{contactName}, #{countryCode},
+                #{creditRating}, #{leadTimeDays}, #{moq}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierDO">
+        UPDATE scm_supplier
+        SET name = #{name}, company_name = #{companyName}, contact_name = #{contactName},
+            country_code = #{countryCode}, credit_rating = #{creditRating},
+            lead_time_days = #{leadTimeDays}, moq = #{moq}, status = #{status}, updated_at = #{updatedAt}
+        WHERE supplier_id = #{supplierId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectById" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierDO">
+        SELECT supplier_id, tenant_id, name, company_name, contact_name, country_code,
+               credit_rating, lead_time_days, moq, status, created_at, updated_at
+        FROM scm_supplier
+        WHERE supplier_id = #{supplierId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierDO">
+        SELECT supplier_id, tenant_id, name, company_name, contact_name, country_code,
+               credit_rating, lead_time_days, moq, status, created_at, updated_at
+        FROM scm_supplier
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

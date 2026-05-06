@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.pdm.infrastructure.mapper.PdmExtMapper">
+
+    <insert id="insertIntellectualProperty" parameterType="com.aidotnet.erp.pdm.infrastructure.data.IntellectualPropertyDO">
+        INSERT INTO pdm_intellectual_property (ip_id, tenant_id, spu_id, type, name, registration_no, jurisdiction, status, filed_at, expires_at, created_at, updated_at)
+        VALUES (#{ipId}, #{tenantId}, #{spuId}, #{type}, #{name}, #{registrationNo}, #{jurisdiction}, #{status}, #{filedAt}, #{expiresAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateIntellectualProperty" parameterType="com.aidotnet.erp.pdm.infrastructure.data.IntellectualPropertyDO">
+        UPDATE pdm_intellectual_property SET status = #{status}, updated_at = #{updatedAt}
+        WHERE ip_id = #{ipId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectIntellectualProperty" resultType="com.aidotnet.erp.pdm.infrastructure.data.IntellectualPropertyDO">
+        SELECT ip_id, tenant_id, spu_id, type, name, registration_no, jurisdiction, status, filed_at, expires_at, created_at, updated_at
+        FROM pdm_intellectual_property WHERE tenant_id = #{tenantId} AND ip_id = #{ipId}
+    </select>
+
+    <select id="selectIntellectualPropertiesBySpu" resultType="com.aidotnet.erp.pdm.infrastructure.data.IntellectualPropertyDO">
+        SELECT ip_id, tenant_id, spu_id, type, name, registration_no, jurisdiction, status, filed_at, expires_at, created_at, updated_at
+        FROM pdm_intellectual_property WHERE tenant_id = #{tenantId} AND spu_id = #{spuId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertQualityStandard" parameterType="com.aidotnet.erp.pdm.infrastructure.data.QualityStandardDO">
+        INSERT INTO pdm_quality_standard (standard_id, tenant_id, category_id, name, description, inspection_items, acceptance_criteria, enabled, created_at, updated_at)
+        VALUES (#{standardId}, #{tenantId}, #{categoryId}, #{name}, #{description}, #{inspectionItems}, #{acceptanceCriteria}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateQualityStandard" parameterType="com.aidotnet.erp.pdm.infrastructure.data.QualityStandardDO">
+        UPDATE pdm_quality_standard SET name = #{name}, description = #{description}, inspection_items = #{inspectionItems},
+               acceptance_criteria = #{acceptanceCriteria}, enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE standard_id = #{standardId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectQualityStandard" resultType="com.aidotnet.erp.pdm.infrastructure.data.QualityStandardDO">
+        SELECT standard_id, tenant_id, category_id, name, description, inspection_items, acceptance_criteria, enabled, created_at, updated_at
+        FROM pdm_quality_standard WHERE tenant_id = #{tenantId} AND standard_id = #{standardId}
+    </select>
+
+    <select id="selectQualityStandards" resultType="com.aidotnet.erp.pdm.infrastructure.data.QualityStandardDO">
+        SELECT standard_id, tenant_id, category_id, name, description, inspection_items, acceptance_criteria, enabled, created_at, updated_at
+        FROM pdm_quality_standard WHERE tenant_id = #{tenantId} AND category_id = #{categoryId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertProductVariant" parameterType="com.aidotnet.erp.pdm.infrastructure.data.ProductVariantDO">
+        INSERT INTO pdm_product_variant (variant_id, tenant_id, spu_id, variant_name, variant_attributes,
+        purchase_cost, selling_price, price_adjustment, seller_sku, images, status, created_at, updated_at)
+        VALUES (#{variantId}, #{tenantId}, #{spuId}, #{variantName}, #{variantAttributes},
+        #{purchaseCost}, #{sellingPrice}, #{priceAdjustment}, #{sellerSku}, #{images}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateProductVariant" parameterType="com.aidotnet.erp.pdm.infrastructure.data.ProductVariantDO">
+        UPDATE pdm_product_variant SET variant_name = #{variantName}, variant_attributes = #{variantAttributes},
+               purchase_cost = #{purchaseCost}, selling_price = #{sellingPrice}, price_adjustment = #{priceAdjustment},
+               seller_sku = #{sellerSku}, images = #{images}, status = #{status}, updated_at = #{updatedAt}
+        WHERE variant_id = #{variantId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectProductVariant" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductVariantDO">
+        SELECT variant_id, tenant_id, spu_id, variant_name, variant_attributes,
+        purchase_cost, selling_price, price_adjustment, seller_sku, images, status, created_at, updated_at
+        FROM pdm_product_variant WHERE tenant_id = #{tenantId} AND variant_id = #{variantId}
+    </select>
+
+    <select id="selectProductVariantsBySpu" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductVariantDO">
+        SELECT variant_id, tenant_id, spu_id, variant_name, variant_attributes,
+        purchase_cost, selling_price, price_adjustment, seller_sku, images, status, created_at, updated_at
+        FROM pdm_product_variant WHERE tenant_id = #{tenantId} AND spu_id = #{spuId}
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertProductCollection" parameterType="com.aidotnet.erp.pdm.infrastructure.data.ProductCollectionDO">
+        INSERT INTO pdm_product_collection (collection_id, tenant_id, source_platform, source_url, product_name,
+        description, images, price, currency, category_id, collected_by, status, created_at, updated_at)
+        VALUES (#{collectionId}, #{tenantId}, #{sourcePlatform}, #{sourceUrl}, #{productName},
+        #{description}, #{images}, #{price}, #{currency}, #{categoryId}, #{collectedBy}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateProductCollection" parameterType="com.aidotnet.erp.pdm.infrastructure.data.ProductCollectionDO">
+        UPDATE pdm_product_collection SET source_platform = #{sourcePlatform}, source_url = #{sourceUrl},
+               product_name = #{productName}, description = #{description}, images = #{images},
+               price = #{price}, currency = #{currency}, category_id = #{categoryId},
+               collected_by = #{collectedBy}, status = #{status}, updated_at = #{updatedAt}
+        WHERE collection_id = #{collectionId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectProductCollection" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductCollectionDO">
+        SELECT collection_id, tenant_id, source_platform, source_url, product_name, description, images,
+        price, currency, category_id, collected_by, status, created_at, updated_at
+        FROM pdm_product_collection WHERE tenant_id = #{tenantId} AND collection_id = #{collectionId}
+    </select>
+
+    <select id="selectProductCollections" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductCollectionDO">
+        SELECT collection_id, tenant_id, source_platform, source_url, product_name, description, images,
+        price, currency, category_id, collected_by, status, created_at, updated_at
+        FROM pdm_product_collection WHERE tenant_id = #{tenantId} ORDER BY created_at DESC
+    </select>
+
+    <select id="selectProductCollectionsByStatus" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductCollectionDO">
+        SELECT collection_id, tenant_id, source_platform, source_url, product_name, description, images,
+        price, currency, category_id, collected_by, status, created_at, updated_at
+        FROM pdm_product_collection WHERE tenant_id = #{tenantId} AND status = #{status} ORDER BY created_at DESC
+    </select>
+
+</mapper>

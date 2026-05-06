@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.som.infrastructure.mapper.SalesStoreMapper">
+
+    <insert id="insertStore" parameterType="com.aidotnet.erp.som.infrastructure.data.SalesStoreDO">
+        INSERT INTO som_sales_store (store_id, tenant_id, platform, store_code, store_name, status, created_at, updated_at)
+        VALUES (#{storeId}, #{tenantId}, #{platform}, #{storeCode}, #{storeName}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateStore" parameterType="com.aidotnet.erp.som.infrastructure.data.SalesStoreDO">
+        UPDATE som_sales_store
+        SET platform = #{platform},
+            store_code = #{storeCode},
+            store_name = #{storeName},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND store_id = #{storeId}
+    </update>
+
+    <select id="selectStore" resultType="com.aidotnet.erp.som.infrastructure.data.SalesStoreDO">
+        SELECT store_id, tenant_id, platform, store_code, store_name, status, created_at, updated_at
+        FROM som_sales_store
+        WHERE tenant_id = #{tenantId}
+          AND store_id = #{storeId}
+    </select>
+
+    <select id="selectStoreByCode" resultType="com.aidotnet.erp.som.infrastructure.data.SalesStoreDO">
+        SELECT store_id, tenant_id, platform, store_code, store_name, status, created_at, updated_at
+        FROM som_sales_store
+        WHERE tenant_id = #{tenantId}
+          AND platform = #{platform}
+          AND store_code = #{storeCode}
+    </select>
+
+    <select id="selectStores" resultType="com.aidotnet.erp.som.infrastructure.data.SalesStoreDO">
+        SELECT store_id, tenant_id, platform, store_code, store_name, status, created_at, updated_at
+        FROM som_sales_store
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertTracking" parameterType="com.aidotnet.erp.som.infrastructure.data.SalesTrackingDO">
+        INSERT INTO som_sales_tracking (
+            tracking_id, tenant_id, store_id, seller_sku, marketplace_id, units_sold, revenue, average_price,
+            period_start, period_end, created_at
+        )
+        VALUES (
+            #{trackingId}, #{tenantId}, #{storeId}, #{sellerSku}, #{marketplaceId}, #{unitsSold}, #{revenue}, #{averagePrice},
+            #{periodStart}, #{periodEnd}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectTrackingsByStore" resultType="com.aidotnet.erp.som.infrastructure.data.SalesTrackingDO">
+        SELECT tracking_id, tenant_id, store_id, seller_sku, marketplace_id, units_sold, revenue, average_price,
+               period_start, period_end, created_at
+        FROM som_sales_tracking
+        WHERE tenant_id = #{tenantId}
+          AND store_id = #{storeId}
+        ORDER BY period_start DESC, created_at DESC
+    </select>
+
+    <select id="selectTrackingsBySku" resultType="com.aidotnet.erp.som.infrastructure.data.SalesTrackingDO">
+        SELECT tracking_id, tenant_id, store_id, seller_sku, marketplace_id, units_sold, revenue, average_price,
+               period_start, period_end, created_at
+        FROM som_sales_tracking
+        WHERE tenant_id = #{tenantId}
+          AND seller_sku = #{sellerSku}
+        ORDER BY period_start DESC, created_at DESC
+    </select>
+
+    <insert id="insertMetrics" parameterType="com.aidotnet.erp.som.infrastructure.data.StoreMetricsDO">
+        INSERT INTO som_store_metrics (
+            metrics_id, tenant_id, store_id, marketplace_id, total_revenue, total_orders, average_order_value,
+            return_rate, feedback_score, period_start, period_end, created_at
+        )
+        VALUES (
+            #{metricsId}, #{tenantId}, #{storeId}, #{marketplaceId}, #{totalRevenue}, #{totalOrders}, #{averageOrderValue},
+            #{returnRate}, #{feedbackScore}, #{periodStart}, #{periodEnd}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectMetricsByStore" resultType="com.aidotnet.erp.som.infrastructure.data.StoreMetricsDO">
+        SELECT metrics_id, tenant_id, store_id, marketplace_id, total_revenue, total_orders, average_order_value,
+               return_rate, feedback_score, period_start, period_end, created_at
+        FROM som_store_metrics
+        WHERE tenant_id = #{tenantId}
+          AND store_id = #{storeId}
+        ORDER BY period_start DESC, created_at DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.sys.infrastructure.mapper.SystemConfigMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.sys.infrastructure.data.SystemConfigDO">
+        INSERT INTO sys_config (config_id, tenant_id, config_key, config_value, description, enabled, created_at, updated_at)
+        VALUES (#{configId}, #{tenantId}, #{configKey}, #{configValue}, #{description}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="com.aidotnet.erp.sys.infrastructure.data.SystemConfigDO">
+        UPDATE sys_config
+        SET config_key = #{configKey}, config_value = #{configValue}, description = #{description},
+            enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE config_id = #{configId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectByConfigId" resultType="com.aidotnet.erp.sys.infrastructure.data.SystemConfigDO">
+        SELECT config_id, tenant_id, config_key, config_value, description, enabled, created_at, updated_at
+        FROM sys_config
+        WHERE tenant_id = #{tenantId} AND config_id = #{configId}
+    </select>
+
+    <select id="selectByConfigKey" resultType="com.aidotnet.erp.sys.infrastructure.data.SystemConfigDO">
+        SELECT config_id, tenant_id, config_key, config_value, description, enabled, created_at, updated_at
+        FROM sys_config
+        WHERE tenant_id = #{tenantId} AND config_key = #{configKey}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.sys.infrastructure.data.SystemConfigDO">
+        SELECT config_id, tenant_id, config_key, config_value, description, enabled, created_at, updated_at
+        FROM sys_config
+        WHERE tenant_id = #{tenantId}
+        ORDER BY config_key ASC
+    </select>
+
+    <delete id="deleteByConfigId">
+        DELETE FROM sys_config
+        WHERE tenant_id = #{tenantId} AND config_id = #{configId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.OrganizationMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.OrganizationDO">
+        INSERT INTO iam_organization (org_id, tenant_id, name, parent_org_id, created_at, updated_at)
+        VALUES (#{orgId}, #{tenantId}, #{name}, #{parentOrgId}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <select id="selectById" resultType="com.aidotnet.erp.iam.infrastructure.data.OrganizationDO">
+        SELECT org_id, tenant_id, name, parent_org_id, created_at, updated_at
+        FROM iam_organization
+        WHERE tenant_id = #{tenantId} AND org_id = #{orgId}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.iam.infrastructure.data.OrganizationDO">
+        SELECT org_id, tenant_id, name, parent_org_id, created_at, updated_at
+        FROM iam_organization
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at
+    </select>
+
+    <update id="update" parameterType="com.aidotnet.erp.iam.infrastructure.data.OrganizationDO">
+        UPDATE iam_organization
+        SET name = #{name}, parent_org_id = #{parentOrgId}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND org_id = #{orgId}
+    </update>
+
+</mapper>

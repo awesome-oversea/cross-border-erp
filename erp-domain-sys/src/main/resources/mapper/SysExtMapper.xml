@@ -1,0 +1,571 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.sys.infrastructure.mapper.SysExtMapper">
+
+    <insert id="insertDataDictionary" parameterType="com.aidotnet.erp.sys.infrastructure.data.DataDictionaryDO">
+        INSERT INTO sys_data_dictionary (dict_id, tenant_id, dict_code, dict_name, dict_type, parent_code, sort_order, enabled, remark, created_at, updated_at)
+        VALUES (#{dictId}, #{tenantId}, #{dictCode}, #{dictName}, #{dictType}, #{parentCode}, #{sortOrder}, #{enabled}, #{remark}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateDataDictionary" parameterType="com.aidotnet.erp.sys.infrastructure.data.DataDictionaryDO">
+        UPDATE sys_data_dictionary SET dict_name = #{dictName}, sort_order = #{sortOrder}, enabled = #{enabled}, remark = #{remark}, updated_at = #{updatedAt}
+        WHERE dict_id = #{dictId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectDataDictionary" resultType="com.aidotnet.erp.sys.infrastructure.data.DataDictionaryDO">
+        SELECT dict_id, tenant_id, dict_code, dict_name, dict_type, parent_code, sort_order, enabled, remark, created_at, updated_at
+        FROM sys_data_dictionary WHERE tenant_id = #{tenantId} AND dict_id = #{dictId}
+    </select>
+
+    <select id="selectDataDictionaries" resultType="com.aidotnet.erp.sys.infrastructure.data.DataDictionaryDO">
+        SELECT dict_id, tenant_id, dict_code, dict_name, dict_type, parent_code, sort_order, enabled, remark, created_at, updated_at
+        FROM sys_data_dictionary WHERE tenant_id = #{tenantId}
+        <if test="dictType != null">AND dict_type = #{dictType}</if>
+        ORDER BY sort_order ASC, created_at ASC
+    </select>
+
+    <select id="selectDataDictionaryByCode" resultType="com.aidotnet.erp.sys.infrastructure.data.DataDictionaryDO">
+        SELECT dict_id, tenant_id, dict_code, dict_name, dict_type, parent_code, sort_order, enabled, remark, created_at, updated_at
+        FROM sys_data_dictionary WHERE tenant_id = #{tenantId} AND dict_code = #{dictCode}
+    </select>
+
+    <insert id="insertAIFeatureToggle" parameterType="com.aidotnet.erp.sys.infrastructure.data.AIFeatureToggleDO">
+        INSERT INTO sys_ai_feature_toggle (toggle_id, tenant_id, feature_code, feature_name, domain, enabled, description, config_json, created_at, updated_at)
+        VALUES (#{toggleId}, #{tenantId}, #{featureCode}, #{featureName}, #{domain}, #{enabled}, #{description}, #{configJson}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateAIFeatureToggle" parameterType="com.aidotnet.erp.sys.infrastructure.data.AIFeatureToggleDO">
+        UPDATE sys_ai_feature_toggle SET enabled = #{enabled}, description = #{description}, config_json = #{configJson}, updated_at = #{updatedAt}
+        WHERE toggle_id = #{toggleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectAIFeatureToggle" resultType="com.aidotnet.erp.sys.infrastructure.data.AIFeatureToggleDO">
+        SELECT toggle_id, tenant_id, feature_code, feature_name, domain, enabled, description, config_json, created_at, updated_at
+        FROM sys_ai_feature_toggle WHERE tenant_id = #{tenantId} AND toggle_id = #{toggleId}
+    </select>
+
+    <select id="selectAIFeatureToggles" resultType="com.aidotnet.erp.sys.infrastructure.data.AIFeatureToggleDO">
+        SELECT toggle_id, tenant_id, feature_code, feature_name, domain, enabled, description, config_json, created_at, updated_at
+        FROM sys_ai_feature_toggle WHERE tenant_id = #{tenantId}
+        <if test="domain != null">AND domain = #{domain}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <select id="selectAIFeatureToggleByCode" resultType="com.aidotnet.erp.sys.infrastructure.data.AIFeatureToggleDO">
+        SELECT toggle_id, tenant_id, feature_code, feature_name, domain, enabled, description, config_json, created_at, updated_at
+        FROM sys_ai_feature_toggle WHERE tenant_id = #{tenantId} AND feature_code = #{featureCode}
+    </select>
+
+    <insert id="insertLogisticsRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.LogisticsRuleDO">
+        INSERT INTO sys_logistics_rule (rule_id, tenant_id, rule_name, country_code, channel, weight_min_kg, weight_max_kg, base_cost, cost_per_kg, estimated_days_min, estimated_days_max, enabled, priority, created_at, updated_at)
+        VALUES (#{ruleId}, #{tenantId}, #{ruleName}, #{countryCode}, #{channel}, #{weightMinKg}, #{weightMaxKg}, #{baseCost}, #{costPerKg}, #{estimatedDaysMin}, #{estimatedDaysMax}, #{enabled}, #{priority}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateLogisticsRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.LogisticsRuleDO">
+        UPDATE sys_logistics_rule SET rule_name = #{ruleName}, base_cost = #{baseCost}, cost_per_kg = #{costPerKg},
+               estimated_days_min = #{estimatedDaysMin}, estimated_days_max = #{estimatedDaysMax}, enabled = #{enabled},
+               priority = #{priority}, updated_at = #{updatedAt}
+        WHERE rule_id = #{ruleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectLogisticsRule" resultType="com.aidotnet.erp.sys.infrastructure.data.LogisticsRuleDO">
+        SELECT rule_id, tenant_id, rule_name, country_code, channel, weight_min_kg, weight_max_kg, base_cost, cost_per_kg, estimated_days_min, estimated_days_max, enabled, priority, created_at, updated_at
+        FROM sys_logistics_rule WHERE tenant_id = #{tenantId} AND rule_id = #{ruleId}
+    </select>
+
+    <select id="selectLogisticsRules" resultType="com.aidotnet.erp.sys.infrastructure.data.LogisticsRuleDO">
+        SELECT rule_id, tenant_id, rule_name, country_code, channel, weight_min_kg, weight_max_kg, base_cost, cost_per_kg, estimated_days_min, estimated_days_max, enabled, priority, created_at, updated_at
+        FROM sys_logistics_rule WHERE tenant_id = #{tenantId}
+        <if test="countryCode != null">AND country_code = #{countryCode}</if>
+        ORDER BY priority ASC, created_at DESC
+    </select>
+
+    <select id="selectActiveLogisticsRules" resultType="com.aidotnet.erp.sys.infrastructure.data.LogisticsRuleDO">
+        SELECT rule_id, tenant_id, rule_name, country_code, channel, weight_min_kg, weight_max_kg, base_cost, cost_per_kg, estimated_days_min, estimated_days_max, enabled, priority, created_at, updated_at
+        FROM sys_logistics_rule WHERE tenant_id = #{tenantId} AND country_code = #{countryCode}
+              AND enabled = true
+              <if test="channel != null">AND channel = #{channel}</if>
+        ORDER BY priority ASC LIMIT 10
+    </select>
+
+    <insert id="insertConnectorConfig" parameterType="com.aidotnet.erp.sys.infrastructure.data.ConnectorConfigDO">
+        INSERT INTO sys_connector_config (config_id, tenant_id, connector_type, platform, connector_name, config, status, version, description, last_sync_at, created_at, updated_at)
+        VALUES (#{configId}, #{tenantId}, #{connectorType}, #{platform}, #{connectorName}, #{config}, #{status}, #{version}, #{description}, #{lastSyncAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateConnectorConfig" parameterType="com.aidotnet.erp.sys.infrastructure.data.ConnectorConfigDO">
+        UPDATE sys_connector_config SET connector_name = #{connectorName}, config = #{config}, status = #{status},
+               version = #{version}, description = #{description}, last_sync_at = #{lastSyncAt}, updated_at = #{updatedAt}
+        WHERE config_id = #{configId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectConnectorConfig" resultType="com.aidotnet.erp.sys.infrastructure.data.ConnectorConfigDO">
+        SELECT config_id, tenant_id, connector_type, platform, connector_name, config, status, version, description, last_sync_at, created_at, updated_at
+        FROM sys_connector_config WHERE tenant_id = #{tenantId} AND config_id = #{configId}
+    </select>
+
+    <select id="selectConnectorConfigs" resultType="com.aidotnet.erp.sys.infrastructure.data.ConnectorConfigDO">
+        SELECT config_id, tenant_id, connector_type, platform, connector_name, config, status, version, description, last_sync_at, created_at, updated_at
+        FROM sys_connector_config WHERE tenant_id = #{tenantId}
+        <if test="connectorType != null">AND connector_type = #{connectorType}</if>
+        <if test="platform != null">AND platform = #{platform}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <select id="selectActiveConnectorConfigs" resultType="com.aidotnet.erp.sys.infrastructure.data.ConnectorConfigDO">
+        SELECT config_id, tenant_id, connector_type, platform, connector_name, config, status, version, description, last_sync_at, created_at, updated_at
+        FROM sys_connector_config WHERE tenant_id = #{tenantId} AND status = 'ACTIVE'
+        <if test="connectorType != null">AND connector_type = #{connectorType}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertInvoiceSetting" parameterType="com.aidotnet.erp.sys.infrastructure.data.InvoiceSettingDO">
+        INSERT INTO sys_invoice_setting (setting_id, tenant_id, setting_type, setting_name, config, enabled, description, created_at, updated_at)
+        VALUES (#{settingId}, #{tenantId}, #{settingType}, #{settingName}, #{config}, #{enabled}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateInvoiceSetting" parameterType="com.aidotnet.erp.sys.infrastructure.data.InvoiceSettingDO">
+        UPDATE sys_invoice_setting SET setting_name = #{settingName}, config = #{config}, enabled = #{enabled}, description = #{description}, updated_at = #{updatedAt}
+        WHERE setting_id = #{settingId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectInvoiceSetting" resultType="com.aidotnet.erp.sys.infrastructure.data.InvoiceSettingDO">
+        SELECT setting_id, tenant_id, setting_type, setting_name, config, enabled, description, created_at, updated_at
+        FROM sys_invoice_setting WHERE tenant_id = #{tenantId} AND setting_id = #{settingId}
+    </select>
+
+    <select id="selectInvoiceSettings" resultType="com.aidotnet.erp.sys.infrastructure.data.InvoiceSettingDO">
+        SELECT setting_id, tenant_id, setting_type, setting_name, config, enabled, description, created_at, updated_at
+        FROM sys_invoice_setting WHERE tenant_id = #{tenantId}
+        <if test="settingType != null">AND setting_type = #{settingType}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertNotificationSetting" parameterType="com.aidotnet.erp.sys.infrastructure.data.NotificationSettingDO">
+        INSERT INTO sys_notification_setting (setting_id, tenant_id, channel, channel_name, rules, enabled, description, created_at, updated_at)
+        VALUES (#{settingId}, #{tenantId}, #{channel}, #{channelName}, #{rules}, #{enabled}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateNotificationSetting" parameterType="com.aidotnet.erp.sys.infrastructure.data.NotificationSettingDO">
+        UPDATE sys_notification_setting SET channel_name = #{channelName}, rules = #{rules}, enabled = #{enabled}, description = #{description}, updated_at = #{updatedAt}
+        WHERE setting_id = #{settingId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectNotificationSetting" resultType="com.aidotnet.erp.sys.infrastructure.data.NotificationSettingDO">
+        SELECT setting_id, tenant_id, channel, channel_name, rules, enabled, description, created_at, updated_at
+        FROM sys_notification_setting WHERE tenant_id = #{tenantId} AND setting_id = #{settingId}
+    </select>
+
+    <select id="selectNotificationSettings" resultType="com.aidotnet.erp.sys.infrastructure.data.NotificationSettingDO">
+        SELECT setting_id, tenant_id, channel, channel_name, rules, enabled, description, created_at, updated_at
+        FROM sys_notification_setting WHERE tenant_id = #{tenantId}
+        <if test="channel != null">AND channel = #{channel}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertNotificationTemplate" parameterType="com.aidotnet.erp.sys.infrastructure.data.NotificationTemplateDO">
+        INSERT INTO sys_notification_template (template_id, tenant_id, template_code, template_name, channel, subject, content, variables, enabled, description, created_at, updated_at)
+        VALUES (#{templateId}, #{tenantId}, #{templateCode}, #{templateName}, #{channel}, #{subject}, #{content}, #{variables}, #{enabled}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateNotificationTemplate" parameterType="com.aidotnet.erp.sys.infrastructure.data.NotificationTemplateDO">
+        UPDATE sys_notification_template SET template_name = #{templateName}, subject = #{subject}, content = #{content},
+               variables = #{variables}, enabled = #{enabled}, description = #{description}, updated_at = #{updatedAt}
+        WHERE template_id = #{templateId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectNotificationTemplate" resultType="com.aidotnet.erp.sys.infrastructure.data.NotificationTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, channel, subject, content, variables, enabled, description, created_at, updated_at
+        FROM sys_notification_template WHERE tenant_id = #{tenantId} AND template_id = #{templateId}
+    </select>
+
+    <select id="selectNotificationTemplates" resultType="com.aidotnet.erp.sys.infrastructure.data.NotificationTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, channel, subject, content, variables, enabled, description, created_at, updated_at
+        FROM sys_notification_template WHERE tenant_id = #{tenantId}
+        <if test="channel != null">AND channel = #{channel}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <select id="selectNotificationTemplateByCode" resultType="com.aidotnet.erp.sys.infrastructure.data.NotificationTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, channel, subject, content, variables, enabled, description, created_at, updated_at
+        FROM sys_notification_template WHERE tenant_id = #{tenantId} AND template_code = #{templateCode}
+    </select>
+
+    <insert id="insertOperationLog" parameterType="com.aidotnet.erp.sys.infrastructure.data.OperationLogDO">
+        INSERT INTO sys_operation_log (log_id, tenant_id, user_id, username, module, action, target_object_type, target_object_id, detail, ip_address, user_agent, trace_id, operated_at)
+        VALUES (#{logId}, #{tenantId}, #{userId}, #{username}, #{module}, #{action}, #{targetObjectType}, #{targetObjectId}, #{detail}, #{ipAddress}, #{userAgent}, #{traceId}, #{operatedAt})
+    </insert>
+
+    <select id="selectOperationLogs" resultType="com.aidotnet.erp.sys.infrastructure.data.OperationLogDO">
+        SELECT log_id, tenant_id, user_id, username, module, action, target_object_type, target_object_id, detail, ip_address, user_agent, trace_id, operated_at
+        FROM sys_operation_log WHERE tenant_id = #{tenantId}
+        <if test="module != null">AND module = #{module}</if>
+        <if test="userId != null">AND user_id = #{userId}</if>
+        ORDER BY operated_at DESC LIMIT 200
+    </select>
+
+    <select id="selectOperationLogsByTraceId" resultType="com.aidotnet.erp.sys.infrastructure.data.OperationLogDO">
+        SELECT log_id, tenant_id, user_id, username, module, action, target_object_type, target_object_id, detail, ip_address, user_agent, trace_id, operated_at
+        FROM sys_operation_log WHERE tenant_id = #{tenantId} AND trace_id = #{traceId}
+        ORDER BY operated_at DESC
+    </select>
+
+    <insert id="insertDataMaskingRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.DataMaskingRuleDO">
+        INSERT INTO sys_data_masking_rule (rule_id, tenant_id, rule_code, rule_name, field_type, mask_pattern, replace_char, keep_prefix, keep_suffix, enabled, description, created_at, updated_at)
+        VALUES (#{ruleId}, #{tenantId}, #{ruleCode}, #{ruleName}, #{fieldType}, #{maskPattern}, #{replaceChar}, #{keepPrefix}, #{keepSuffix}, #{enabled}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateDataMaskingRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.DataMaskingRuleDO">
+        UPDATE sys_data_masking_rule SET rule_name = #{ruleName}, mask_pattern = #{maskPattern}, replace_char = #{replaceChar},
+               keep_prefix = #{keepPrefix}, keep_suffix = #{keepSuffix}, enabled = #{enabled}, description = #{description}, updated_at = #{updatedAt}
+        WHERE rule_id = #{ruleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectDataMaskingRule" resultType="com.aidotnet.erp.sys.infrastructure.data.DataMaskingRuleDO">
+        SELECT rule_id, tenant_id, rule_code, rule_name, field_type, mask_pattern, replace_char, keep_prefix, keep_suffix, enabled, description, created_at, updated_at
+        FROM sys_data_masking_rule WHERE tenant_id = #{tenantId} AND rule_id = #{ruleId}
+    </select>
+
+    <select id="selectDataMaskingRules" resultType="com.aidotnet.erp.sys.infrastructure.data.DataMaskingRuleDO">
+        SELECT rule_id, tenant_id, rule_code, rule_name, field_type, mask_pattern, replace_char, keep_prefix, keep_suffix, enabled, description, created_at, updated_at
+        FROM sys_data_masking_rule WHERE tenant_id = #{tenantId}
+        <if test="fieldType != null">AND field_type = #{fieldType}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <select id="selectDataMaskingRuleByCode" resultType="com.aidotnet.erp.sys.infrastructure.data.DataMaskingRuleDO">
+        SELECT rule_id, tenant_id, rule_code, rule_name, field_type, mask_pattern, replace_char, keep_prefix, keep_suffix, enabled, description, created_at, updated_at
+        FROM sys_data_masking_rule WHERE tenant_id = #{tenantId} AND rule_code = #{ruleCode}
+    </select>
+
+    <insert id="insertBusinessRuleVersion" parameterType="com.aidotnet.erp.sys.infrastructure.data.BusinessRuleVersionDO">
+        INSERT INTO sys_business_rule_version (version_id, tenant_id, rule_id, rule_type, rule_name, version, content_json, change_description, changed_by, created_at)
+        VALUES (#{versionId}, #{tenantId}, #{ruleId}, #{ruleType}, #{ruleName}, #{version}, #{contentJson}, #{changeDescription}, #{changedBy}, #{createdAt})
+    </insert>
+
+    <select id="selectBusinessRuleVersions" resultType="com.aidotnet.erp.sys.infrastructure.data.BusinessRuleVersionDO">
+        SELECT version_id, tenant_id, rule_id, rule_type, rule_name, version, content_json, change_description, changed_by, created_at
+        FROM sys_business_rule_version WHERE tenant_id = #{tenantId}
+        <if test="ruleId != null">AND rule_id = #{ruleId}</if>
+        <if test="ruleType != null">AND rule_type = #{ruleType}</if>
+        ORDER BY version DESC
+    </select>
+
+    <insert id="insertRuleExecutionLog" parameterType="com.aidotnet.erp.sys.infrastructure.data.RuleExecutionLogDO">
+        INSERT INTO sys_rule_execution_log (log_id, tenant_id, rule_id, rule_version, rule_type, business_type, reference_id, input_context, output_result, success, error_message, execution_time_ms, executed_at)
+        VALUES (#{logId}, #{tenantId}, #{ruleId}, #{ruleVersion}, #{ruleType}, #{businessType}, #{referenceId}, #{inputContext}, #{outputResult}, #{success}, #{errorMessage}, #{executionTimeMs}, #{executedAt})
+    </insert>
+
+    <select id="selectRuleExecutionLogs" resultType="com.aidotnet.erp.sys.infrastructure.data.RuleExecutionLogDO">
+        SELECT log_id, tenant_id, rule_id, rule_version, rule_type, business_type, reference_id, input_context, output_result, success, error_message, execution_time_ms, executed_at
+        FROM sys_rule_execution_log WHERE tenant_id = #{tenantId}
+        <if test="ruleId != null">AND rule_id = #{ruleId}</if>
+        <if test="businessType != null">AND business_type = #{businessType}</if>
+        ORDER BY executed_at DESC
+    </select>
+
+    <select id="selectRuleExecutionLogsByReference" resultType="com.aidotnet.erp.sys.infrastructure.data.RuleExecutionLogDO">
+        SELECT log_id, tenant_id, rule_id, rule_version, rule_type, business_type, reference_id, input_context, output_result, success, error_message, execution_time_ms, executed_at
+        FROM sys_rule_execution_log WHERE tenant_id = #{tenantId} AND reference_id = #{referenceId}
+        ORDER BY executed_at DESC
+    </select>
+
+    <insert id="insertSimulationReplay" parameterType="com.aidotnet.erp.sys.infrastructure.data.SimulationReplayDO">
+        INSERT INTO sys_simulation_replay (replay_id, tenant_id, rule_id, rule_version, rule_type, input_context, output_result, passed, error_message, replayed_at)
+        VALUES (#{replayId}, #{tenantId}, #{ruleId}, #{ruleVersion}, #{ruleType}, #{inputContext}, #{outputResult}, #{passed}, #{errorMessage}, #{replayedAt})
+    </insert>
+
+    <select id="selectSimulationReplays" resultType="com.aidotnet.erp.sys.infrastructure.data.SimulationReplayDO">
+        SELECT replay_id, tenant_id, rule_id, rule_version, rule_type, input_context, output_result, passed, error_message, replayed_at
+        FROM sys_simulation_replay WHERE tenant_id = #{tenantId}
+        <if test="ruleId != null">AND rule_id = #{ruleId}</if>
+        ORDER BY replayed_at DESC
+    </select>
+
+    <insert id="insertWebhookEndpoint" parameterType="com.aidotnet.erp.sys.infrastructure.data.WebhookEndpointDO">
+        INSERT INTO sys_webhook_endpoint (endpoint_id, tenant_id, name, url, event_type, headers, secret, active, retry_count, timeout_seconds, subscribed_events, created_at, updated_at)
+        VALUES (#{endpointId}, #{tenantId}, #{name}, #{url}, #{eventType}, #{headers}, #{secret}, #{active}, #{retryCount}, #{timeoutSeconds}, #{subscribedEvents}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateWebhookEndpoint" parameterType="com.aidotnet.erp.sys.infrastructure.data.WebhookEndpointDO">
+        UPDATE sys_webhook_endpoint SET name = #{name}, url = #{url}, event_type = #{eventType}, headers = #{headers}, secret = #{secret}, active = #{active}, retry_count = #{retryCount}, timeout_seconds = #{timeoutSeconds}, subscribed_events = #{subscribedEvents}, updated_at = #{updatedAt}
+        WHERE endpoint_id = #{endpointId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectWebhookEndpoint" resultType="com.aidotnet.erp.sys.infrastructure.data.WebhookEndpointDO">
+        SELECT endpoint_id, tenant_id, name, url, event_type, headers, secret, active, retry_count, timeout_seconds, subscribed_events, created_at, updated_at
+        FROM sys_webhook_endpoint WHERE tenant_id = #{tenantId} AND endpoint_id = #{endpointId}
+    </select>
+
+    <select id="selectWebhookEndpoints" resultType="com.aidotnet.erp.sys.infrastructure.data.WebhookEndpointDO">
+        SELECT endpoint_id, tenant_id, name, url, event_type, headers, secret, active, retry_count, timeout_seconds, subscribed_events, created_at, updated_at
+        FROM sys_webhook_endpoint WHERE tenant_id = #{tenantId}
+        ORDER BY created_at ASC
+    </select>
+
+    <delete id="deleteWebhookEndpoint">
+        DELETE FROM sys_webhook_endpoint WHERE tenant_id = #{tenantId} AND endpoint_id = #{endpointId}
+    </delete>
+
+    <insert id="insertWebhookDelivery" parameterType="com.aidotnet.erp.sys.infrastructure.data.WebhookDeliveryDO">
+        INSERT INTO sys_webhook_delivery (delivery_id, tenant_id, endpoint_id, event_type, payload, status_code, response, success, attempt_count, next_retry_at, delivered_at)
+        VALUES (#{deliveryId}, #{tenantId}, #{endpointId}, #{eventType}, #{payload}, #{statusCode}, #{response}, #{success}, #{attemptCount}, #{nextRetryAt}, #{deliveredAt})
+    </insert>
+
+    <select id="selectWebhookDelivery" resultType="com.aidotnet.erp.sys.infrastructure.data.WebhookDeliveryDO">
+        SELECT delivery_id, tenant_id, endpoint_id, event_type, payload, status_code, response, success, attempt_count, next_retry_at, delivered_at
+        FROM sys_webhook_delivery WHERE tenant_id = #{tenantId} AND delivery_id = #{deliveryId}
+    </select>
+
+    <select id="selectWebhookDeliveries" resultType="com.aidotnet.erp.sys.infrastructure.data.WebhookDeliveryDO">
+        SELECT delivery_id, tenant_id, endpoint_id, event_type, payload, status_code, response, success, attempt_count, next_retry_at, delivered_at
+        FROM sys_webhook_delivery WHERE tenant_id = #{tenantId}
+        <if test="endpointId != null">AND endpoint_id = #{endpointId}</if>
+        ORDER BY delivered_at DESC
+    </select>
+
+    <insert id="insertManualImportTask" parameterType="com.aidotnet.erp.sys.infrastructure.data.ManualImportTaskDO">
+        INSERT INTO sys_manual_import_task (task_id, tenant_id, import_type, file_name, file_size, status, total_rows, success_rows, failed_rows, column_mapping, error_report_url, imported_by, started_at, completed_at)
+        VALUES (#{taskId}, #{tenantId}, #{importType}, #{fileName}, #{fileSize}, #{status}, #{totalRows}, #{successRows}, #{failedRows}, #{columnMapping}, #{errorReportUrl}, #{importedBy}, #{startedAt}, #{completedAt})
+    </insert>
+
+    <update id="updateManualImportTask" parameterType="com.aidotnet.erp.sys.infrastructure.data.ManualImportTaskDO">
+        UPDATE sys_manual_import_task SET status = #{status}, total_rows = #{totalRows}, success_rows = #{successRows}, failed_rows = #{failedRows}, error_report_url = #{errorReportUrl}, completed_at = #{completedAt}
+        WHERE task_id = #{taskId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectManualImportTask" resultType="com.aidotnet.erp.sys.infrastructure.data.ManualImportTaskDO">
+        SELECT task_id, tenant_id, import_type, file_name, file_size, status, total_rows, success_rows, failed_rows, column_mapping, error_report_url, imported_by, started_at, completed_at
+        FROM sys_manual_import_task WHERE tenant_id = #{tenantId} AND task_id = #{taskId}
+    </select>
+
+    <select id="selectManualImportTasks" resultType="com.aidotnet.erp.sys.infrastructure.data.ManualImportTaskDO">
+        SELECT task_id, tenant_id, import_type, file_name, file_size, status, total_rows, success_rows, failed_rows, column_mapping, error_report_url, imported_by, started_at, completed_at
+        FROM sys_manual_import_task WHERE tenant_id = #{tenantId}
+        <if test="importType != null">AND import_type = #{importType}</if>
+        ORDER BY started_at DESC
+    </select>
+
+    <insert id="insertPrintTemplate" parameterType="com.aidotnet.erp.sys.infrastructure.data.PrintTemplateDO">
+        INSERT INTO sys_print_template (template_id, tenant_id, template_code, template_name, template_type, content, paper_size, orientation, variables, enabled, description, created_at, updated_at)
+        VALUES (#{templateId}, #{tenantId}, #{templateCode}, #{templateName}, #{templateType}, #{content}, #{paperSize}, #{orientation}, #{variables}, #{enabled}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updatePrintTemplate" parameterType="com.aidotnet.erp.sys.infrastructure.data.PrintTemplateDO">
+        UPDATE sys_print_template SET template_name = #{templateName}, content = #{content}, paper_size = #{paperSize}, orientation = #{orientation}, variables = #{variables}, enabled = #{enabled}, description = #{description}, updated_at = #{updatedAt}
+        WHERE template_id = #{templateId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectPrintTemplate" resultType="com.aidotnet.erp.sys.infrastructure.data.PrintTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, template_type, content, paper_size, orientation, variables, enabled, description, created_at, updated_at
+        FROM sys_print_template WHERE tenant_id = #{tenantId} AND template_id = #{templateId}
+    </select>
+
+    <select id="selectPrintTemplateByCode" resultType="com.aidotnet.erp.sys.infrastructure.data.PrintTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, template_type, content, paper_size, orientation, variables, enabled, description, created_at, updated_at
+        FROM sys_print_template WHERE tenant_id = #{tenantId} AND template_code = #{templateCode}
+    </select>
+
+    <select id="selectPrintTemplates" resultType="com.aidotnet.erp.sys.infrastructure.data.PrintTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, template_type, content, paper_size, orientation, variables, enabled, description, created_at, updated_at
+        FROM sys_print_template WHERE tenant_id = #{tenantId}
+        <if test="templateType != null">AND template_type = #{templateType}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertDomainEventCatalog" parameterType="com.aidotnet.erp.sys.infrastructure.data.DomainEventCatalogDO">
+        INSERT INTO sys_domain_event_catalog (event_id, tenant_id, event_code, event_name, domain, aggregate_type, event_type, description, payload_schema, subscribers, version, enabled, created_at, updated_at)
+        VALUES (#{eventId}, #{tenantId}, #{eventCode}, #{eventName}, #{domain}, #{aggregateType}, #{eventType}, #{description}, #{payloadSchema}, #{subscribers}, #{version}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <select id="selectDomainEventCatalog" resultType="com.aidotnet.erp.sys.infrastructure.data.DomainEventCatalogDO">
+        SELECT event_id, tenant_id, event_code, event_name, domain, aggregate_type, event_type, description, payload_schema, subscribers, version, enabled, created_at, updated_at
+        FROM sys_domain_event_catalog WHERE tenant_id = #{tenantId} AND event_id = #{eventId}
+    </select>
+
+    <select id="selectDomainEventCatalogByCode" resultType="com.aidotnet.erp.sys.infrastructure.data.DomainEventCatalogDO">
+        SELECT event_id, tenant_id, event_code, event_name, domain, aggregate_type, event_type, description, payload_schema, subscribers, version, enabled, created_at, updated_at
+        FROM sys_domain_event_catalog WHERE tenant_id = #{tenantId} AND event_code = #{eventCode}
+    </select>
+
+    <select id="selectDomainEventCatalogs" resultType="com.aidotnet.erp.sys.infrastructure.data.DomainEventCatalogDO">
+        SELECT event_id, tenant_id, event_code, event_name, domain, aggregate_type, event_type, description, payload_schema, subscribers, version, enabled, created_at, updated_at
+        FROM sys_domain_event_catalog WHERE tenant_id = #{tenantId}
+        <if test="domain != null">AND domain = #{domain}</if>
+        ORDER BY domain ASC, event_code ASC
+    </select>
+
+    <insert id="insertBusinessAlert" parameterType="com.aidotnet.erp.sys.infrastructure.data.BusinessAlertDO">
+        INSERT INTO sys_business_alert (alert_id, tenant_id, alert_type, alert_code, severity, domain, title, description, source_type, source_id, status, assigned_to, resolution, occurred_at, resolved_at, created_at, updated_at)
+        VALUES (#{alertId}, #{tenantId}, #{alertType}, #{alertCode}, #{severity}, #{domain}, #{title}, #{description}, #{sourceType}, #{sourceId}, #{status}, #{assignedTo}, #{resolution}, #{occurredAt}, #{resolvedAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateBusinessAlert" parameterType="com.aidotnet.erp.sys.infrastructure.data.BusinessAlertDO">
+        UPDATE sys_business_alert SET status = #{status}, assigned_to = #{assignedTo}, resolution = #{resolution}, resolved_at = #{resolvedAt}, updated_at = #{updatedAt}
+        WHERE alert_id = #{alertId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectBusinessAlert" resultType="com.aidotnet.erp.sys.infrastructure.data.BusinessAlertDO">
+        SELECT alert_id, tenant_id, alert_type, alert_code, severity, domain, title, description, source_type, source_id, status, assigned_to, resolution, occurred_at, resolved_at, created_at, updated_at
+        FROM sys_business_alert WHERE tenant_id = #{tenantId} AND alert_id = #{alertId}
+    </select>
+
+    <select id="selectBusinessAlerts" resultType="com.aidotnet.erp.sys.infrastructure.data.BusinessAlertDO">
+        SELECT alert_id, tenant_id, alert_type, alert_code, severity, domain, title, description, source_type, source_id, status, assigned_to, resolution, occurred_at, resolved_at, created_at, updated_at
+        FROM sys_business_alert WHERE tenant_id = #{tenantId}
+        <if test="alertType != null">AND alert_type = #{alertType}</if>
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY occurred_at DESC
+    </select>
+
+    <insert id="insertPmsDraftDocument" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsDraftDocumentDO">
+        INSERT INTO sys_pms_draft_document (draft_id, tenant_id, erp_reference_id, domain, draft_type, target_business_type, target_business_id, content_json, trust_level, source_system, actor_id, actor_type, agent_id, scope, purpose, trace_id, approval_status, approved_by, approved_at, execution_status, execution_result, created_at, updated_at)
+        VALUES (#{draftId}, #{tenantId}, #{erpReferenceId}, #{domain}, #{draftType}, #{targetBusinessType}, #{targetBusinessId}, #{contentJson}, #{trustLevel}, #{sourceSystem}, #{actorId}, #{actorType}, #{agentId}, #{scope}, #{purpose}, #{traceId}, #{approvalStatus}, #{approvedBy}, #{approvedAt}, #{executionStatus}, #{executionResult}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updatePmsDraftDocument" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsDraftDocumentDO">
+        UPDATE sys_pms_draft_document SET approval_status = #{approvalStatus}, approved_by = #{approvedBy}, approved_at = #{approvedAt}, execution_status = #{executionStatus}, execution_result = #{executionResult}, updated_at = #{updatedAt}
+        WHERE draft_id = #{draftId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectPmsDraftDocument" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsDraftDocumentDO">
+        SELECT draft_id, tenant_id, erp_reference_id, domain, draft_type, target_business_type, target_business_id, content_json, trust_level, source_system, actor_id, actor_type, agent_id, scope, purpose, trace_id, approval_status, approved_by, approved_at, execution_status, execution_result, created_at, updated_at
+        FROM sys_pms_draft_document WHERE tenant_id = #{tenantId} AND draft_id = #{draftId}
+    </select>
+
+    <select id="selectPmsDraftDocuments" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsDraftDocumentDO">
+        SELECT draft_id, tenant_id, erp_reference_id, domain, draft_type, target_business_type, target_business_id, content_json, trust_level, source_system, actor_id, actor_type, agent_id, scope, purpose, trace_id, approval_status, approved_by, approved_at, execution_status, execution_result, created_at, updated_at
+        FROM sys_pms_draft_document WHERE tenant_id = #{tenantId}
+        <if test="domain != null">AND domain = #{domain}</if>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertPmsFeedback" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsFeedbackDO">
+        INSERT INTO sys_pms_feedback (feedback_id, tenant_id, erp_reference_id, recommendation_id, domain, feedback_type, execution_status, business_result, business_metrics_json, failure_reason, operator_id, trace_id, delivered, retry_count, delivered_at, created_at, updated_at)
+        VALUES (#{feedbackId}, #{tenantId}, #{erpReferenceId}, #{recommendationId}, #{domain}, #{feedbackType}, #{executionStatus}, #{businessResult}, #{businessMetricsJson}, #{failureReason}, #{operatorId}, #{traceId}, #{delivered}, #{retryCount}, #{deliveredAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updatePmsFeedback" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsFeedbackDO">
+        UPDATE sys_pms_feedback SET delivered = #{delivered}, retry_count = #{retryCount}, delivered_at = #{deliveredAt}, updated_at = #{updatedAt}
+        WHERE feedback_id = #{feedbackId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectPmsFeedback" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsFeedbackDO">
+        SELECT feedback_id, tenant_id, erp_reference_id, recommendation_id, domain, feedback_type, execution_status, business_result, business_metrics_json, failure_reason, operator_id, trace_id, delivered, retry_count, delivered_at, created_at, updated_at
+        FROM sys_pms_feedback WHERE tenant_id = #{tenantId} AND feedback_id = #{feedbackId}
+    </select>
+
+    <select id="selectPmsFeedbacks" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsFeedbackDO">
+        SELECT feedback_id, tenant_id, erp_reference_id, recommendation_id, domain, feedback_type, execution_status, business_result, business_metrics_json, failure_reason, operator_id, trace_id, delivered, retry_count, delivered_at, created_at, updated_at
+        FROM sys_pms_feedback WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertPmsDataTrustRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsDataTrustRuleDO">
+        INSERT INTO sys_pms_data_trust_rule (rule_id, tenant_id, domain, object_type, trust_level, description, allowed_actions, can_overwrite_erp, created_at, updated_at)
+        VALUES (#{ruleId}, #{tenantId}, #{domain}, #{objectType}, #{trustLevel}, #{description}, #{allowedActions}, #{canOverwriteErp}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updatePmsDataTrustRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsDataTrustRuleDO">
+        UPDATE sys_pms_data_trust_rule SET trust_level = #{trustLevel}, description = #{description}, allowed_actions = #{allowedActions}, can_overwrite_erp = #{canOverwriteErp}, updated_at = #{updatedAt}
+        WHERE rule_id = #{ruleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectPmsDataTrustRule" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsDataTrustRuleDO">
+        SELECT rule_id, tenant_id, domain, object_type, trust_level, description, allowed_actions, can_overwrite_erp, created_at, updated_at
+        FROM sys_pms_data_trust_rule WHERE tenant_id = #{tenantId} AND domain = #{domain} AND object_type = #{objectType}
+    </select>
+
+    <select id="selectPmsDataTrustRules" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsDataTrustRuleDO">
+        SELECT rule_id, tenant_id, domain, object_type, trust_level, description, allowed_actions, can_overwrite_erp, created_at, updated_at
+        FROM sys_pms_data_trust_rule WHERE tenant_id = #{tenantId}
+        ORDER BY domain ASC, object_type ASC
+    </select>
+
+    <insert id="insertConnectorCallLog" parameterType="com.aidotnet.erp.sys.infrastructure.data.ConnectorCallLogDO">
+        INSERT INTO sys_connector_call_log (log_id, tenant_id, config_id, connector_type, platform, endpoint, method, trace_id, status_code, duration_ms, success, error_message, called_at)
+        VALUES (#{logId}, #{tenantId}, #{configId}, #{connectorType}, #{platform}, #{endpoint}, #{method}, #{traceId}, #{statusCode}, #{durationMs}, #{success}, #{errorMessage}, #{calledAt})
+    </insert>
+
+    <select id="selectConnectorCallLogs" resultType="com.aidotnet.erp.sys.infrastructure.data.ConnectorCallLogDO">
+        SELECT log_id, tenant_id, config_id, connector_type, platform, endpoint, method, trace_id, status_code, duration_ms, success, error_message, called_at
+        FROM sys_connector_call_log WHERE tenant_id = #{tenantId}
+        <if test="configId != null">AND config_id = #{configId}</if>
+        ORDER BY called_at DESC
+    </select>
+
+    <insert id="insertConnectorSecret" parameterType="com.aidotnet.erp.sys.infrastructure.data.ConnectorSecretDO">
+        INSERT INTO sys_connector_secret (secret_id, tenant_id, config_id, key_type, encrypted_value, masked_preview, last_rotated_by, last_rotated_at, created_at, updated_at)
+        VALUES (#{secretId}, #{tenantId}, #{configId}, #{keyType}, #{encryptedValue}, #{maskedPreview}, #{lastRotatedBy}, #{lastRotatedAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateConnectorSecret" parameterType="com.aidotnet.erp.sys.infrastructure.data.ConnectorSecretDO">
+        UPDATE sys_connector_secret SET encrypted_value = #{encryptedValue}, masked_preview = #{maskedPreview}, last_rotated_by = #{lastRotatedBy}, last_rotated_at = #{lastRotatedAt}, updated_at = #{updatedAt}
+        WHERE secret_id = #{secretId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectConnectorSecret" resultType="com.aidotnet.erp.sys.infrastructure.data.ConnectorSecretDO">
+        SELECT secret_id, tenant_id, config_id, key_type, encrypted_value, masked_preview, last_rotated_by, last_rotated_at, created_at, updated_at
+        FROM sys_connector_secret WHERE tenant_id = #{tenantId} AND secret_id = #{secretId}
+    </select>
+
+    <select id="selectConnectorSecrets" resultType="com.aidotnet.erp.sys.infrastructure.data.ConnectorSecretDO">
+        SELECT secret_id, tenant_id, config_id, key_type, encrypted_value, masked_preview, last_rotated_by, last_rotated_at, created_at, updated_at
+        FROM sys_connector_secret WHERE tenant_id = #{tenantId}
+        <if test="configId != null">AND config_id = #{configId}</if>
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertContentAuditRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.ContentAuditRuleDO">
+        INSERT INTO sys_content_audit_rule (rule_id, tenant_id, rule_type, category, keyword, keyword_pattern, severity, action, replacement, description, enabled, applicable_platforms, created_at, updated_at)
+        VALUES (#{ruleId}, #{tenantId}, #{ruleType}, #{category}, #{keyword}, #{keywordPattern}, #{severity}, #{action}, #{replacement}, #{description}, #{enabled}, #{applicablePlatforms}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateContentAuditRule" parameterType="com.aidotnet.erp.sys.infrastructure.data.ContentAuditRuleDO">
+        UPDATE sys_content_audit_rule SET keyword = #{keyword}, keyword_pattern = #{keywordPattern}, severity = #{severity}, action = #{action}, replacement = #{replacement}, description = #{description}, enabled = #{enabled}, applicable_platforms = #{applicablePlatforms}, updated_at = #{updatedAt}
+        WHERE rule_id = #{ruleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectContentAuditRule" resultType="com.aidotnet.erp.sys.infrastructure.data.ContentAuditRuleDO">
+        SELECT rule_id, tenant_id, rule_type, category, keyword, keyword_pattern, severity, action, replacement, description, enabled, applicable_platforms, created_at, updated_at
+        FROM sys_content_audit_rule WHERE tenant_id = #{tenantId} AND rule_id = #{ruleId}
+    </select>
+
+    <select id="selectContentAuditRules" resultType="com.aidotnet.erp.sys.infrastructure.data.ContentAuditRuleDO">
+        SELECT rule_id, tenant_id, rule_type, category, keyword, keyword_pattern, severity, action, replacement, description, enabled, applicable_platforms, created_at, updated_at
+        FROM sys_content_audit_rule WHERE tenant_id = #{tenantId}
+        <if test="ruleType != null">AND rule_type = #{ruleType}</if>
+        <if test="enabled != null">AND enabled = #{enabled}</if>
+        ORDER BY severity DESC, created_at ASC
+    </select>
+
+    <insert id="insertContentAuditResult" parameterType="com.aidotnet.erp.sys.infrastructure.data.ContentAuditResultDO">
+        INSERT INTO sys_content_audit_result (result_id, tenant_id, audit_type, source_type, source_id, passed, violations, audited_by, audited_at)
+        VALUES (#{resultId}, #{tenantId}, #{auditType}, #{sourceType}, #{sourceId}, #{passed}, #{violations}, #{auditedBy}, #{auditedAt})
+    </insert>
+
+    <select id="selectContentAuditResults" resultType="com.aidotnet.erp.sys.infrastructure.data.ContentAuditResultDO">
+        SELECT result_id, tenant_id, audit_type, source_type, source_id, passed, violations, audited_by, audited_at
+        FROM sys_content_audit_result WHERE tenant_id = #{tenantId}
+        <if test="sourceType != null">AND source_type = #{sourceType}</if>
+        ORDER BY audited_at DESC
+    </select>
+
+    <insert id="insertTrademarkRecord" parameterType="com.aidotnet.erp.sys.infrastructure.data.TrademarkRecordDO">
+        INSERT INTO sys_trademark_record (trademark_id, tenant_id, trademark_name, registration_number, jurisdiction, nice_classes, owner, status, registered_at, expires_at, created_at, updated_at)
+        VALUES (#{trademarkId}, #{tenantId}, #{trademarkName}, #{registrationNumber}, #{jurisdiction}, #{niceClasses}, #{owner}, #{status}, #{registeredAt}, #{expiresAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateTrademarkRecord" parameterType="com.aidotnet.erp.sys.infrastructure.data.TrademarkRecordDO">
+        UPDATE sys_trademark_record SET status = #{status}, owner = #{owner}, expires_at = #{expiresAt}, updated_at = #{updatedAt}
+        WHERE trademark_id = #{trademarkId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectTrademarkRecords" resultType="com.aidotnet.erp.sys.infrastructure.data.TrademarkRecordDO">
+        SELECT trademark_id, tenant_id, trademark_name, registration_number, jurisdiction, nice_classes, owner, status, registered_at, expires_at, created_at, updated_at
+        FROM sys_trademark_record WHERE tenant_id = #{tenantId}
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY trademark_name ASC
+    </select>
+
+</mapper>

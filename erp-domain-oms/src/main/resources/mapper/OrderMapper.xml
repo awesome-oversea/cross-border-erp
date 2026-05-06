@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.oms.infrastructure.mapper.OrderMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderDO">
+        INSERT INTO oms_sales_order (order_id, tenant_id, listing_id, store_id, platform, marketplace,
+                                     platform_order_no, buyer_name, customer_id, country_code,
+                                     shipping_address, currency, total_amount, tax_amount,
+                                     shipping_amount, discount_amount, status, payment_status,
+                                     fulfillment_status, risk_level, profit_margin,
+                                     order_date, created_at, updated_at)
+        VALUES (#{orderId}, #{tenantId}, #{listingId}, #{storeId}, #{platform}, #{marketplace},
+                #{platformOrderNo}, #{buyerName}, #{customerId}, #{countryCode},
+                #{shippingAddress}, #{currency}, #{totalAmount}, #{taxAmount},
+                #{shippingAmount}, #{discountAmount}, #{status}, #{paymentStatus},
+                #{fulfillmentStatus}, #{riskLevel}, #{profitMargin},
+                #{orderDate}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderDO">
+        UPDATE oms_sales_order
+        SET listing_id = #{listingId},
+            store_id = #{storeId},
+            buyer_name = #{buyerName},
+            country_code = #{countryCode},
+            shipping_address = #{shippingAddress},
+            currency = #{currency},
+            total_amount = #{totalAmount},
+            tax_amount = #{taxAmount},
+            shipping_amount = #{shippingAmount},
+            discount_amount = #{discountAmount},
+            status = #{status},
+            payment_status = #{paymentStatus},
+            fulfillment_status = #{fulfillmentStatus},
+            risk_level = #{riskLevel},
+            profit_margin = #{profitMargin},
+            order_date = #{orderDate},
+            updated_at = #{updatedAt}
+        WHERE order_id = #{orderId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectById" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderDO">
+        SELECT order_id, tenant_id, listing_id, store_id, platform, marketplace, platform_order_no,
+               buyer_name, customer_id, country_code, shipping_address, currency, total_amount,
+               tax_amount, shipping_amount, discount_amount, status, payment_status,
+               fulfillment_status, risk_level, profit_margin, order_date, created_at, updated_at
+        FROM oms_sales_order
+        WHERE order_id = #{orderId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectByPlatformOrderNo" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderDO">
+        SELECT order_id, tenant_id, listing_id, store_id, platform, marketplace, platform_order_no,
+               buyer_name, customer_id, country_code, shipping_address, currency, total_amount,
+               tax_amount, shipping_amount, discount_amount, status, payment_status,
+               fulfillment_status, risk_level, profit_margin, order_date, created_at, updated_at
+        FROM oms_sales_order
+        WHERE tenant_id = #{tenantId} AND platform = #{platform} AND platform_order_no = #{platformOrderNo}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderDO">
+        SELECT order_id, tenant_id, listing_id, store_id, platform, marketplace, platform_order_no,
+               buyer_name, customer_id, country_code, shipping_address, currency, total_amount,
+               tax_amount, shipping_amount, discount_amount, status, payment_status,
+               fulfillment_status, risk_level, profit_margin, order_date, created_at, updated_at
+        FROM oms_sales_order
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectRecentOrdersByBuyer" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderDO">
+        SELECT order_id, tenant_id, listing_id, store_id, platform, marketplace, platform_order_no,
+               buyer_name, customer_id, country_code, shipping_address, currency, total_amount,
+               tax_amount, shipping_amount, discount_amount, status, payment_status,
+               fulfillment_status, risk_level, profit_margin, order_date, created_at, updated_at
+        FROM oms_sales_order
+        WHERE tenant_id = #{tenantId}
+          AND platform = #{platform}
+          AND buyer_name = #{buyerName}
+          AND created_at >= #{createdAfter}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertOriginalOrderSnapshot" parameterType="com.aidotnet.erp.oms.infrastructure.data.OriginalOrderSnapshotDO">
+        INSERT INTO oms_original_order (snapshot_id, tenant_id, platform, marketplace, store_id,
+                                        platform_order_no, buyer_name, country_code, shipping_address,
+                                        currency, import_mode, raw_payload, processing_status,
+                                        standard_order_id, duplicate_order_id, created_at, updated_at)
+        VALUES (#{snapshotId}, #{tenantId}, #{platform}, #{marketplace}, #{storeId},
+                #{platformOrderNo}, #{buyerName}, #{countryCode}, #{shippingAddress},
+                #{currency}, #{importMode}, #{rawPayload}, #{processingStatus},
+                #{standardOrderId}, #{duplicateOrderId}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateOriginalOrderSnapshot" parameterType="com.aidotnet.erp.oms.infrastructure.data.OriginalOrderSnapshotDO">
+        UPDATE oms_original_order
+        SET marketplace = #{marketplace},
+            store_id = #{storeId},
+            buyer_name = #{buyerName},
+            country_code = #{countryCode},
+            shipping_address = #{shippingAddress},
+            currency = #{currency},
+            import_mode = #{importMode},
+            raw_payload = #{rawPayload},
+            processing_status = #{processingStatus},
+            standard_order_id = #{standardOrderId},
+            duplicate_order_id = #{duplicateOrderId},
+            updated_at = #{updatedAt}
+        WHERE snapshot_id = #{snapshotId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectOriginalOrderSnapshot" resultType="com.aidotnet.erp.oms.infrastructure.data.OriginalOrderSnapshotDO">
+        SELECT snapshot_id, tenant_id, platform, marketplace, store_id, platform_order_no,
+               buyer_name, country_code, shipping_address, currency, import_mode, raw_payload,
+               processing_status, standard_order_id, duplicate_order_id, created_at, updated_at
+        FROM oms_original_order
+        WHERE snapshot_id = #{snapshotId} AND tenant_id = #{tenantId}
+    </select>
+
+    <insert id="insertOrderLine" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderLineDO">
+        INSERT INTO oms_order_line (line_id, order_id, product_id, seller_sku, title, quantity,
+                                    unit_price, total_price, tax_amount, estimated_unit_cost)
+        VALUES (#{lineId}, #{orderId}, #{productId}, #{sellerSku}, #{title}, #{quantity},
+                #{unitPrice}, #{totalPrice}, #{taxAmount}, #{estimatedUnitCost})
+    </insert>
+
+    <delete id="deleteOrderLines">
+        DELETE FROM oms_order_line WHERE order_id = #{orderId}
+    </delete>
+
+    <select id="selectOrderLines" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderLineDO">
+        SELECT line_id, order_id, product_id, seller_sku, title, quantity,
+               unit_price, total_price, tax_amount, estimated_unit_cost
+        FROM oms_order_line
+        WHERE order_id = #{orderId}
+        ORDER BY line_id ASC
+    </select>
+
+    <insert id="insertRefund" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderRefundDO">
+        INSERT INTO oms_order_refund (refund_id, tenant_id, order_id, reason, refund_amount, refund_type, status, created_at, updated_at)
+        VALUES (#{refundId}, #{tenantId}, #{orderId}, #{reason}, #{refundAmount}, #{refundType}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateRefund" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderRefundDO">
+        UPDATE oms_order_refund
+        SET reason = #{reason}, refund_amount = #{refundAmount}, refund_type = #{refundType},
+            status = #{status}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND refund_id = #{refundId}
+    </update>
+
+    <select id="selectRefundById" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderRefundDO">
+        SELECT refund_id, tenant_id, order_id, reason, refund_amount, refund_type, status, created_at, updated_at
+        FROM oms_order_refund
+        WHERE tenant_id = #{tenantId} AND refund_id = #{refundId}
+    </select>
+
+    <select id="selectRefunds" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderRefundDO">
+        SELECT refund_id, tenant_id, order_id, reason, refund_amount, refund_type, status, created_at, updated_at
+        FROM oms_order_refund
+        WHERE tenant_id = #{tenantId} AND order_id = #{orderId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertRiskCheck" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderRiskCheckDO">
+        INSERT INTO oms_order_risk_check (check_id, tenant_id, order_id, risk_level, risk_type, description, suggested_action, checked_at)
+        VALUES (#{checkId}, #{tenantId}, #{orderId}, #{riskLevel}, #{riskType}, #{description}, #{suggestedAction}, #{checkedAt})
+    </insert>
+
+    <select id="selectRiskChecks" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderRiskCheckDO">
+        SELECT check_id, tenant_id, order_id, risk_level, risk_type, description, suggested_action, checked_at
+        FROM oms_order_risk_check
+        WHERE tenant_id = #{tenantId} AND order_id = #{orderId}
+        ORDER BY checked_at DESC
+    </select>
+
+    <insert id="insertBuyerBlacklist" parameterType="com.aidotnet.erp.oms.infrastructure.data.BuyerBlacklistDO">
+        INSERT INTO oms_buyer_blacklist (entry_id, tenant_id, buyer_name, reason, created_at)
+        VALUES (#{entryId}, #{tenantId}, #{buyerName}, #{reason}, #{createdAt})
+    </insert>
+
+    <select id="selectBuyerBlacklist" resultType="com.aidotnet.erp.oms.infrastructure.data.BuyerBlacklistDO">
+        SELECT entry_id, tenant_id, buyer_name, reason, created_at
+        FROM oms_buyer_blacklist
+        WHERE tenant_id = #{tenantId} AND entry_id = #{entryId}
+    </select>
+
+    <select id="selectBuyerBlacklistByTenant" resultType="com.aidotnet.erp.oms.infrastructure.data.BuyerBlacklistDO">
+        SELECT entry_id, tenant_id, buyer_name, reason, created_at
+        FROM oms_buyer_blacklist
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="deleteBuyerBlacklist">
+        DELETE FROM oms_buyer_blacklist WHERE tenant_id = #{tenantId} AND entry_id = #{entryId}
+    </delete>
+
+    <insert id="insertPromotion" parameterType="com.aidotnet.erp.oms.infrastructure.data.PromotionDO">
+        INSERT INTO oms_promotion (promo_id, tenant_id, order_id, promo_type, promo_code,
+                                   discount, description, applied_at)
+        VALUES (#{promoId}, #{tenantId}, #{orderId}, #{promoType}, #{promoCode},
+                #{discount}, #{description}, #{appliedAt})
+    </insert>
+
+    <select id="selectPromotions" resultType="com.aidotnet.erp.oms.infrastructure.data.PromotionDO">
+        SELECT promo_id, tenant_id, order_id, promo_type, promo_code, discount, description, applied_at
+        FROM oms_promotion
+        WHERE tenant_id = #{tenantId} AND order_id = #{orderId}
+        ORDER BY applied_at DESC
+    </select>
+
+    <insert id="insertPmsRiskAlert" parameterType="com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertDO">
+        INSERT INTO oms_pms_risk_alert (alert_id, tenant_id, order_id, risk_type, risk_score,
+                                         risk_level, description, suggested_action, trace_id,
+                                         idempotency_key, status, created_at)
+        VALUES (#{alertId}, #{tenantId}, #{orderId}, #{riskType}, #{riskScore},
+                #{riskLevel}, #{description}, #{suggestedAction}, #{traceId},
+                #{idempotencyKey}, #{status}, #{createdAt})
+    </insert>
+
+    <select id="selectPmsRiskAlert" resultType="com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertDO">
+        SELECT alert_id, tenant_id, order_id, risk_type, risk_score, risk_level,
+               description, suggested_action, trace_id, idempotency_key, status, created_at
+        FROM oms_pms_risk_alert
+        WHERE tenant_id = #{tenantId} AND alert_id = #{alertId}
+    </select>
+
+    <select id="selectPmsRiskAlertByIdempotencyKey" resultType="com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertDO">
+        SELECT alert_id, tenant_id, order_id, risk_type, risk_score, risk_level,
+               description, suggested_action, trace_id, idempotency_key, status, created_at
+        FROM oms_pms_risk_alert
+        WHERE idempotency_key = #{idempotencyKey}
+    </select>
+
+    <select id="selectPmsRiskAlertsByOrder" resultType="com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertDO">
+        SELECT alert_id, tenant_id, order_id, risk_type, risk_score, risk_level,
+               description, suggested_action, trace_id, idempotency_key, status, created_at
+        FROM oms_pms_risk_alert
+        WHERE tenant_id = #{tenantId} AND order_id = #{orderId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPendingPmsRiskAlerts" resultType="com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertDO">
+        SELECT alert_id, tenant_id, order_id, risk_type, risk_score, risk_level,
+               description, suggested_action, trace_id, idempotency_key, status, created_at
+        FROM oms_pms_risk_alert
+        WHERE tenant_id = #{tenantId} AND status = 'pending'
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="updatePmsRiskAlertStatus">
+        UPDATE oms_pms_risk_alert
+        SET status = #{status}
+        WHERE alert_id = #{alertId}
+    </update>
+
+    <insert id="insertOrderSyncLog" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderSyncLogDO">
+        INSERT INTO oms_order_sync_log (sync_id, tenant_id, platform, sync_type, status,
+                                         synced_count, failed_count, error_message,
+                                         started_at, completed_at)
+        VALUES (#{syncId}, #{tenantId}, #{platform}, #{syncType}, #{status},
+                #{syncedCount}, #{failedCount}, #{errorMessage},
+                #{startedAt}, #{completedAt})
+    </insert>
+
+    <select id="selectOrderSyncLogs" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderSyncLogDO">
+        SELECT sync_id, tenant_id, platform, sync_type, status, synced_count, failed_count,
+               error_message, started_at, completed_at
+        FROM oms_order_sync_log
+        WHERE tenant_id = #{tenantId}
+        <if test="platform != null and platform != ''">
+            AND platform = #{platform}
+        </if>
+        ORDER BY started_at DESC
+    </select>
+
+    <insert id="insertOrderStrategy" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderStrategyDO">
+        INSERT INTO oms_order_strategy (strategy_id, tenant_id, strategy_type, name, description,
+                                         rules, enabled, priority, created_at, updated_at)
+        VALUES (#{strategyId}, #{tenantId}, #{strategyType}, #{name}, #{description},
+                #{rules}, #{enabled}, #{priority}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <select id="selectOrderStrategy" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderStrategyDO">
+        SELECT strategy_id, tenant_id, strategy_type, name, description, rules, enabled, priority,
+               created_at, updated_at
+        FROM oms_order_strategy
+        WHERE tenant_id = #{tenantId} AND strategy_id = #{strategyId}
+    </select>
+
+    <select id="selectOrderStrategies" resultType="com.aidotnet.erp.oms.infrastructure.data.OrderStrategyDO">
+        SELECT strategy_id, tenant_id, strategy_type, name, description, rules, enabled, priority,
+               created_at, updated_at
+        FROM oms_order_strategy
+        WHERE tenant_id = #{tenantId}
+        <if test="strategyType != null and strategyType != ''">
+            AND strategy_type = #{strategyType}
+        </if>
+        ORDER BY priority ASC, created_at DESC
+    </select>
+
+    <update id="updateOrderStrategy" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderStrategyDO">
+        UPDATE oms_order_strategy
+        SET name = #{name}, description = #{description}, rules = #{rules},
+            enabled = #{enabled}, priority = #{priority}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND strategy_id = #{strategyId}
+    </update>
+
+</mapper>

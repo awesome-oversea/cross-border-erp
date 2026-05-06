@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.PermissionMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.PermissionDO">
+        INSERT INTO iam_permission (permission_code, name, module, parent_code, created_at)
+        VALUES (#{permissionCode}, #{name}, #{module}, #{parentCode}, #{createdAt})
+    </insert>
+
+    <select id="selectByCode" resultType="com.aidotnet.erp.iam.infrastructure.data.PermissionDO">
+        SELECT permission_code, name, module, parent_code, created_at
+        FROM iam_permission
+        WHERE permission_code = #{permissionCode}
+    </select>
+
+    <select id="selectAll" resultType="com.aidotnet.erp.iam.infrastructure.data.PermissionDO">
+        SELECT permission_code, name, module, parent_code, created_at
+        FROM iam_permission
+        ORDER BY module, permission_code
+    </select>
+
+    <select id="selectByModule" resultType="com.aidotnet.erp.iam.infrastructure.data.PermissionDO">
+        SELECT permission_code, name, module, parent_code, created_at
+        FROM iam_permission
+        WHERE module = #{module}
+        ORDER BY permission_code
+    </select>
+
+    <select id="selectDistinctModules" resultType="java.lang.String">
+        SELECT DISTINCT module FROM iam_permission ORDER BY module
+    </select>
+
+</mapper>

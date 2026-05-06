@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.som.infrastructure.mapper.SomMapper">
+
+    <insert id="insertListing" parameterType="com.aidotnet.erp.som.infrastructure.data.ListingDO">
+        INSERT INTO som_listing (listing_id, tenant_id, product_id, store_id, title, description,
+                                price, original_price, platform, marketplace, marketplace_listing_id,
+                                quality_score, status, created_at, updated_at)
+        VALUES (#{listingId}, #{tenantId}, #{productId}, #{storeId}, #{title}, #{description},
+                #{price}, #{originalPrice}, #{platform}, #{marketplace}, #{marketplaceListingId},
+                #{qualityScore}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateListing" parameterType="com.aidotnet.erp.som.infrastructure.data.ListingDO">
+        UPDATE som_listing
+        SET title = #{title}, description = #{description}, price = #{price}, original_price = #{originalPrice},
+            marketplace_listing_id = #{marketplaceListingId}, quality_score = #{qualityScore},
+            status = #{status}, updated_at = #{updatedAt}
+        WHERE listing_id = #{listingId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectListing" resultType="com.aidotnet.erp.som.infrastructure.data.ListingDO">
+        SELECT listing_id, tenant_id, product_id, store_id, title, description,
+               price, original_price, platform, marketplace, marketplace_listing_id,
+               quality_score, status, created_at, updated_at
+        FROM som_listing
+        WHERE tenant_id = #{tenantId} AND listing_id = #{listingId}
+    </select>
+
+    <select id="selectListingByMarketplaceId" resultType="com.aidotnet.erp.som.infrastructure.data.ListingDO">
+        SELECT listing_id, tenant_id, product_id, store_id, title, description,
+               price, original_price, platform, marketplace, marketplace_listing_id,
+               quality_score, status, created_at, updated_at
+        FROM som_listing
+        WHERE tenant_id = #{tenantId} AND platform = #{platform} AND marketplace_listing_id = #{marketplaceListingId}
+    </select>
+
+    <select id="selectListings" resultType="com.aidotnet.erp.som.infrastructure.data.ListingDO">
+        SELECT listing_id, tenant_id, product_id, store_id, title, description,
+               price, original_price, platform, marketplace, marketplace_listing_id,
+               quality_score, status, created_at, updated_at
+        FROM som_listing
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectListingsByStore" resultType="com.aidotnet.erp.som.infrastructure.data.ListingDO">
+        SELECT listing_id, tenant_id, product_id, store_id, title, description,
+               price, original_price, platform, marketplace, marketplace_listing_id,
+               quality_score, status, created_at, updated_at
+        FROM som_listing
+        WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectListingsByStatus" resultType="com.aidotnet.erp.som.infrastructure.data.ListingDO">
+        SELECT listing_id, tenant_id, product_id, store_id, title, description,
+               price, original_price, platform, marketplace, marketplace_listing_id,
+               quality_score, status, created_at, updated_at
+        FROM som_listing
+        WHERE tenant_id = #{tenantId} AND status = #{status}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertChannelSku" parameterType="com.aidotnet.erp.som.infrastructure.data.ChannelSkuDO">
+        INSERT INTO som_channel_sku (channel_sku_id, tenant_id, product_sku, channel, channel_sku,
+                                     store_id, marketplace_id, status, created_at, updated_at)
+        VALUES (#{channelSkuId}, #{tenantId}, #{productSku}, #{channel}, #{channelSku},
+                #{storeId}, #{marketplaceId}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateChannelSku" parameterType="com.aidotnet.erp.som.infrastructure.data.ChannelSkuDO">
+        UPDATE som_channel_sku
+        SET status = #{status}, updated_at = #{updatedAt}
+        WHERE channel_sku_id = #{channelSkuId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectChannelSku" resultType="com.aidotnet.erp.som.infrastructure.data.ChannelSkuDO">
+        SELECT channel_sku_id, tenant_id, product_sku, channel, channel_sku, store_id, marketplace_id, status, created_at, updated_at
+        FROM som_channel_sku
+        WHERE tenant_id = #{tenantId} AND channel_sku_id = #{channelSkuId}
+    </select>
+
+    <select id="selectChannelSkuByMapping" resultType="com.aidotnet.erp.som.infrastructure.data.ChannelSkuDO">
+        SELECT channel_sku_id, tenant_id, product_sku, channel, channel_sku, store_id, marketplace_id, status, created_at, updated_at
+        FROM som_channel_sku
+        WHERE tenant_id = #{tenantId} AND product_sku = #{productSku} AND channel = #{channel} AND channel_sku = #{channelSku}
+    </select>
+
+    <select id="selectChannelSkuByExternalSku" resultType="com.aidotnet.erp.som.infrastructure.data.ChannelSkuDO">
+        SELECT channel_sku_id, tenant_id, product_sku, channel, channel_sku, store_id, marketplace_id, status, created_at, updated_at
+        FROM som_channel_sku
+        WHERE tenant_id = #{tenantId}
+          AND channel = #{channel}
+          AND channel_sku = #{channelSku}
+        <choose>
+            <when test="storeId != null">
+                AND store_id = #{storeId}
+            </when>
+            <otherwise>
+                AND store_id IS NULL
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="marketplaceId != null">
+                AND marketplace_id = #{marketplaceId}
+            </when>
+            <otherwise>
+                AND marketplace_id IS NULL
+            </otherwise>
+        </choose>
+        ORDER BY updated_at DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectChannelSkus" resultType="com.aidotnet.erp.som.infrastructure.data.ChannelSkuDO">
+        SELECT channel_sku_id, tenant_id, product_sku, channel, channel_sku, store_id, marketplace_id, status, created_at, updated_at
+        FROM som_channel_sku
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectChannelSkusByProductSku" resultType="com.aidotnet.erp.som.infrastructure.data.ChannelSkuDO">
+        SELECT channel_sku_id, tenant_id, product_sku, channel, channel_sku, store_id, marketplace_id, status, created_at, updated_at
+        FROM som_channel_sku
+        WHERE tenant_id = #{tenantId} AND product_sku = #{productSku}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertPriceRule" parameterType="com.aidotnet.erp.som.infrastructure.data.PriceRuleDO">
+        INSERT INTO som_price_rule (rule_id, tenant_id, name, type, conditions, actions,
+                                    min_price, max_price, status, created_at, updated_at)
+        VALUES (#{ruleId}, #{tenantId}, #{name}, #{type}, #{conditions}, #{actions},
+                #{minPrice}, #{maxPrice}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updatePriceRule" parameterType="com.aidotnet.erp.som.infrastructure.data.PriceRuleDO">
+        UPDATE som_price_rule
+        SET name = #{name}, type = #{type}, conditions = #{conditions}, actions = #{actions},
+            min_price = #{minPrice}, max_price = #{maxPrice}, status = #{status}, updated_at = #{updatedAt}
+        WHERE rule_id = #{ruleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectPriceRule" resultType="com.aidotnet.erp.som.infrastructure.data.PriceRuleDO">
+        SELECT rule_id, tenant_id, name, type, conditions, actions, min_price, max_price, status, created_at, updated_at
+        FROM som_price_rule
+        WHERE tenant_id = #{tenantId} AND rule_id = #{ruleId}
+    </select>
+
+    <select id="selectPriceRules" resultType="com.aidotnet.erp.som.infrastructure.data.PriceRuleDO">
+        SELECT rule_id, tenant_id, name, type, conditions, actions, min_price, max_price, status, created_at, updated_at
+        FROM som_price_rule
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectActivePriceRules" resultType="com.aidotnet.erp.som.infrastructure.data.PriceRuleDO">
+        SELECT rule_id, tenant_id, name, type, conditions, actions, min_price, max_price, status, created_at, updated_at
+        FROM som_price_rule
+        WHERE tenant_id = #{tenantId} AND status = 'ACTIVE'
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertListingOptimization" parameterType="com.aidotnet.erp.som.infrastructure.data.ListingOptimizationDO">
+        INSERT INTO som_listing_optimization (optimization_id, tenant_id, listing_id, type,
+                                              before_value, after_value, operator, result, created_at)
+        VALUES (#{optimizationId}, #{tenantId}, #{listingId}, #{type},
+                #{beforeValue}, #{afterValue}, #{operator}, #{result}, #{createdAt})
+    </insert>
+
+    <select id="selectListingOptimization" resultType="com.aidotnet.erp.som.infrastructure.data.ListingOptimizationDO">
+        SELECT optimization_id, tenant_id, listing_id, type, before_value, after_value, operator, result, created_at
+        FROM som_listing_optimization
+        WHERE tenant_id = #{tenantId} AND optimization_id = #{optimizationId}
+    </select>
+
+    <select id="selectListingOptimizations" resultType="com.aidotnet.erp.som.infrastructure.data.ListingOptimizationDO">
+        SELECT optimization_id, tenant_id, listing_id, type, before_value, after_value, operator, result, created_at
+        FROM som_listing_optimization
+        WHERE tenant_id = #{tenantId} AND listing_id = #{listingId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertListingPerformance" parameterType="com.aidotnet.erp.som.infrastructure.data.ListingPerformanceDO">
+        INSERT INTO som_listing_performance (performance_id, tenant_id, listing_id, store_id, platform, marketplace,
+                                             impressions, clicks, ctr, spend, sales, acos, orders, conversion_rate,
+                                             period_start, period_end, created_at)
+        VALUES (#{performanceId}, #{tenantId}, #{listingId}, #{storeId}, #{platform}, #{marketplace},
+                #{impressions}, #{clicks}, #{ctr}, #{spend}, #{sales}, #{acos}, #{orders}, #{conversionRate},
+                #{periodStart}, #{periodEnd}, #{createdAt})
+    </insert>
+
+    <select id="selectListingPerformances" resultType="com.aidotnet.erp.som.infrastructure.data.ListingPerformanceDO">
+        SELECT performance_id, tenant_id, listing_id, store_id, platform, marketplace,
+               impressions, clicks, ctr, spend, sales, acos, orders, conversion_rate,
+               period_start, period_end, created_at
+        FROM som_listing_performance
+        WHERE tenant_id = #{tenantId} AND listing_id = #{listingId}
+        ORDER BY period_start DESC
+    </select>
+
+    <select id="selectPerformancesByStore" resultType="com.aidotnet.erp.som.infrastructure.data.ListingPerformanceDO">
+        SELECT performance_id, tenant_id, listing_id, store_id, platform, marketplace,
+               impressions, clicks, ctr, spend, sales, acos, orders, conversion_rate,
+               period_start, period_end, created_at
+        FROM som_listing_performance
+        WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
+        ORDER BY period_start DESC
+    </select>
+
+    <insert id="insertPmsSuggestion" parameterType="com.aidotnet.erp.som.infrastructure.data.PmsListingSuggestionDO">
+        INSERT INTO som_pms_listing_suggestion (suggestion_id, tenant_id, listing_id, suggestion_type,
+                                                title_suggestion, description_suggestion, bullet_points_suggestion,
+                                                price_suggestion, reason, confidence, trace_id, idempotency_key,
+                                                status, created_at)
+        VALUES (#{suggestionId}, #{tenantId}, #{listingId}, #{suggestionType},
+                #{titleSuggestion}, #{descriptionSuggestion}, #{bulletPointsSuggestion},
+                #{priceSuggestion}, #{reason}, #{confidence}, #{traceId}, #{idempotencyKey},
+                #{status}, #{createdAt})
+    </insert>
+
+    <select id="selectPmsSuggestion" resultType="com.aidotnet.erp.som.infrastructure.data.PmsListingSuggestionDO">
+        SELECT suggestion_id, tenant_id, listing_id, suggestion_type, title_suggestion,
+               description_suggestion, bullet_points_suggestion, price_suggestion,
+               reason, confidence, trace_id, idempotency_key, status, created_at
+        FROM som_pms_listing_suggestion
+        WHERE tenant_id = #{tenantId} AND suggestion_id = #{suggestionId}
+    </select>
+
+    <select id="selectPmsSuggestionByIdempotencyKey" resultType="com.aidotnet.erp.som.infrastructure.data.PmsListingSuggestionDO">
+        SELECT suggestion_id, tenant_id, listing_id, suggestion_type, title_suggestion,
+               description_suggestion, bullet_points_suggestion, price_suggestion,
+               reason, confidence, trace_id, idempotency_key, status, created_at
+        FROM som_pms_listing_suggestion
+        WHERE idempotency_key = #{idempotencyKey}
+    </select>
+
+    <select id="selectPmsSuggestionsByListing" resultType="com.aidotnet.erp.som.infrastructure.data.PmsListingSuggestionDO">
+        SELECT suggestion_id, tenant_id, listing_id, suggestion_type, title_suggestion,
+               description_suggestion, bullet_points_suggestion, price_suggestion,
+               reason, confidence, trace_id, idempotency_key, status, created_at
+        FROM som_pms_listing_suggestion
+        WHERE tenant_id = #{tenantId} AND listing_id = #{listingId}
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="updatePmsSuggestionStatus">
+        UPDATE som_pms_listing_suggestion SET status = #{status} WHERE suggestion_id = #{suggestionId}
+    </update>
+
+    <insert id="insertSalesAlert" parameterType="com.aidotnet.erp.som.infrastructure.data.SalesAlertDO">
+        INSERT INTO som_sales_alert (alert_id, tenant_id, store_id, alert_type, severity, message,
+                                     related_sku, metric_value, threshold_value, acknowledged, created_at)
+        VALUES (#{alertId}, #{tenantId}, #{storeId}, #{alertType}, #{severity}, #{message},
+                #{relatedSku}, #{metricValue}, #{thresholdValue}, #{acknowledged}, #{createdAt})
+    </insert>
+
+    <select id="selectSalesAlerts" resultType="com.aidotnet.erp.som.infrastructure.data.SalesAlertDO">
+        SELECT alert_id, tenant_id, store_id, alert_type, severity, message,
+               related_sku, metric_value, threshold_value, acknowledged, created_at
+        FROM som_sales_alert
+        WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectUnacknowledgedAlerts" resultType="com.aidotnet.erp.som.infrastructure.data.SalesAlertDO">
+        SELECT alert_id, tenant_id, store_id, alert_type, severity, message,
+               related_sku, metric_value, threshold_value, acknowledged, created_at
+        FROM som_sales_alert
+        WHERE tenant_id = #{tenantId} AND acknowledged = FALSE
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="acknowledgeAlert">
+        UPDATE som_sales_alert SET acknowledged = TRUE WHERE alert_id = #{alertId} AND tenant_id = #{tenantId}
+    </update>
+
+</mapper>

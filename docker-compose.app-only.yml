@@ -1,0 +1,46 @@
+services:
+  erp-app:
+    image: maven:3.9.9-eclipse-temurin-17
+    container_name: erp-app
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -lc
+      - mvn -pl erp-app -am -DskipTests spring-boot:run
+    ports:
+      - "${ERP_APP_HOST_PORT:-18081}:8080"
+    environment:
+      SERVER_PORT: "8080"
+      ERP_DATASOURCE_URL: ${ERP_DATASOURCE_URL}
+      ERP_DATASOURCE_USERNAME: ${ERP_DATASOURCE_USERNAME}
+      ERP_DATASOURCE_PASSWORD: ${ERP_DATASOURCE_PASSWORD}
+      ERP_DATASOURCE_DRIVER: ${ERP_DATASOURCE_DRIVER:-org.postgresql.Driver}
+      ERP_REDIS_HOST: ${ERP_REDIS_HOST}
+      ERP_REDIS_PORT: ${ERP_REDIS_PORT}
+      ERP_REDIS_PASSWORD: ${ERP_REDIS_PASSWORD:-}
+      ERP_REDIS_DATABASE: ${ERP_REDIS_DATABASE:-1}
+      ERP_KAFKA_BOOTSTRAP_SERVERS: ${ERP_KAFKA_BOOTSTRAP_SERVERS}
+      ERP_KAFKA_TOPIC: ${ERP_KAFKA_TOPIC:-erp.domain.events}
+      ERP_MINIO_ENDPOINT: ${ERP_MINIO_ENDPOINT}
+      ERP_MINIO_ACCESS_KEY: ${ERP_MINIO_ACCESS_KEY}
+      ERP_MINIO_SECRET_KEY: ${ERP_MINIO_SECRET_KEY}
+      ERP_MINIO_BUCKET: ${ERP_MINIO_BUCKET:-erp-files}
+      ERP_ES_HOST: ${ERP_ES_HOST}
+      ERP_ES_PORT: ${ERP_ES_PORT:-9200}
+      NACOS_ADDR: ${NACOS_ADDR:-nacos-shared:8848}
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-}
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: ${SPRING_CLOUD_NACOS_DISCOVERY_ENABLED:-false}
+      SPRING_CLOUD_NACOS_CONFIG_ENABLED: ${SPRING_CLOUD_NACOS_CONFIG_ENABLED:-false}
+      ERP_JWT_SECRET: ${ERP_JWT_SECRET}
+      ERP_JWT_EXPIRATION: ${ERP_JWT_EXPIRATION:-7200}
+      MAVEN_OPTS: -Dmaven.repo.local=/root/.m2/repository
+    volumes:
+      - ./:/workspace
+      - ${ERP_RUNTIME_ROOT:-/data/aitools/erp}/m2:/root/.m2
+      - ${ERP_RUNTIME_ROOT:-/data/aitools/erp}/logs:/workspace/logs
+    restart: unless-stopped
+
+networks:
+  default:
+    external: true
+    name: shared-runtime-network

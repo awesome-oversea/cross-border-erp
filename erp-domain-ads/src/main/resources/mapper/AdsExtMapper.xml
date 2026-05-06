@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.ads.infrastructure.mapper.AdsExtMapper">
+
+    <!-- ==================== 广告策略(ads_strategy) ==================== -->
+
+    <insert id="insertStrategy" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdStrategyDO">
+        INSERT INTO ads_strategy (
+            strategy_id, tenant_id, strategy_code, strategy_name, strategy_type, target_campaign_id,
+            conditions_json, actions_json, pms_generated, schedule_expression, status,
+            last_executed_at, created_at, updated_at
+        ) VALUES (
+            #{strategyId}, #{tenantId}, #{strategyCode}, #{strategyName}, #{strategyType}, #{targetCampaignId},
+            #{conditionsJson}, #{actionsJson}, #{pmsGenerated}, #{scheduleExpression}, #{status},
+            #{lastExecutedAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateStrategy" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdStrategyDO">
+        UPDATE ads_strategy
+        SET strategy_code = #{strategyCode},
+            strategy_name = #{strategyName},
+            strategy_type = #{strategyType},
+            target_campaign_id = #{targetCampaignId},
+            conditions_json = #{conditionsJson},
+            actions_json = #{actionsJson},
+            pms_generated = #{pmsGenerated},
+            schedule_expression = #{scheduleExpression},
+            status = #{status},
+            last_executed_at = #{lastExecutedAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND strategy_id = #{strategyId}
+    </update>
+
+    <select id="selectStrategy" resultType="com.aidotnet.erp.ads.infrastructure.data.AdStrategyDO">
+        SELECT strategy_id, tenant_id, strategy_code, strategy_name, strategy_type, target_campaign_id,
+               conditions_json, actions_json, pms_generated, schedule_expression, status,
+               last_executed_at, created_at, updated_at
+        FROM ads_strategy
+        WHERE tenant_id = #{tenantId}
+          AND strategy_id = #{strategyId}
+    </select>
+
+    <select id="selectStrategies" resultType="com.aidotnet.erp.ads.infrastructure.data.AdStrategyDO">
+        SELECT strategy_id, tenant_id, strategy_code, strategy_name, strategy_type, target_campaign_id,
+               conditions_json, actions_json, pms_generated, schedule_expression, status,
+               last_executed_at, created_at, updated_at
+        FROM ads_strategy
+        WHERE tenant_id = #{tenantId}
+        <if test="strategyType != null and strategyType != ''">
+            AND strategy_type = #{strategyType}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectStrategiesByCampaign" resultType="com.aidotnet.erp.ads.infrastructure.data.AdStrategyDO">
+        SELECT strategy_id, tenant_id, strategy_code, strategy_name, strategy_type, target_campaign_id,
+               conditions_json, actions_json, pms_generated, schedule_expression, status,
+               last_executed_at, created_at, updated_at
+        FROM ads_strategy
+        WHERE tenant_id = #{tenantId}
+          AND target_campaign_id = #{campaignId}
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="deleteStrategy">
+        DELETE FROM ads_strategy
+        WHERE tenant_id = #{tenantId}
+          AND strategy_id = #{strategyId}
+    </delete>
+
+    <insert id="batchInsertStrategies" parameterType="java.util.List">
+        INSERT INTO ads_strategy (
+            strategy_id, tenant_id, strategy_code, strategy_name, strategy_type, target_campaign_id,
+            conditions_json, actions_json, pms_generated, schedule_expression, status,
+            last_executed_at, created_at, updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.strategyId}, #{item.tenantId}, #{item.strategyCode}, #{item.strategyName},
+             #{item.strategyType}, #{item.targetCampaignId}, #{item.conditionsJson}, #{item.actionsJson},
+             #{item.pmsGenerated}, #{item.scheduleExpression}, #{item.status},
+             #{item.lastExecutedAt}, #{item.createdAt}, #{item.updatedAt})
+        </foreach>
+    </insert>
+
+    <!-- ==================== 搜索词分析(ads_search_term_analysis) ==================== -->
+
+    <insert id="insertSearchTermAnalysis" parameterType="com.aidotnet.erp.ads.infrastructure.data.SearchTermAnalysisDO">
+        INSERT INTO ads_search_term_analysis (
+            analysis_id, tenant_id, campaign_id, search_term, impressions, clicks, ctr, acos, orders,
+            performance, suggested_keywords, analyzed_at
+        ) VALUES (
+            #{analysisId}, #{tenantId}, #{campaignId}, #{searchTerm}, #{impressions}, #{clicks},
+            #{ctr}, #{acos}, #{orders}, #{performance}, #{suggestedKeywords}, #{analyzedAt}
+        )
+    </insert>
+
+    <select id="selectSearchTermAnalyses" resultType="com.aidotnet.erp.ads.infrastructure.data.SearchTermAnalysisDO">
+        SELECT analysis_id, tenant_id, campaign_id, search_term, impressions, clicks, ctr, acos, orders,
+               performance, suggested_keywords, analyzed_at
+        FROM ads_search_term_analysis
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+        ORDER BY analyzed_at DESC
+    </select>
+
+    <delete id="deleteSearchTermAnalysis">
+        DELETE FROM ads_search_term_analysis
+        WHERE tenant_id = #{tenantId}
+          AND analysis_id = #{analysisId}
+    </delete>
+
+    <!-- ==================== PMS操作日志(ads_pms_action_log) ==================== -->
+
+    <insert id="insertActionLog" parameterType="com.aidotnet.erp.ads.infrastructure.data.PmsActionLogDO">
+        INSERT INTO ads_pms_action_log (
+            log_id, tenant_id, campaign_id, bid_id, action_type, before_value, after_value, pms_reason,
+            can_rollback, rolled_back, executed_at, rolled_back_at
+        ) VALUES (
+            #{logId}, #{tenantId}, #{campaignId}, #{bidId}, #{actionType}, #{beforeValue}, #{afterValue}, #{pmsReason},
+            #{canRollback}, #{rolledBack}, #{executedAt}, #{rolledBackAt}
+        )
+    </insert>
+
+    <update id="updateActionLog" parameterType="com.aidotnet.erp.ads.infrastructure.data.PmsActionLogDO">
+        UPDATE ads_pms_action_log
+        SET campaign_id = #{campaignId},
+            bid_id = #{bidId},
+            action_type = #{actionType},
+            before_value = #{beforeValue},
+            after_value = #{afterValue},
+            pms_reason = #{pmsReason},
+            can_rollback = #{canRollback},
+            rolled_back = #{rolledBack},
+            executed_at = #{executedAt},
+            rolled_back_at = #{rolledBackAt}
+        WHERE tenant_id = #{tenantId}
+          AND log_id = #{logId}
+    </update>
+
+    <select id="selectActionLog" resultType="com.aidotnet.erp.ads.infrastructure.data.PmsActionLogDO">
+        SELECT log_id, tenant_id, campaign_id, bid_id, action_type, before_value, after_value, pms_reason,
+               can_rollback, rolled_back, executed_at, rolled_back_at
+        FROM ads_pms_action_log
+        WHERE tenant_id = #{tenantId}
+          AND log_id = #{logId}
+    </select>
+
+    <select id="selectActionLogs" resultType="com.aidotnet.erp.ads.infrastructure.data.PmsActionLogDO">
+        SELECT log_id, tenant_id, campaign_id, bid_id, action_type, before_value, after_value, pms_reason,
+               can_rollback, rolled_back, executed_at, rolled_back_at
+        FROM ads_pms_action_log
+        WHERE tenant_id = #{tenantId}
+        <if test="campaignId != null and campaignId != ''">
+            AND campaign_id = #{campaignId}
+        </if>
+        <if test="actionType != null and actionType != ''">
+            AND action_type = #{actionType}
+        </if>
+        ORDER BY executed_at DESC
+    </select>
+
+</mapper>

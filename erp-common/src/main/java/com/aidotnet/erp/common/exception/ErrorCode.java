@@ -1,0 +1,20 @@
+package com.aidotnet.erp.common.exception;
+
+public enum ErrorCode {
+    SUCCESS,
+    BAD_REQUEST,
+    INTERNAL_ERROR,
+    TENANT_REQUIRED,
+    TENANT_NOT_FOUND,
+    TENANT_EXISTS,
+    TENANT_DISABLED,
+    USER_EXISTS,
+    AUTH_FAILED,
+    UNAUTHORIZED,
+    FORBIDDEN,
+    NOT_FOUND,
+    INVALID_STATUS,
+    IDEMPOTENCY_CONFLICT,
+    RATE_LIMITED,
+    JOB_DISABLED
+}

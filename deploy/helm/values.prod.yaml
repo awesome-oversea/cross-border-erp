@@ -1,0 +1,56 @@
+global:
+  namespace: erp-system
+
+image:
+  repository: registry.example.com/erp/erp-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: erp.example.com
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+env:
+  SERVER_PORT: "8080"
+  ERP_DATASOURCE_URL: jdbc:postgresql://erp-postgres.erp-system.svc.cluster.local:5432/erp
+  ERP_DATASOURCE_USERNAME: erp
+  ERP_DATASOURCE_DRIVER: org.postgresql.Driver
+  ERP_REDIS_HOST: erp-redis.erp-system.svc.cluster.local
+  ERP_REDIS_PORT: "6379"
+  ERP_REDIS_DATABASE: "0"
+  ERP_KAFKA_BOOTSTRAP_SERVERS: erp-kafka.erp-system.svc.cluster.local:9092
+  ERP_KAFKA_TOPIC: erp.domain.events
+  ERP_MINIO_ENDPOINT: http://erp-minio.erp-system.svc.cluster.local:9000
+  ERP_MINIO_ACCESS_KEY: minioadmin
+  ERP_MINIO_BUCKET: erp-files
+  ERP_ES_HOST: erp-elasticsearch.erp-system.svc.cluster.local
+  ERP_ES_PORT: "9200"
+  NACOS_ADDR: erp-nacos.erp-system.svc.cluster.local:8848
+  SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
+  SPRING_CLOUD_NACOS_CONFIG_ENABLED: "true"
+
+secretRefs:
+  - name: erp-prod-secrets
+
+dependencies:
+  postgres: erp-postgres.erp-system.svc.cluster.local:5432
+  redis: erp-redis.erp-system.svc.cluster.local:6379
+  kafka: erp-kafka.erp-system.svc.cluster.local:9092
+  minio: http://erp-minio.erp-system.svc.cluster.local:9000
+  elasticsearch: http://erp-elasticsearch.erp-system.svc.cluster.local:9200
+  nacos: erp-nacos.erp-system.svc.cluster.local:8848

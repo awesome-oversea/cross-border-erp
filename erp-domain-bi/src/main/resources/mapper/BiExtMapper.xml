@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.bi.infrastructure.mapper.BiExtMapper">
+
+    <!-- ================================ 告警规则 ================================ -->
+
+    <insert id="insertAlertRule" parameterType="com.aidotnet.erp.bi.infrastructure.data.AlertRuleDO">
+        INSERT INTO bi_alert_rule (rule_id, tenant_id, rule_name, metric_code, domain, condition_type, threshold, severity, enabled, notify_channel, notify_targets, created_at, updated_at)
+        VALUES (#{ruleId}, #{tenantId}, #{ruleName}, #{metricCode}, #{domain}, #{condition}, #{threshold}, #{severity}, #{enabled}, #{notifyChannel}, #{notifyTargets}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateAlertRule" parameterType="com.aidotnet.erp.bi.infrastructure.data.AlertRuleDO">
+        UPDATE bi_alert_rule SET rule_name = #{ruleName}, threshold = #{threshold}, severity = #{severity},
+               enabled = #{enabled}, notify_channel = #{notifyChannel}, notify_targets = #{notifyTargets}, updated_at = #{updatedAt}
+        WHERE rule_id = #{ruleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectAlertRule" resultType="com.aidotnet.erp.bi.infrastructure.data.AlertRuleDO">
+        SELECT rule_id, tenant_id, rule_name, metric_code, domain, condition_type, threshold, severity, enabled, notify_channel, notify_targets, created_at, updated_at
+        FROM bi_alert_rule WHERE tenant_id = #{tenantId} AND rule_id = #{ruleId}
+    </select>
+
+    <select id="selectAlertRules" resultType="com.aidotnet.erp.bi.infrastructure.data.AlertRuleDO">
+        SELECT rule_id, tenant_id, rule_name, metric_code, domain, condition_type, threshold, severity, enabled, notify_channel, notify_targets, created_at, updated_at
+        FROM bi_alert_rule WHERE tenant_id = #{tenantId}
+        <if test="domain != null">AND domain = #{domain}</if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectEnabledAlertRules" resultType="com.aidotnet.erp.bi.infrastructure.data.AlertRuleDO">
+        SELECT rule_id, tenant_id, rule_name, metric_code, domain, condition_type, threshold, severity, enabled, notify_channel, notify_targets, created_at, updated_at
+        FROM bi_alert_rule WHERE tenant_id = #{tenantId} AND enabled = true
+        ORDER BY severity ASC, created_at DESC
+    </select>
+
+    <delete id="deleteAlertRule">
+        DELETE FROM bi_alert_rule WHERE tenant_id = #{tenantId} AND rule_id = #{ruleId}
+    </delete>
+
+    <!-- ================================ 报表快照 ================================ -->
+
+    <insert id="insertReportSnapshot" parameterType="com.aidotnet.erp.bi.infrastructure.data.ReportSnapshotDO">
+        INSERT INTO bi_report_snapshot (snapshot_id, tenant_id, report_id, snapshot_name, snapshot_data, format, snapshot_at, created_at)
+        VALUES (#{snapshotId}, #{tenantId}, #{reportId}, #{snapshotName}, #{snapshotData}, #{format}, #{snapshotAt}, #{createdAt})
+    </insert>
+
+    <select id="selectReportSnapshot" resultType="com.aidotnet.erp.bi.infrastructure.data.ReportSnapshotDO">
+        SELECT snapshot_id, tenant_id, report_id, snapshot_name, snapshot_data, format, snapshot_at, created_at
+        FROM bi_report_snapshot WHERE tenant_id = #{tenantId} AND snapshot_id = #{snapshotId}
+    </select>
+
+    <select id="selectReportSnapshots" resultType="com.aidotnet.erp.bi.infrastructure.data.ReportSnapshotDO">
+        SELECT snapshot_id, tenant_id, report_id, snapshot_name, snapshot_data, format, snapshot_at, created_at
+        FROM bi_report_snapshot WHERE tenant_id = #{tenantId} AND report_id = #{reportId}
+        ORDER BY snapshot_at DESC
+    </select>
+
+    <delete id="deleteReportSnapshot">
+        DELETE FROM bi_report_snapshot WHERE tenant_id = #{tenantId} AND snapshot_id = #{snapshotId}
+    </delete>
+
+    <!-- ================================ 数据导出任务 ================================ -->
+
+    <insert id="insertDataExportTask" parameterType="com.aidotnet.erp.bi.domain.DataExportTask">
+        INSERT INTO bi_data_export_task (task_id, tenant_id, export_name, export_type, format, status, file_url, record_count, error, created_at, completed_at)
+        VALUES (#{taskId}, #{tenantId}, #{exportName}, #{exportType}, #{format}, #{status}, #{fileUrl}, #{recordCount}, #{error}, #{createdAt}, #{completedAt})
+    </insert>
+
+    <select id="selectDataExportTask" resultType="com.aidotnet.erp.bi.domain.DataExportTask">
+        SELECT task_id, tenant_id, export_name, export_type, format, status, file_url, record_count, error, created_at, completed_at
+        FROM bi_data_export_task WHERE tenant_id = #{tenantId} AND task_id = #{taskId}
+    </select>
+
+    <select id="selectDataExportTasks" resultType="com.aidotnet.erp.bi.domain.DataExportTask">
+        SELECT task_id, tenant_id, export_name, export_type, format, status, file_url, record_count, error, created_at, completed_at
+        FROM bi_data_export_task WHERE tenant_id = #{tenantId}
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="updateDataExportTask" parameterType="com.aidotnet.erp.bi.domain.DataExportTask">
+        UPDATE bi_data_export_task SET status = #{status}, file_url = #{fileUrl}, record_count = #{recordCount},
+               error = #{error}, completed_at = #{completedAt}
+        WHERE tenant_id = #{tenantId} AND task_id = #{taskId}
+    </update>
+
+    <!-- ================================ 维度查询 ================================ -->
+
+    <select id="selectDimensions" resultType="com.aidotnet.erp.bi.domain.Dimension">
+        SELECT dimension_id, tenant_id, dimension_code, dimension_name, dimension_type, source_field, description, enabled, created_at, updated_at
+        FROM bi_dimension WHERE tenant_id = #{tenantId}
+        <if test="enabled != null">AND enabled = #{enabled}</if>
+        ORDER BY dimension_type ASC, dimension_code ASC
+    </select>
+
+    <select id="selectReportSnapshotDomains" resultType="com.aidotnet.erp.bi.domain.ReportSnapshot">
+        SELECT snapshot_id, tenant_id, report_id, snapshot_name, snapshot_data, format, snapshot_at, created_at
+        FROM bi_report_snapshot WHERE tenant_id = #{tenantId}
+        <if test="reportId != null">AND report_id = #{reportId}</if>
+        ORDER BY snapshot_at DESC
+    </select>
+
+    <!-- ================================ KPI模板 ================================ -->
+
+    <insert id="insertKpiTemplate" parameterType="com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO">
+        INSERT INTO bi_kpi_template (template_id, tenant_id, template_code, template_name, category, default_unit, default_target_formula, description, enabled, created_at, updated_at)
+        VALUES (#{templateId}, #{tenantId}, #{templateCode}, #{templateName}, #{category}, #{defaultUnit}, #{defaultTargetFormula}, #{description}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateKpiTemplate" parameterType="com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO">
+        UPDATE bi_kpi_template SET template_name = #{templateName}, category = #{category},
+               default_unit = #{defaultUnit}, default_target_formula = #{defaultTargetFormula},
+               description = #{description}, enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND template_id = #{templateId}
+    </update>
+
+    <select id="selectKpiTemplate" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, category, default_unit, default_target_formula, description, enabled, created_at, updated_at
+        FROM bi_kpi_template WHERE tenant_id = #{tenantId} AND template_id = #{templateId}
+    </select>
+
+    <select id="selectKpiTemplateByCode" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, category, default_unit, default_target_formula, description, enabled, created_at, updated_at
+        FROM bi_kpi_template WHERE tenant_id = #{tenantId} AND template_code = #{templateCode}
+    </select>
+
+    <select id="selectKpiTemplates" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, category, default_unit, default_target_formula, description, enabled, created_at, updated_at
+        FROM bi_kpi_template WHERE tenant_id = #{tenantId}
+        ORDER BY category ASC, template_code ASC
+    </select>
+
+    <select id="selectKpiTemplatesByCategory" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO">
+        SELECT template_id, tenant_id, template_code, template_name, category, default_unit, default_target_formula, description, enabled, created_at, updated_at
+        FROM bi_kpi_template WHERE tenant_id = #{tenantId} AND category = #{category}
+        ORDER BY template_code ASC
+    </select>
+
+    <delete id="deleteKpiTemplate">
+        DELETE FROM bi_kpi_template WHERE tenant_id = #{tenantId} AND template_id = #{templateId}
+    </delete>
+
+    <!-- ================================ 驾驶舱趋势 ================================ -->
+
+    <insert id="insertCockpitTrend" parameterType="com.aidotnet.erp.bi.infrastructure.data.CockpitTrendDO">
+        INSERT INTO bi_cockpit_trend (trend_id, tenant_id, metric_code, metric_name, period, data_points, generated_at)
+        VALUES (#{trendId}, #{tenantId}, #{metricCode}, #{metricName}, #{period}, #{dataPoints}, #{generatedAt})
+    </insert>
+
+    <select id="selectCockpitTrend" resultType="com.aidotnet.erp.bi.infrastructure.data.CockpitTrendDO">
+        SELECT trend_id, tenant_id, metric_code, metric_name, period, data_points, generated_at
+        FROM bi_cockpit_trend WHERE tenant_id = #{tenantId} AND trend_id = #{trendId}
+    </select>
+
+    <select id="selectCockpitTrends" resultType="com.aidotnet.erp.bi.infrastructure.data.CockpitTrendDO">
+        SELECT trend_id, tenant_id, metric_code, metric_name, period, data_points, generated_at
+        FROM bi_cockpit_trend WHERE tenant_id = #{tenantId}
+        <if test="metricCode != null and metricCode != ''">AND metric_code = #{metricCode}</if>
+        ORDER BY generated_at DESC
+    </select>
+
+    <delete id="deleteCockpitTrend">
+        DELETE FROM bi_cockpit_trend WHERE tenant_id = #{tenantId} AND trend_id = #{trendId}
+    </delete>
+
+    <!-- ================================ 排名数据 ================================ -->
+
+    <insert id="insertRankingData" parameterType="com.aidotnet.erp.bi.infrastructure.data.RankingDataDO">
+        INSERT INTO bi_ranking_data (ranking_id, tenant_id, ranking_type, dimension, items, generated_at)
+        VALUES (#{rankingId}, #{tenantId}, #{rankingType}, #{dimension}, #{items}, #{generatedAt})
+    </insert>
+
+    <select id="selectRankingData" resultType="com.aidotnet.erp.bi.infrastructure.data.RankingDataDO">
+        SELECT ranking_id, tenant_id, ranking_type, dimension, items, generated_at
+        FROM bi_ranking_data WHERE tenant_id = #{tenantId} AND ranking_id = #{rankingId}
+    </select>
+
+    <select id="selectRankingDataList" resultType="com.aidotnet.erp.bi.infrastructure.data.RankingDataDO">
+        SELECT ranking_id, tenant_id, ranking_type, dimension, items, generated_at
+        FROM bi_ranking_data WHERE tenant_id = #{tenantId}
+        <if test="rankingType != null and rankingType != ''">AND ranking_type = #{rankingType}</if>
+        ORDER BY generated_at DESC
+    </select>
+
+    <delete id="deleteRankingData">
+        DELETE FROM bi_ranking_data WHERE tenant_id = #{tenantId} AND ranking_id = #{rankingId}
+    </delete>
+
+    <!-- ================================ 指标口径 ================================ -->
+
+    <insert id="insertMetricCaliber" parameterType="com.aidotnet.erp.bi.infrastructure.data.MetricCaliberDO">
+        INSERT INTO bi_metric_caliber (caliber_id, tenant_id, metric_code, metric_name, category, caliber_type, formula, formula_description,
+            numerator_metric, denominator_metric, unit, data_source, calculation_scope, dimensions, exclude_conditions,
+            permission_code, data_level, enabled, version, description, created_at, updated_at)
+        VALUES (#{caliberId}, #{tenantId}, #{metricCode}, #{metricName}, #{category}, #{caliberType}, #{formula}, #{formulaDescription},
+            #{numeratorMetric}, #{denominatorMetric}, #{unit}, #{dataSource}, #{calculationScope}, #{dimensions}, #{excludeConditions},
+            #{permissionCode}, #{dataLevel}, #{enabled}, #{version}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateMetricCaliber" parameterType="com.aidotnet.erp.bi.infrastructure.data.MetricCaliberDO">
+        UPDATE bi_metric_caliber SET formula = #{formula}, formula_description = #{formulaDescription},
+               numerator_metric = #{numeratorMetric}, denominator_metric = #{denominatorMetric},
+               unit = #{unit}, data_source = #{dataSource}, calculation_scope = #{calculationScope},
+               dimensions = #{dimensions}, exclude_conditions = #{excludeConditions},
+               enabled = #{enabled}, version = #{version}, description = #{description}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND caliber_id = #{caliberId}
+    </update>
+
+    <select id="selectMetricCaliber" resultType="com.aidotnet.erp.bi.infrastructure.data.MetricCaliberDO">
+        SELECT caliber_id, tenant_id, metric_code, metric_name, category, caliber_type, formula, formula_description,
+               numerator_metric, denominator_metric, unit, data_source, calculation_scope, dimensions, exclude_conditions,
+               permission_code, data_level, enabled, version, description, created_at, updated_at
+        FROM bi_metric_caliber WHERE tenant_id = #{tenantId} AND caliber_id = #{caliberId}
+    </select>
+
+    <select id="selectMetricCaliberByCode" resultType="com.aidotnet.erp.bi.infrastructure.data.MetricCaliberDO">
+        SELECT caliber_id, tenant_id, metric_code, metric_name, category, caliber_type, formula, formula_description,
+               numerator_metric, denominator_metric, unit, data_source, calculation_scope, dimensions, exclude_conditions,
+               permission_code, data_level, enabled, version, description, created_at, updated_at
+        FROM bi_metric_caliber WHERE tenant_id = #{tenantId} AND metric_code = #{metricCode}
+    </select>
+
+    <select id="selectMetricCalibers" resultType="com.aidotnet.erp.bi.infrastructure.data.MetricCaliberDO">
+        SELECT caliber_id, tenant_id, metric_code, metric_name, category, caliber_type, formula, formula_description,
+               numerator_metric, denominator_metric, unit, data_source, calculation_scope, dimensions, exclude_conditions,
+               permission_code, data_level, enabled, version, description, created_at, updated_at
+        FROM bi_metric_caliber WHERE tenant_id = #{tenantId}
+        <if test="category != null and category != ''">AND category = #{category}</if>
+        ORDER BY category ASC, metric_code ASC
+    </select>
+
+    <delete id="deleteMetricCaliber">
+        DELETE FROM bi_metric_caliber WHERE tenant_id = #{tenantId} AND caliber_id = #{caliberId}
+    </delete>
+
+    <!-- ================================ 口径计算值 ================================ -->
+
+    <insert id="insertMetricCaliberValue" parameterType="com.aidotnet.erp.bi.infrastructure.data.MetricCaliberValueDO">
+        INSERT INTO bi_metric_caliber_value (value_id, tenant_id, caliber_id, metric_code, calculated_value, dimension_key, dimension_value, calculated_at)
+        VALUES (#{valueId}, #{tenantId}, #{caliberId}, #{metricCode}, #{calculatedValue}, #{dimensionKey}, #{dimensionValue}, #{calculatedAt})
+    </insert>
+
+    <select id="selectMetricCaliberValues" resultType="com.aidotnet.erp.bi.infrastructure.data.MetricCaliberValueDO">
+        SELECT value_id, tenant_id, caliber_id, metric_code, calculated_value, dimension_key, dimension_value, calculated_at
+        FROM bi_metric_caliber_value WHERE tenant_id = #{tenantId}
+        <if test="metricCode != null and metricCode != ''">AND metric_code = #{metricCode}</if>
+        ORDER BY calculated_at DESC
+    </select>
+
+    <delete id="deleteMetricCaliberValue">
+        DELETE FROM bi_metric_caliber_value WHERE tenant_id = #{tenantId} AND value_id = #{valueId}
+    </delete>
+
+    <!-- ================================ KPI目标 ================================ -->
+
+    <insert id="insertKpiTarget" parameterType="com.aidotnet.erp.bi.infrastructure.data.KpiTargetDO">
+        INSERT INTO bi_kpi_target (target_id, tenant_id, kpi_code, kpi_name, department, role, period,
+            target_value, warning_value, excellent_value, unit, metric_code, caliber_id,
+            applicable_roles, scoring_rule, weight, enabled, created_at, updated_at)
+        VALUES (#{targetId}, #{tenantId}, #{kpiCode}, #{kpiName}, #{department}, #{role}, #{period},
+            #{targetValue}, #{warningValue}, #{excellentValue}, #{unit}, #{metricCode}, #{caliberId},
+            #{applicableRoles}, #{scoringRule}, #{weight}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateKpiTarget" parameterType="com.aidotnet.erp.bi.infrastructure.data.KpiTargetDO">
+        UPDATE bi_kpi_target SET target_value = #{targetValue}, warning_value = #{warningValue},
+               excellent_value = #{excellentValue}, scoring_rule = #{scoringRule},
+               weight = #{weight}, enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND target_id = #{targetId}
+    </update>
+
+    <select id="selectKpiTarget" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiTargetDO">
+        SELECT target_id, tenant_id, kpi_code, kpi_name, department, role, period,
+               target_value, warning_value, excellent_value, unit, metric_code, caliber_id,
+               applicable_roles, scoring_rule, weight, enabled, created_at, updated_at
+        FROM bi_kpi_target WHERE tenant_id = #{tenantId} AND target_id = #{targetId}
+    </select>
+
+    <select id="selectKpiTargets" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiTargetDO">
+        SELECT target_id, tenant_id, kpi_code, kpi_name, department, role, period,
+               target_value, warning_value, excellent_value, unit, metric_code, caliber_id,
+               applicable_roles, scoring_rule, weight, enabled, created_at, updated_at
+        FROM bi_kpi_target WHERE tenant_id = #{tenantId}
+        <if test="department != null and department != ''">AND department = #{department}</if>
+        <if test="period != null and period != ''">AND period = #{period}</if>
+        ORDER BY department ASC, period DESC, kpi_code ASC
+    </select>
+
+    <delete id="deleteKpiTarget">
+        DELETE FROM bi_kpi_target WHERE tenant_id = #{tenantId} AND target_id = #{targetId}
+    </delete>
+
+    <!-- ================================ KPI考核 ================================ -->
+
+    <insert id="insertKpiAssessment" parameterType="com.aidotnet.erp.bi.infrastructure.data.KpiAssessmentDO">
+        INSERT INTO bi_kpi_assessment (assessment_id, tenant_id, target_id, kpi_code, kpi_name, department,
+            user_id, period, actual_value, target_value, achievement_rate, score, status,
+            assessor_id, comment, assessed_at, created_at)
+        VALUES (#{assessmentId}, #{tenantId}, #{targetId}, #{kpiCode}, #{kpiName}, #{department},
+            #{userId}, #{period}, #{actualValue}, #{targetValue}, #{achievementRate}, #{score}, #{status},
+            #{assessorId}, #{comment}, #{assessedAt}, #{createdAt})
+    </insert>
+
+    <select id="selectKpiAssessment" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiAssessmentDO">
+        SELECT assessment_id, tenant_id, target_id, kpi_code, kpi_name, department,
+               user_id, period, actual_value, target_value, achievement_rate, score, status,
+               assessor_id, comment, assessed_at, created_at
+        FROM bi_kpi_assessment WHERE tenant_id = #{tenantId} AND assessment_id = #{assessmentId}
+    </select>
+
+    <select id="selectKpiAssessments" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiAssessmentDO">
+        SELECT assessment_id, tenant_id, target_id, kpi_code, kpi_name, department,
+               user_id, period, actual_value, target_value, achievement_rate, score, status,
+               assessor_id, comment, assessed_at, created_at
+        FROM bi_kpi_assessment WHERE tenant_id = #{tenantId}
+        <if test="userId != null and userId != ''">AND user_id = #{userId}</if>
+        <if test="period != null and period != ''">AND period = #{period}</if>
+        ORDER BY assessed_at DESC
+    </select>
+
+    <select id="selectKpiAssessmentsByTarget" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiAssessmentDO">
+        SELECT assessment_id, tenant_id, target_id, kpi_code, kpi_name, department,
+               user_id, period, actual_value, target_value, achievement_rate, score, status,
+               assessor_id, comment, assessed_at, created_at
+        FROM bi_kpi_assessment WHERE tenant_id = #{tenantId} AND target_id = #{targetId}
+        ORDER BY assessed_at DESC
+    </select>
+
+    <delete id="deleteKpiAssessment">
+        DELETE FROM bi_kpi_assessment WHERE tenant_id = #{tenantId} AND assessment_id = #{assessmentId}
+    </delete>
+
+</mapper>

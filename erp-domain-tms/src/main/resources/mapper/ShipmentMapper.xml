@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.tms.infrastructure.mapper.ShipmentMapper">
+
+    <insert id="insertCarrier" parameterType="com.aidotnet.erp.tms.infrastructure.data.CarrierDO">
+        INSERT INTO tms_carrier (carrier_id, tenant_id, code, name, created_at)
+        VALUES (#{carrierId}, #{tenantId}, #{code}, #{name}, #{createdAt})
+    </insert>
+
+    <select id="selectCarrier" resultType="com.aidotnet.erp.tms.infrastructure.data.CarrierDO">
+        SELECT carrier_id, tenant_id, code, name, created_at
+        FROM tms_carrier
+        WHERE tenant_id = #{tenantId}
+          AND carrier_id = #{carrierId}
+    </select>
+
+    <select id="selectCarriers" resultType="com.aidotnet.erp.tms.infrastructure.data.CarrierDO">
+        SELECT carrier_id, tenant_id, code, name, created_at
+        FROM tms_carrier
+        WHERE tenant_id = #{tenantId}
+        ORDER BY code ASC
+    </select>
+
+    <insert id="insertShipment" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShipmentDO">
+        INSERT INTO tms_shipment (
+            shipment_id, tenant_id, order_id, carrier_id, tracking_no, destination_country, status, created_at, updated_at
+        )
+        VALUES (
+            #{shipmentId}, #{tenantId}, #{orderId}, #{carrierId}, #{trackingNo}, #{destinationCountry}, #{status}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateShipment" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShipmentDO">
+        UPDATE tms_shipment
+        SET carrier_id = #{carrierId},
+            tracking_no = #{trackingNo},
+            destination_country = #{destinationCountry},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND shipment_id = #{shipmentId}
+    </update>
+
+    <select id="selectShipment" resultType="com.aidotnet.erp.tms.infrastructure.data.ShipmentDO">
+        SELECT shipment_id, tenant_id, order_id, carrier_id, tracking_no, destination_country, status, created_at, updated_at
+        FROM tms_shipment
+        WHERE tenant_id = #{tenantId}
+          AND shipment_id = #{shipmentId}
+    </select>
+
+    <select id="selectShipmentByTrackingNo" resultType="com.aidotnet.erp.tms.infrastructure.data.ShipmentDO">
+        SELECT shipment_id, tenant_id, order_id, carrier_id, tracking_no, destination_country, status, created_at, updated_at
+        FROM tms_shipment
+        WHERE tenant_id = #{tenantId}
+          AND tracking_no = #{trackingNo}
+    </select>
+
+    <select id="selectShipments" resultType="com.aidotnet.erp.tms.infrastructure.data.ShipmentDO">
+        SELECT shipment_id, tenant_id, order_id, carrier_id, tracking_no, destination_country, status, created_at, updated_at
+        FROM tms_shipment
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertTrackingEvent" parameterType="com.aidotnet.erp.tms.infrastructure.data.TrackingEventDO">
+        INSERT INTO tms_tracking_event (tenant_id, event_id, shipment_id, status, location, description, occurred_at)
+        VALUES (#{tenantId}, #{eventId}, #{shipmentId}, #{status}, #{location}, #{description}, #{occurredAt})
+    </insert>
+
+    <select id="selectTrackingEvents" resultType="com.aidotnet.erp.tms.infrastructure.data.TrackingEventDO">
+        SELECT tenant_id, event_id, shipment_id, status, location, description, occurred_at
+        FROM tms_tracking_event
+        WHERE shipment_id = #{shipmentId}
+          AND tenant_id = #{tenantId}
+        ORDER BY occurred_at ASC
+    </select>
+
+    <insert id="insertShippingCost" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingCostDO">
+        INSERT INTO tms_shipping_cost (
+            cost_id, tenant_id, shipment_id, carrier_id, freight_cost, fuel_surcharge, other_fees, total_cost, currency, created_at
+        )
+        VALUES (
+            #{costId}, #{tenantId}, #{shipmentId}, #{carrierId}, #{freightCost}, #{fuelSurcharge}, #{otherFees}, #{totalCost}, #{currency}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectShippingCosts" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingCostDO">
+        SELECT cost_id, tenant_id, shipment_id, carrier_id, freight_cost, fuel_surcharge, other_fees, total_cost, currency, created_at
+        FROM tms_shipping_cost
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectShippingCostsByCarrier" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingCostDO">
+        SELECT cost_id, tenant_id, shipment_id, carrier_id, freight_cost, fuel_surcharge, other_fees, total_cost, currency, created_at
+        FROM tms_shipping_cost
+        WHERE tenant_id = #{tenantId}
+          AND carrier_id = #{carrierId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertShippingMethod" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingMethodDO">
+        INSERT INTO tms_shipping_method (method_id, tenant_id, carrier_id, name, type, rate_type, enabled, created_at, updated_at)
+        VALUES (#{methodId}, #{tenantId}, #{carrierId}, #{name}, #{type}, #{rateType}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateShippingMethod" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingMethodDO">
+        UPDATE tms_shipping_method SET name = #{name}, type = #{type}, rate_type = #{rateType}, enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE method_id = #{methodId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectShippingMethod" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingMethodDO">
+        SELECT method_id, tenant_id, carrier_id, name, type, rate_type, enabled, created_at, updated_at
+        FROM tms_shipping_method WHERE tenant_id = #{tenantId} AND method_id = #{methodId}
+    </select>
+
+    <select id="selectShippingMethods" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingMethodDO">
+        SELECT method_id, tenant_id, carrier_id, name, type, rate_type, enabled, created_at, updated_at
+        FROM tms_shipping_method WHERE tenant_id = #{tenantId}
+        ORDER BY name ASC
+    </select>
+
+    <select id="selectShippingMethodsByCarrier" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingMethodDO">
+        SELECT method_id, tenant_id, carrier_id, name, type, rate_type, enabled, created_at, updated_at
+        FROM tms_shipping_method WHERE tenant_id = #{tenantId} AND carrier_id = #{carrierId}
+        ORDER BY name ASC
+    </select>
+
+    <insert id="insertShippingRate" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingRateDO">
+        INSERT INTO tms_shipping_rate (rate_id, tenant_id, method_id, origin, destination, weight_min, weight_max, rate, currency, created_at, updated_at)
+        VALUES (#{rateId}, #{tenantId}, #{methodId}, #{origin}, #{destination}, #{weightMin}, #{weightMax}, #{rate}, #{currency}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateShippingRate" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingRateDO">
+        UPDATE tms_shipping_rate SET origin = #{origin}, destination = #{destination}, weight_min = #{weightMin},
+               weight_max = #{weightMax}, rate = #{rate}, currency = #{currency}, updated_at = #{updatedAt}
+        WHERE rate_id = #{rateId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectShippingRate" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingRateDO">
+        SELECT rate_id, tenant_id, method_id, origin, destination, weight_min, weight_max, rate, currency, created_at, updated_at
+        FROM tms_shipping_rate WHERE tenant_id = #{tenantId} AND rate_id = #{rateId}
+    </select>
+
+    <select id="selectShippingRatesByMethod" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingRateDO">
+        SELECT rate_id, tenant_id, method_id, origin, destination, weight_min, weight_max, rate, currency, created_at, updated_at
+        FROM tms_shipping_rate WHERE tenant_id = #{tenantId} AND method_id = #{methodId}
+        ORDER BY weight_min ASC
+    </select>
+
+    <insert id="insertShippingBatch" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        INSERT INTO tms_shipping_batch (batch_id, tenant_id, carrier_id, shipment_ids, status, created_at, updated_at)
+        VALUES (#{batchId}, #{tenantId}, #{carrierId}, #{shipmentIds}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateShippingBatch" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        UPDATE tms_shipping_batch SET shipment_ids = #{shipmentIds}, status = #{status}, updated_at = #{updatedAt}
+        WHERE batch_id = #{batchId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectShippingBatch" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        SELECT batch_id, tenant_id, carrier_id, shipment_ids, status, created_at, updated_at
+        FROM tms_shipping_batch WHERE tenant_id = #{tenantId} AND batch_id = #{batchId}
+    </select>
+
+    <select id="selectShippingBatches" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        SELECT batch_id, tenant_id, carrier_id, shipment_ids, status, created_at, updated_at
+        FROM tms_shipping_batch WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

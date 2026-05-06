@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.sys.infrastructure.mapper.PmsRecommendationMapper">
+
+    <sql id="allColumns">
+        erp_reference_id, tenant_id, recommendation_id, domain, recommendation_type, object_type,
+        target_object_type, target_object_id, content, score, confidence, evidence_chain_id,
+        data_sources, risk_flags, explainability, requested_action, status, approval_policy,
+        rejection_reason, execution_result, measured_result, trace_id, idempotency_key,
+        actor_id, actor_type, agent_id, scope, purpose, source_system, audit_id,
+        created_at, updated_at
+    </sql>
+
+    <insert id="insert" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO">
+        INSERT INTO sys_pms_recommendation (
+            erp_reference_id, tenant_id, recommendation_id, domain, recommendation_type, object_type,
+            target_object_type, target_object_id, content, score, confidence, evidence_chain_id,
+            data_sources, risk_flags, explainability, requested_action, status, approval_policy,
+            rejection_reason, execution_result, measured_result, trace_id, idempotency_key,
+            actor_id, actor_type, agent_id, scope, purpose, source_system, audit_id,
+            created_at, updated_at)
+        VALUES (
+            #{erpReferenceId}, #{tenantId}, #{recommendationId}, #{domain}, #{recommendationType}, #{objectType},
+            #{targetObjectType}, #{targetObjectId}, #{content}, #{score}, #{confidence}, #{evidenceChainId},
+            #{dataSources}, #{riskFlags}, #{explainability}, #{requestedAction}, #{status}, #{approvalPolicy},
+            #{rejectionReason}, #{executionResult}, #{measuredResult}, #{traceId}, #{idempotencyKey},
+            #{actorId}, #{actorType}, #{agentId}, #{scope}, #{purpose}, #{sourceSystem}, #{auditId},
+            #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO">
+        UPDATE sys_pms_recommendation
+        SET status = #{status}, approval_policy = #{approvalPolicy}, rejection_reason = #{rejectionReason},
+            execution_result = #{executionResult}, measured_result = #{measuredResult}, updated_at = #{updatedAt}
+        WHERE erp_reference_id = #{erpReferenceId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectByErpReferenceId" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO">
+        SELECT <include refid="allColumns"/>
+        FROM sys_pms_recommendation
+        WHERE erp_reference_id = #{erpReferenceId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectByIdempotencyKey" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO">
+        SELECT <include refid="allColumns"/>
+        FROM sys_pms_recommendation
+        WHERE tenant_id = #{tenantId} AND domain = #{domain} AND idempotency_key = #{idempotencyKey}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO">
+        SELECT <include refid="allColumns"/>
+        FROM sys_pms_recommendation
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByDomain" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO">
+        SELECT <include refid="allColumns"/>
+        FROM sys_pms_recommendation
+        WHERE tenant_id = #{tenantId} AND domain = #{domain}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByStatus" resultType="com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO">
+        SELECT <include refid="allColumns"/>
+        FROM sys_pms_recommendation
+        WHERE tenant_id = #{tenantId} AND status = #{status}
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="deleteByErpReferenceId">
+        DELETE FROM sys_pms_recommendation
+        WHERE erp_reference_id = #{erpReferenceId} AND tenant_id = #{tenantId}
+    </delete>
+
+</mapper>

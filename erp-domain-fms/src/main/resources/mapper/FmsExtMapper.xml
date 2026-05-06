@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.fms.infrastructure.mapper.FmsExtMapper">
+
+    <insert id="insertCostBreakdown" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostBreakdownDO">
+        INSERT INTO fms_cost_breakdown (breakdown_id, tenant_id, cost_event_id, cost_type, cost_category, amount, currency, exchange_rate, amount_in_base_currency, remark, created_at)
+        VALUES (#{breakdownId}, #{tenantId}, #{costEventId}, #{costType}, #{costCategory}, #{amount}, #{currency}, #{exchangeRate}, #{amountInBaseCurrency}, #{remark}, #{createdAt})
+    </insert>
+
+    <select id="selectCostBreakdownsByEvent" resultType="com.aidotnet.erp.fms.infrastructure.data.CostBreakdownDO">
+        SELECT breakdown_id, tenant_id, cost_event_id, cost_type, cost_category, amount, currency, exchange_rate, amount_in_base_currency, remark, created_at
+        FROM fms_cost_breakdown WHERE tenant_id = #{tenantId} AND cost_event_id = #{costEventId}
+        ORDER BY created_at ASC
+    </select>
+
+    <select id="selectCostBreakdownsByType" resultType="com.aidotnet.erp.fms.infrastructure.data.CostBreakdownDO">
+        SELECT breakdown_id, tenant_id, cost_event_id, cost_type, cost_category, amount, currency, exchange_rate, amount_in_base_currency, remark, created_at
+        FROM fms_cost_breakdown WHERE tenant_id = #{tenantId} AND cost_type = #{costType}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertJournalEntry" parameterType="com.aidotnet.erp.fms.infrastructure.data.JournalEntryDO">
+        INSERT INTO fms_journal_entry (entry_id, tenant_id, account_code, account_name, type, amount, currency, reference_type, reference_id, remark, entry_date, created_at)
+        VALUES (#{entryId}, #{tenantId}, #{accountCode}, #{accountName}, #{type}, #{amount}, #{currency}, #{referenceType}, #{referenceId}, #{remark}, #{entryDate}, #{createdAt})
+    </insert>
+
+    <select id="selectJournalEntriesByReference" resultType="com.aidotnet.erp.fms.infrastructure.data.JournalEntryDO">
+        SELECT entry_id, tenant_id, account_code, account_name, type, amount, currency, reference_type, reference_id, remark, entry_date, created_at
+        FROM fms_journal_entry WHERE tenant_id = #{tenantId} AND reference_type = #{referenceType} AND reference_id = #{referenceId}
+        ORDER BY entry_date ASC
+    </select>
+
+    <select id="selectJournalEntriesByAccount" resultType="com.aidotnet.erp.fms.infrastructure.data.JournalEntryDO">
+        SELECT entry_id, tenant_id, account_code, account_name, type, amount, currency, reference_type, reference_id, remark, entry_date, created_at
+        FROM fms_journal_entry WHERE tenant_id = #{tenantId} AND account_code = #{accountCode}
+        ORDER BY entry_date DESC
+    </select>
+
+    <insert id="insertTaxRule" parameterType="com.aidotnet.erp.fms.infrastructure.data.TaxRuleDO">
+        INSERT INTO fms_tax_rule (rule_id, tenant_id, country_code, tax_type, tax_rate, tax_category, enabled, effective_from, effective_to, created_at, updated_at)
+        VALUES (#{ruleId}, #{tenantId}, #{countryCode}, #{taxType}, #{taxRate}, #{taxCategory}, #{enabled}, #{effectiveFrom}, #{effectiveTo}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateTaxRule" parameterType="com.aidotnet.erp.fms.infrastructure.data.TaxRuleDO">
+        UPDATE fms_tax_rule SET tax_rate = #{taxRate}, tax_category = #{taxCategory}, enabled = #{enabled},
+               effective_from = #{effectiveFrom}, effective_to = #{effectiveTo}, updated_at = #{updatedAt}
+        WHERE rule_id = #{ruleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectTaxRule" resultType="com.aidotnet.erp.fms.infrastructure.data.TaxRuleDO">
+        SELECT rule_id, tenant_id, country_code, tax_type, tax_rate, tax_category, enabled, effective_from, effective_to, created_at, updated_at
+        FROM fms_tax_rule WHERE tenant_id = #{tenantId} AND rule_id = #{ruleId}
+    </select>
+
+    <select id="selectTaxRules" resultType="com.aidotnet.erp.fms.infrastructure.data.TaxRuleDO">
+        SELECT rule_id, tenant_id, country_code, tax_type, tax_rate, tax_category, enabled, effective_from, effective_to, created_at, updated_at
+        FROM fms_tax_rule WHERE tenant_id = #{tenantId} AND country_code = #{countryCode}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectActiveTaxRule" resultType="com.aidotnet.erp.fms.infrastructure.data.TaxRuleDO">
+        SELECT rule_id, tenant_id, country_code, tax_type, tax_rate, tax_category, enabled, effective_from, effective_to, created_at, updated_at
+        FROM fms_tax_rule WHERE tenant_id = #{tenantId} AND country_code = #{countryCode} AND tax_type = #{taxType}
+              AND enabled = true AND effective_from &lt;= CURRENT_TIMESTAMP
+              AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP)
+        LIMIT 1
+    </select>
+
+    <insert id="insertCostAggregationRule" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostAggregationRuleDO">
+        INSERT INTO fms_cost_aggregation_rule (
+            rule_id, tenant_id, rule_name, cost_source, cost_category,
+            allocation_method, allocation_basis, target_dimension, enabled,
+            priority, created_at, updated_at
+        )
+        VALUES (
+            #{ruleId}, #{tenantId}, #{ruleName}, #{costSource}, #{costCategory},
+            #{allocationMethod}, #{allocationBasis}, #{targetDimension}, #{enabled},
+            #{priority}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateCostAggregationRule" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostAggregationRuleDO">
+        UPDATE fms_cost_aggregation_rule
+        SET rule_name = #{ruleName},
+            cost_source = #{costSource},
+            cost_category = #{costCategory},
+            allocation_method = #{allocationMethod},
+            allocation_basis = #{allocationBasis},
+            target_dimension = #{targetDimension},
+            enabled = #{enabled},
+            priority = #{priority},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND rule_id = #{ruleId}
+    </update>
+
+    <select id="selectCostAggregationRule" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAggregationRuleDO">
+        SELECT rule_id, tenant_id, rule_name, cost_source, cost_category,
+               allocation_method, allocation_basis, target_dimension, enabled,
+               priority, created_at, updated_at
+        FROM fms_cost_aggregation_rule
+        WHERE tenant_id = #{tenantId}
+          AND rule_id = #{ruleId}
+    </select>
+
+    <select id="selectCostAggregationRules" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAggregationRuleDO">
+        SELECT rule_id, tenant_id, rule_name, cost_source, cost_category,
+               allocation_method, allocation_basis, target_dimension, enabled,
+               priority, created_at, updated_at
+        FROM fms_cost_aggregation_rule
+        WHERE tenant_id = #{tenantId}
+          AND (#{costSource} IS NULL OR cost_source = #{costSource})
+        ORDER BY priority DESC, created_at DESC
+    </select>
+
+    <insert id="insertCostAllocationResult" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostAllocationResultDO">
+        INSERT INTO fms_cost_allocation_result (
+            result_id, tenant_id, rule_id, cost_event_id, target_dimension,
+            target_id, allocated_amount, currency, exchange_rate,
+            amount_in_base_currency, dimensions_json, allocated_at
+        )
+        VALUES (
+            #{resultId}, #{tenantId}, #{ruleId}, #{costEventId}, #{targetDimension},
+            #{targetId}, #{allocatedAmount}, #{currency}, #{exchangeRate},
+            #{amountInBaseCurrency}, #{dimensionsJson}, #{allocatedAt}
+        )
+    </insert>
+
+    <select id="selectCostAllocationResults" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAllocationResultDO">
+        SELECT result_id, tenant_id, rule_id, cost_event_id, target_dimension,
+               target_id, allocated_amount, currency, exchange_rate,
+               amount_in_base_currency, dimensions_json, allocated_at
+        FROM fms_cost_allocation_result
+        WHERE tenant_id = #{tenantId}
+          AND target_dimension = #{targetDimension}
+          AND target_id = #{targetId}
+        ORDER BY allocated_at ASC, result_id ASC
+    </select>
+
+    <select id="selectCostAllocationResultsBySku" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAllocationResultDO">
+        SELECT result_id, tenant_id, rule_id, cost_event_id, target_dimension,
+               target_id, allocated_amount, currency, exchange_rate,
+               amount_in_base_currency, dimensions_json, allocated_at
+        FROM fms_cost_allocation_result
+        WHERE tenant_id = #{tenantId}
+          AND dimensions_json LIKE CONCAT('%"sellerSku":"', #{sellerSku}, '"%')
+        ORDER BY allocated_at DESC, result_id DESC
+    </select>
+
+    <select id="selectCostAllocationResultsByTarget" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAllocationResultDO">
+        SELECT result_id, tenant_id, rule_id, cost_event_id, target_dimension,
+               target_id, allocated_amount, currency, exchange_rate,
+               amount_in_base_currency, dimensions_json, allocated_at
+        FROM fms_cost_allocation_result
+        WHERE tenant_id = #{tenantId}
+          AND target_dimension = #{dimensionType}
+          AND target_id = #{dimensionId}
+        ORDER BY allocated_at ASC, result_id ASC
+    </select>
+
+    <insert id="insertProfitResult" parameterType="com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO">
+        INSERT INTO fms_profit_result (
+            result_id, tenant_id, dimension_type, dimension_id, seller_sku,
+            order_id, store_id, marketplace_id, revenue, product_cost,
+            shipping_cost, fba_fee, commission, advertising_cost, return_cost,
+            storage_fee, packaging_cost, custom_duty, other_cost, total_cost,
+            gross_profit, gross_margin, currency, exchange_rate,
+            amount_in_base_currency, cost_details_json, calculated_at
+        )
+        VALUES (
+            #{resultId}, #{tenantId}, #{dimensionType}, #{dimensionId}, #{sellerSku},
+            #{orderId}, #{storeId}, #{marketplaceId}, #{revenue}, #{productCost},
+            #{shippingCost}, #{fbaFee}, #{commission}, #{advertisingCost}, #{returnCost},
+            #{storageFee}, #{packagingCost}, #{customDuty}, #{otherCost}, #{totalCost},
+            #{grossProfit}, #{grossMargin}, #{currency}, #{exchangeRate},
+            #{amountInBaseCurrency}, #{costDetailsJson}, #{calculatedAt}
+        )
+    </insert>
+
+    <select id="selectProfitResult" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO">
+        SELECT result_id, tenant_id, dimension_type, dimension_id, seller_sku,
+               order_id, store_id, marketplace_id, revenue, product_cost,
+               shipping_cost, fba_fee, commission, advertising_cost, return_cost,
+               storage_fee, packaging_cost, custom_duty, other_cost, total_cost,
+               gross_profit, gross_margin, currency, exchange_rate,
+               amount_in_base_currency, cost_details_json, calculated_at
+        FROM fms_profit_result
+        WHERE tenant_id = #{tenantId}
+          AND result_id = #{resultId}
+    </select>
+
+    <select id="selectProfitResults" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO">
+        SELECT result_id, tenant_id, dimension_type, dimension_id, seller_sku,
+               order_id, store_id, marketplace_id, revenue, product_cost,
+               shipping_cost, fba_fee, commission, advertising_cost, return_cost,
+               storage_fee, packaging_cost, custom_duty, other_cost, total_cost,
+               gross_profit, gross_margin, currency, exchange_rate,
+               amount_in_base_currency, cost_details_json, calculated_at
+        FROM fms_profit_result
+        WHERE tenant_id = #{tenantId}
+          AND dimension_type = #{dimensionType}
+          AND dimension_id = #{dimensionId}
+        ORDER BY calculated_at DESC, result_id DESC
+    </select>
+
+    <select id="selectProfitResultsBySku" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO">
+        SELECT result_id, tenant_id, dimension_type, dimension_id, seller_sku,
+               order_id, store_id, marketplace_id, revenue, product_cost,
+               shipping_cost, fba_fee, commission, advertising_cost, return_cost,
+               storage_fee, packaging_cost, custom_duty, other_cost, total_cost,
+               gross_profit, gross_margin, currency, exchange_rate,
+               amount_in_base_currency, cost_details_json, calculated_at
+        FROM fms_profit_result
+        WHERE tenant_id = #{tenantId}
+          AND seller_sku = #{sellerSku}
+        ORDER BY calculated_at DESC, result_id DESC
+    </select>
+
+    <select id="selectAllProfitResults" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO">
+        SELECT result_id, tenant_id, dimension_type, dimension_id, seller_sku,
+               order_id, store_id, marketplace_id, revenue, product_cost,
+               shipping_cost, fba_fee, commission, advertising_cost, return_cost,
+               storage_fee, packaging_cost, custom_duty, other_cost, total_cost,
+               gross_profit, gross_margin, currency, exchange_rate,
+               amount_in_base_currency, cost_details_json, calculated_at
+        FROM fms_profit_result
+        WHERE tenant_id = #{tenantId}
+        ORDER BY calculated_at DESC, result_id DESC
+    </select>
+
+    <select id="selectProfitResultsByDimension" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO">
+        SELECT result_id, tenant_id, dimension_type, dimension_id, seller_sku,
+               order_id, store_id, marketplace_id, revenue, product_cost,
+               shipping_cost, fba_fee, commission, advertising_cost, return_cost,
+               storage_fee, packaging_cost, custom_duty, other_cost, total_cost,
+               gross_profit, gross_margin, currency, exchange_rate,
+               amount_in_base_currency, cost_details_json, calculated_at
+        FROM fms_profit_result
+        WHERE tenant_id = #{tenantId}
+          AND dimension_type = #{dimensionType}
+        ORDER BY calculated_at DESC, result_id DESC
+    </select>
+
+    <insert id="insertProfitDeviationAlert" parameterType="com.aidotnet.erp.fms.infrastructure.data.ProfitDeviationAlertDO">
+        INSERT INTO fms_profit_deviation_alert (
+            alert_id, tenant_id, dimension_type, dimension_id, seller_sku,
+            expected_margin, actual_margin, deviation, deviation_threshold,
+            severity, status, detected_at, resolved_at
+        )
+        VALUES (
+            #{alertId}, #{tenantId}, #{dimensionType}, #{dimensionId}, #{sellerSku},
+            #{expectedMargin}, #{actualMargin}, #{deviation}, #{deviationThreshold},
+            #{severity}, #{status}, #{detectedAt}, #{resolvedAt}
+        )
+    </insert>
+
+    <update id="updateProfitDeviationAlert" parameterType="com.aidotnet.erp.fms.infrastructure.data.ProfitDeviationAlertDO">
+        UPDATE fms_profit_deviation_alert
+        SET expected_margin = #{expectedMargin},
+            actual_margin = #{actualMargin},
+            deviation = #{deviation},
+            deviation_threshold = #{deviationThreshold},
+            severity = #{severity},
+            status = #{status},
+            detected_at = #{detectedAt},
+            resolved_at = #{resolvedAt}
+        WHERE tenant_id = #{tenantId}
+          AND alert_id = #{alertId}
+    </update>
+
+    <select id="selectProfitDeviationAlert" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitDeviationAlertDO">
+        SELECT alert_id, tenant_id, dimension_type, dimension_id, seller_sku,
+               expected_margin, actual_margin, deviation, deviation_threshold,
+               severity, status, detected_at, resolved_at
+        FROM fms_profit_deviation_alert
+        WHERE tenant_id = #{tenantId}
+          AND alert_id = #{alertId}
+    </select>
+
+    <select id="selectProfitDeviationAlerts" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitDeviationAlertDO">
+        SELECT alert_id, tenant_id, dimension_type, dimension_id, seller_sku,
+               expected_margin, actual_margin, deviation, deviation_threshold,
+               severity, status, detected_at, resolved_at
+        FROM fms_profit_deviation_alert
+        WHERE tenant_id = #{tenantId}
+          AND (#{status} IS NULL OR status = #{status})
+        ORDER BY detected_at DESC, alert_id DESC
+    </select>
+
+</mapper>

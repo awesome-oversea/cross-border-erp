@@ -1,0 +1,82 @@
+# ===================================================
+# erp (Java 项目 - 本地 Windows 开发环境配置
+# ===================================================
+# 更新日期: 2026-05-05
+# 说明: 基于本地 D:\aitools 环境配置，服务已安装
+# ===================================================
+
+# ===================================================
+# 1. 服务器与基础配置
+# ===================================================
+SERVER_PORT=18081
+ERP_APP_HOST_PORT=18081
+ERP_RUNTIME_ROOT=D:/aitools/erp
+LOG_DIR=D:/aitools/erp/logs
+TEMP_DIR=D:/aitools/erp/temp
+SPRING_PROFILES_ACTIVE=local,dev
+
+# ===================================================
+# 2. 数据库配置 (PostgreSQL) - 待启动
+# ===================================================
+ERP_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/erp
+ERP_DATASOURCE_USERNAME=postgres
+ERP_DATASOURCE_PASSWORD=
+ERP_DATASOURCE_DRIVER=org.postgresql.Driver
+ERP_POSTGRES_HOST=127.0.0.1
+ERP_POSTGRES_PORT=5432
+ERP_POSTGRES_DB=erp
+ERP_POSTGRES_USER=postgres
+ERP_POSTGRES_PASSWORD=
+
+# ===================================================
+# 3. 缓存配置 (Redis) - 已安装并运行 (DB: 2)
+# ===================================================
+ERP_REDIS_HOST=127.0.0.1
+ERP_REDIS_PORT=6379
+ERP_REDIS_PASSWORD=
+ERP_REDIS_DATABASE=2
+REDIS_TIMEOUT=3000
+REDIS_MAX_ACTIVE=8
+REDIS_MAX_IDLE=8
+REDIS_MIN_IDLE=0
+
+# ===================================================
+# 4. 消息队列 (Kafka) - 已安装并运行
+# ===================================================
+ERP_KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:9092
+ERP_KAFKA_TOPIC=erp.domain.events
+KAFKA_ENABLED=true
+
+# ===================================================
+# 5. 对象存储配置 (MinIO) - 已安装并运行
+# ===================================================
+ERP_MINIO_ENDPOINT=http://127.0.0.1:9000
+ERP_MINIO_HOST=127.0.0.1
+ERP_MINIO_PORT=9000
+ERP_MINIO_ACCESS_KEY=minioadmin
+ERP_MINIO_SECRET_KEY=minioadmin
+ERP_MINIO_BUCKET=erp-files
+MINIO_REGION=us-east-1
+MINIO_SECURE=false
+
+# ===================================================
+# 6. Elasticsearch 配置 - 已安装并运行
+# ===================================================
+ERP_ES_HOST=127.0.0.1
+ERP_ES_PORT=9200
+ES_ENABLED=true
+
+# ===================================================
+# 7. Nacos 配置中心 (可选)
+# ===================================================
+NACOS_ADDR=127.0.0.1:8848
+NACOS_NAMESPACE=
+SPRING_CLOUD_NACOS_DISCOVERY_ENABLED=false
+SPRING_CLOUD_NACOS_CONFIG_ENABLED=false
+
+# ===================================================
+# 8. 安全与 JWT 配置
+# ===================================================
+ERP_JWT_SECRET=erp-dev-jwt-secret-key-2026-change-in-production
+ERP_JWT_EXPIRATION=7200
+JWT_REFRESH_EXPIRATION=604800

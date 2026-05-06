@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.bi.infrastructure.mapper.ReportMapper">
+
+    <insert id="insertReport" parameterType="com.aidotnet.erp.bi.infrastructure.data.ReportDefinitionDO">
+        INSERT INTO bi_report_definition (
+            report_id, tenant_id, report_code, report_name, report_type, data_source, query_text,
+            permission_code, data_level, description, created_at, updated_at
+        ) VALUES (
+            #{reportId}, #{tenantId}, #{reportCode}, #{reportName}, #{reportType}, #{dataSource}, #{queryText},
+            #{permissionCode}, #{dataLevel}, #{description}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateReport" parameterType="com.aidotnet.erp.bi.infrastructure.data.ReportDefinitionDO">
+        UPDATE bi_report_definition
+        SET report_code = #{reportCode},
+            report_name = #{reportName},
+            report_type = #{reportType},
+            data_source = #{dataSource},
+            query_text = #{queryText},
+            permission_code = #{permissionCode},
+            data_level = #{dataLevel},
+            description = #{description},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND report_id = #{reportId}
+    </update>
+
+    <select id="selectReport" resultType="com.aidotnet.erp.bi.infrastructure.data.ReportDefinitionDO">
+        SELECT report_id, tenant_id, report_code, report_name, report_type, data_source, query_text,
+               permission_code, data_level, description, created_at, updated_at
+        FROM bi_report_definition
+        WHERE tenant_id = #{tenantId}
+          AND report_id = #{reportId}
+    </select>
+
+    <select id="selectReportByCode" resultType="com.aidotnet.erp.bi.infrastructure.data.ReportDefinitionDO">
+        SELECT report_id, tenant_id, report_code, report_name, report_type, data_source, query_text,
+               permission_code, data_level, description, created_at, updated_at
+        FROM bi_report_definition
+        WHERE tenant_id = #{tenantId}
+          AND report_code = #{reportCode}
+    </select>
+
+    <select id="selectReports" resultType="com.aidotnet.erp.bi.infrastructure.data.ReportDefinitionDO">
+        SELECT report_id, tenant_id, report_code, report_name, report_type, data_source, query_text,
+               permission_code, data_level, description, created_at, updated_at
+        FROM bi_report_definition
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectReportsByType" resultType="com.aidotnet.erp.bi.infrastructure.data.ReportDefinitionDO">
+        SELECT report_id, tenant_id, report_code, report_name, report_type, data_source, query_text,
+               permission_code, data_level, description, created_at, updated_at
+        FROM bi_report_definition
+        WHERE tenant_id = #{tenantId}
+          AND report_type = #{reportType}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertKpi" parameterType="com.aidotnet.erp.bi.infrastructure.data.KpiMetricDO">
+        INSERT INTO bi_kpi_metric (
+            kpi_id, tenant_id, kpi_code, kpi_name, category, value, target_value, unit, status, measured_at
+        ) VALUES (
+            #{kpiId}, #{tenantId}, #{kpiCode}, #{kpiName}, #{category}, #{value}, #{targetValue}, #{unit}, #{status}, #{measuredAt}
+        )
+    </insert>
+
+    <update id="updateKpiTarget" parameterType="com.aidotnet.erp.bi.infrastructure.data.KpiMetricDO">
+        UPDATE bi_kpi_metric
+        SET target_value = #{targetValue},
+            status = #{status}
+        WHERE tenant_id = #{tenantId}
+          AND kpi_id = #{kpiId}
+    </update>
+
+    <select id="selectKpi" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiMetricDO">
+        SELECT kpi_id, tenant_id, kpi_code, kpi_name, category, value, target_value, unit, status, measured_at
+        FROM bi_kpi_metric
+        WHERE tenant_id = #{tenantId}
+          AND kpi_id = #{kpiId}
+    </select>
+
+    <select id="selectKpis" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiMetricDO">
+        SELECT kpi_id, tenant_id, kpi_code, kpi_name, category, value, target_value, unit, status, measured_at
+        FROM bi_kpi_metric
+        WHERE tenant_id = #{tenantId}
+        ORDER BY measured_at DESC, kpi_code ASC
+    </select>
+
+    <select id="selectKpisByCategory" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiMetricDO">
+        SELECT kpi_id, tenant_id, kpi_code, kpi_name, category, value, target_value, unit, status, measured_at
+        FROM bi_kpi_metric
+        WHERE tenant_id = #{tenantId}
+          AND category = #{category}
+        ORDER BY measured_at DESC, kpi_code ASC
+    </select>
+
+    <select id="selectLatestKpiByCode" resultType="com.aidotnet.erp.bi.infrastructure.data.KpiMetricDO">
+        SELECT kpi_id, tenant_id, kpi_code, kpi_name, category, value, target_value, unit, status, measured_at
+        FROM bi_kpi_metric
+        WHERE tenant_id = #{tenantId}
+          AND kpi_code = #{kpiCode}
+        ORDER BY measured_at DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertMetric" parameterType="com.aidotnet.erp.bi.infrastructure.data.MetricDefinitionDO">
+        INSERT INTO bi_metric_definition (
+            metric_id, tenant_id, metric_code, metric_name, category, formula, unit, permission_code,
+            data_level, description, enabled, created_at, updated_at
+        ) VALUES (
+            #{metricId}, #{tenantId}, #{metricCode}, #{metricName}, #{category}, #{formula}, #{unit}, #{permissionCode},
+            #{dataLevel}, #{description}, #{enabled}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateMetric" parameterType="com.aidotnet.erp.bi.infrastructure.data.MetricDefinitionDO">
+        UPDATE bi_metric_definition
+        SET metric_code = #{metricCode},
+            metric_name = #{metricName},
+            category = #{category},
+            formula = #{formula},
+            unit = #{unit},
+            permission_code = #{permissionCode},
+            data_level = #{dataLevel},
+            description = #{description},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND metric_id = #{metricId}
+    </update>
+
+    <select id="selectMetric" resultType="com.aidotnet.erp.bi.infrastructure.data.MetricDefinitionDO">
+        SELECT metric_id, tenant_id, metric_code, metric_name, category, formula, unit, permission_code,
+               data_level, description, enabled, created_at, updated_at
+        FROM bi_metric_definition
+        WHERE tenant_id = #{tenantId}
+          AND metric_id = #{metricId}
+    </select>
+
+    <select id="selectMetricByCode" resultType="com.aidotnet.erp.bi.infrastructure.data.MetricDefinitionDO">
+        SELECT metric_id, tenant_id, metric_code, metric_name, category, formula, unit, permission_code,
+               data_level, description, enabled, created_at, updated_at
+        FROM bi_metric_definition
+        WHERE tenant_id = #{tenantId}
+          AND metric_code = #{metricCode}
+    </select>
+
+    <select id="selectMetrics" resultType="com.aidotnet.erp.bi.infrastructure.data.MetricDefinitionDO">
+        SELECT metric_id, tenant_id, metric_code, metric_name, category, formula, unit, permission_code,
+               data_level, description, enabled, created_at, updated_at
+        FROM bi_metric_definition
+        WHERE tenant_id = #{tenantId}
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="enabled != null">
+            AND enabled = #{enabled}
+        </if>
+        ORDER BY category ASC, metric_code ASC
+    </select>
+
+    <insert id="insertWidget" parameterType="com.aidotnet.erp.bi.infrastructure.data.DashboardWidgetDO">
+        INSERT INTO bi_dashboard_widget (
+            widget_id, tenant_id, widget_code, widget_name, widget_type, config, sort_order, enabled, created_at, updated_at
+        ) VALUES (
+            #{widgetId}, #{tenantId}, #{widgetCode}, #{widgetName}, #{widgetType}, #{config}, #{sortOrder}, #{enabled}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateWidget" parameterType="com.aidotnet.erp.bi.infrastructure.data.DashboardWidgetDO">
+        UPDATE bi_dashboard_widget
+        SET widget_code = #{widgetCode},
+            widget_name = #{widgetName},
+            widget_type = #{widgetType},
+            config = #{config},
+            sort_order = #{sortOrder},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND widget_id = #{widgetId}
+    </update>
+
+    <select id="selectWidget" resultType="com.aidotnet.erp.bi.infrastructure.data.DashboardWidgetDO">
+        SELECT widget_id, tenant_id, widget_code, widget_name, widget_type, config, sort_order, enabled, created_at, updated_at
+        FROM bi_dashboard_widget
+        WHERE tenant_id = #{tenantId}
+          AND widget_id = #{widgetId}
+    </select>
+
+    <select id="selectWidgets" resultType="com.aidotnet.erp.bi.infrastructure.data.DashboardWidgetDO">
+        SELECT widget_id, tenant_id, widget_code, widget_name, widget_type, config, sort_order, enabled, created_at, updated_at
+        FROM bi_dashboard_widget
+        WHERE tenant_id = #{tenantId}
+        ORDER BY sort_order ASC, created_at DESC
+    </select>
+
+    <insert id="insertVisualization" parameterType="com.aidotnet.erp.bi.infrastructure.data.DataVisualizationDO">
+        INSERT INTO bi_data_visualization (
+            viz_id, tenant_id, report_id, viz_name, viz_type, config, sort_order, enabled, created_at, updated_at
+        ) VALUES (
+            #{vizId}, #{tenantId}, #{reportId}, #{vizName}, #{vizType}, #{config}, #{sortOrder}, #{enabled}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateVisualization" parameterType="com.aidotnet.erp.bi.infrastructure.data.DataVisualizationDO">
+        UPDATE bi_data_visualization
+        SET viz_name = #{vizName},
+            viz_type = #{vizType},
+            config = #{config},
+            sort_order = #{sortOrder},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND viz_id = #{vizId}
+    </update>
+
+    <select id="selectVisualization" resultType="com.aidotnet.erp.bi.infrastructure.data.DataVisualizationDO">
+        SELECT viz_id, tenant_id, report_id, viz_name, viz_type, config, sort_order, enabled, created_at, updated_at
+        FROM bi_data_visualization
+        WHERE tenant_id = #{tenantId}
+          AND viz_id = #{vizId}
+    </select>
+
+    <select id="selectVisualizations" resultType="com.aidotnet.erp.bi.infrastructure.data.DataVisualizationDO">
+        SELECT viz_id, tenant_id, report_id, viz_name, viz_type, config, sort_order, enabled, created_at, updated_at
+        FROM bi_data_visualization
+        WHERE tenant_id = #{tenantId}
+        <if test="reportId != null and reportId != ''">
+            AND report_id = #{reportId}
+        </if>
+        ORDER BY sort_order ASC, created_at DESC
+    </select>
+
+    <insert id="insertDimension" parameterType="com.aidotnet.erp.bi.infrastructure.data.DimensionDO">
+        INSERT INTO bi_dimension (
+            dimension_id, tenant_id, dimension_code, dimension_name, dimension_type, source_field,
+            description, enabled, created_at, updated_at
+        ) VALUES (
+            #{dimensionId}, #{tenantId}, #{dimensionCode}, #{dimensionName}, #{dimensionType}, #{sourceField},
+            #{description}, #{enabled}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateDimension" parameterType="com.aidotnet.erp.bi.infrastructure.data.DimensionDO">
+        UPDATE bi_dimension
+        SET dimension_name = #{dimensionName},
+            dimension_type = #{dimensionType},
+            source_field = #{sourceField},
+            description = #{description},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND dimension_id = #{dimensionId}
+    </update>
+
+    <select id="selectDimension" resultType="com.aidotnet.erp.bi.infrastructure.data.DimensionDO">
+        SELECT dimension_id, tenant_id, dimension_code, dimension_name, dimension_type, source_field,
+               description, enabled, created_at, updated_at
+        FROM bi_dimension
+        WHERE tenant_id = #{tenantId}
+          AND dimension_id = #{dimensionId}
+    </select>
+
+    <select id="selectDimensionByCode" resultType="com.aidotnet.erp.bi.infrastructure.data.DimensionDO">
+        SELECT dimension_id, tenant_id, dimension_code, dimension_name, dimension_type, source_field,
+               description, enabled, created_at, updated_at
+        FROM bi_dimension
+        WHERE tenant_id = #{tenantId}
+          AND dimension_code = #{dimensionCode}
+    </select>
+
+    <select id="selectDimensions" resultType="com.aidotnet.erp.bi.infrastructure.data.DimensionDO">
+        SELECT dimension_id, tenant_id, dimension_code, dimension_name, dimension_type, source_field,
+               description, enabled, created_at, updated_at
+        FROM bi_dimension
+        WHERE tenant_id = #{tenantId}
+        <if test="enabled != null">
+            AND enabled = #{enabled}
+        </if>
+        ORDER BY dimension_type ASC, dimension_code ASC
+    </select>
+
+    <insert id="insertDashboard" parameterType="com.aidotnet.erp.bi.infrastructure.data.BiDashboardDO">
+        INSERT INTO bi_dashboard (
+            dashboard_id, tenant_id, dashboard_name, dashboard_type, config, owner, enabled, created_at, updated_at
+        ) VALUES (
+            #{dashboardId}, #{tenantId}, #{dashboardName}, #{dashboardType}, #{config}, #{owner}, #{enabled}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateDashboard" parameterType="com.aidotnet.erp.bi.infrastructure.data.BiDashboardDO">
+        UPDATE bi_dashboard
+        SET dashboard_name = #{dashboardName},
+            dashboard_type = #{dashboardType},
+            config = #{config},
+            owner = #{owner},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND dashboard_id = #{dashboardId}
+    </update>
+
+    <select id="selectDashboard" resultType="com.aidotnet.erp.bi.infrastructure.data.BiDashboardDO">
+        SELECT dashboard_id, tenant_id, dashboard_name, dashboard_type, config, owner, enabled, created_at, updated_at
+        FROM bi_dashboard
+        WHERE tenant_id = #{tenantId}
+          AND dashboard_id = #{dashboardId}
+    </select>
+
+    <select id="selectDashboards" resultType="com.aidotnet.erp.bi.infrastructure.data.BiDashboardDO">
+        SELECT dashboard_id, tenant_id, dashboard_name, dashboard_type, config, owner, enabled, created_at, updated_at
+        FROM bi_dashboard
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="deleteDashboard">
+        DELETE FROM bi_dashboard WHERE tenant_id = #{tenantId} AND dashboard_id = #{dashboardId}
+    </delete>
+
+    <!-- ================================ 删除操作 ================================ -->
+
+    <delete id="deleteReport">
+        DELETE FROM bi_report_definition WHERE tenant_id = #{tenantId} AND report_id = #{reportId}
+    </delete>
+
+    <delete id="deleteKpi">
+        DELETE FROM bi_kpi_metric WHERE tenant_id = #{tenantId} AND kpi_id = #{kpiId}
+    </delete>
+
+    <delete id="deleteMetric">
+        DELETE FROM bi_metric_definition WHERE tenant_id = #{tenantId} AND metric_id = #{metricId}
+    </delete>
+
+    <delete id="deleteWidget">
+        DELETE FROM bi_dashboard_widget WHERE tenant_id = #{tenantId} AND widget_id = #{widgetId}
+    </delete>
+
+    <delete id="deleteVisualization">
+        DELETE FROM bi_data_visualization WHERE tenant_id = #{tenantId} AND viz_id = #{vizId}
+    </delete>
+
+    <delete id="deleteDimension">
+        DELETE FROM bi_dimension WHERE tenant_id = #{tenantId} AND dimension_id = #{dimensionId}
+    </delete>
+
+</mapper>

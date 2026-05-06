@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.fms.infrastructure.mapper.FinanceMapper">
+
+    <insert id="insertReceivable" parameterType="com.aidotnet.erp.fms.infrastructure.data.ReceivableDO">
+        INSERT INTO fms_receivable (
+            receivable_id, tenant_id, source_type, source_id, customer_name,
+            currency, amount, paid_amount, status, created_at, updated_at
+        )
+        VALUES (
+            #{receivableId}, #{tenantId}, #{sourceType}, #{sourceId}, #{customerName},
+            #{currency}, #{amount}, #{paidAmount}, #{status}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateReceivable" parameterType="com.aidotnet.erp.fms.infrastructure.data.ReceivableDO">
+        UPDATE fms_receivable
+        SET customer_name = #{customerName},
+            currency = #{currency},
+            amount = #{amount},
+            paid_amount = #{paidAmount},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND receivable_id = #{receivableId}
+    </update>
+
+    <select id="selectReceivable" resultType="com.aidotnet.erp.fms.infrastructure.data.ReceivableDO">
+        SELECT receivable_id, tenant_id, source_type, source_id, customer_name,
+               currency, amount, paid_amount, status, created_at, updated_at
+        FROM fms_receivable
+        WHERE tenant_id = #{tenantId}
+          AND receivable_id = #{receivableId}
+    </select>
+
+    <select id="selectReceivableBySource" resultType="com.aidotnet.erp.fms.infrastructure.data.ReceivableDO">
+        SELECT receivable_id, tenant_id, source_type, source_id, customer_name,
+               currency, amount, paid_amount, status, created_at, updated_at
+        FROM fms_receivable
+        WHERE tenant_id = #{tenantId}
+          AND source_type = #{sourceType}
+          AND source_id = #{sourceId}
+    </select>
+
+    <select id="selectReceivables" resultType="com.aidotnet.erp.fms.infrastructure.data.ReceivableDO">
+        SELECT receivable_id, tenant_id, source_type, source_id, customer_name,
+               currency, amount, paid_amount, status, created_at, updated_at
+        FROM fms_receivable
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, receivable_id DESC
+    </select>
+
+    <insert id="insertPayment" parameterType="com.aidotnet.erp.fms.infrastructure.data.PaymentRecordDO">
+        INSERT INTO fms_payment_record (
+            payment_id, tenant_id, receivable_id, amount, payment_method, paid_at
+        )
+        VALUES (
+            #{paymentId}, #{tenantId}, #{receivableId}, #{amount}, #{paymentMethod}, #{paidAt}
+        )
+    </insert>
+
+    <select id="selectPayments" resultType="com.aidotnet.erp.fms.infrastructure.data.PaymentRecordDO">
+        SELECT payment_id, tenant_id, receivable_id, amount, payment_method, paid_at
+        FROM fms_payment_record
+        WHERE tenant_id = #{tenantId}
+          AND receivable_id = #{receivableId}
+        ORDER BY paid_at ASC, payment_id ASC
+    </select>
+
+    <insert id="insertPaymentApproval" parameterType="com.aidotnet.erp.fms.infrastructure.data.PaymentApprovalDO">
+        INSERT INTO fms_payment_approval (
+            approval_id, tenant_id, request_id, approver_id, approval_level,
+            status, comment, approved_at, created_at
+        )
+        VALUES (
+            #{approvalId}, #{tenantId}, #{requestId}, #{approverId}, #{approvalLevel},
+            #{status}, #{comment}, #{approvedAt}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectPaymentApprovals" resultType="com.aidotnet.erp.fms.infrastructure.data.PaymentApprovalDO">
+        SELECT approval_id, tenant_id, request_id, approver_id, approval_level,
+               status, comment, approved_at, created_at
+        FROM fms_payment_approval
+        WHERE tenant_id = #{tenantId}
+          AND request_id = #{requestId}
+        ORDER BY approval_level ASC, approval_id ASC
+    </select>
+
+    <insert id="insertPaymentRequest" parameterType="com.aidotnet.erp.fms.infrastructure.data.PaymentRequestDO">
+        INSERT INTO fms_payment_request (
+            request_id, tenant_id, po_id, supplier_id, amount, currency,
+            request_type, status, requested_by, approval_flow, paid_by,
+            paid_at, writeoff_status, writeoff_amount, created_at, updated_at
+        )
+        VALUES (
+            #{requestId}, #{tenantId}, #{poId}, #{supplierId}, #{amount}, #{currency},
+            #{requestType}, #{status}, #{requestedBy}, #{approvalFlow}, #{paidBy},
+            #{paidAt}, #{writeoffStatus}, #{writeoffAmount}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updatePaymentRequest" parameterType="com.aidotnet.erp.fms.infrastructure.data.PaymentRequestDO">
+        UPDATE fms_payment_request
+        SET po_id = #{poId},
+            supplier_id = #{supplierId},
+            amount = #{amount},
+            currency = #{currency},
+            request_type = #{requestType},
+            status = #{status},
+            requested_by = #{requestedBy},
+            approval_flow = #{approvalFlow},
+            paid_by = #{paidBy},
+            paid_at = #{paidAt},
+            writeoff_status = #{writeoffStatus},
+            writeoff_amount = #{writeoffAmount},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND request_id = #{requestId}
+    </update>
+
+    <select id="selectPaymentRequest" resultType="com.aidotnet.erp.fms.infrastructure.data.PaymentRequestDO">
+        SELECT request_id, tenant_id, po_id, supplier_id, amount, currency,
+               request_type, status, requested_by, approval_flow, paid_by,
+               paid_at, writeoff_status, writeoff_amount, created_at, updated_at
+        FROM fms_payment_request
+        WHERE tenant_id = #{tenantId}
+          AND request_id = #{requestId}
+    </select>
+
+    <select id="selectPaymentRequests" resultType="com.aidotnet.erp.fms.infrastructure.data.PaymentRequestDO">
+        SELECT request_id, tenant_id, po_id, supplier_id, amount, currency,
+               request_type, status, requested_by, approval_flow, paid_by,
+               paid_at, writeoff_status, writeoff_amount, created_at, updated_at
+        FROM fms_payment_request
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, request_id DESC
+    </select>
+
+    <insert id="insertWriteOff" parameterType="com.aidotnet.erp.fms.infrastructure.data.WriteOffDO">
+        INSERT INTO fms_write_off (
+            writeoff_id, tenant_id, type, ref_type, ref_id, amount, currency,
+            status, approved_by, created_at, updated_at
+        )
+        VALUES (
+            #{writeoffId}, #{tenantId}, #{type}, #{refType}, #{refId}, #{amount}, #{currency},
+            #{status}, #{approvedBy}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateWriteOff" parameterType="com.aidotnet.erp.fms.infrastructure.data.WriteOffDO">
+        UPDATE fms_write_off
+        SET type = #{type},
+            ref_type = #{refType},
+            ref_id = #{refId},
+            amount = #{amount},
+            currency = #{currency},
+            status = #{status},
+            approved_by = #{approvedBy},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND writeoff_id = #{writeoffId}
+    </update>
+
+    <select id="selectWriteOff" resultType="com.aidotnet.erp.fms.infrastructure.data.WriteOffDO">
+        SELECT writeoff_id, tenant_id, type, ref_type, ref_id, amount, currency,
+               status, approved_by, created_at, updated_at
+        FROM fms_write_off
+        WHERE tenant_id = #{tenantId}
+          AND writeoff_id = #{writeoffId}
+    </select>
+
+    <select id="selectWriteOffs" resultType="com.aidotnet.erp.fms.infrastructure.data.WriteOffDO">
+        SELECT writeoff_id, tenant_id, type, ref_type, ref_id, amount, currency,
+               status, approved_by, created_at, updated_at
+        FROM fms_write_off
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, writeoff_id DESC
+    </select>
+
+    <select id="selectWriteOffsByRef" resultType="com.aidotnet.erp.fms.infrastructure.data.WriteOffDO">
+        SELECT writeoff_id, tenant_id, type, ref_type, ref_id, amount, currency,
+               status, approved_by, created_at, updated_at
+        FROM fms_write_off
+        WHERE tenant_id = #{tenantId}
+          AND ref_type = #{refType}
+          AND ref_id = #{refId}
+        ORDER BY created_at DESC, writeoff_id DESC
+    </select>
+
+    <insert id="insertReconciliation" parameterType="com.aidotnet.erp.fms.infrastructure.data.ReconciliationDO">
+        INSERT INTO fms_reconciliation (
+            recon_id, tenant_id, type, party_id, party_name, period,
+            payable_amount, paid_amount, balance, status, items,
+            difference_items, created_at, updated_at
+        )
+        VALUES (
+            #{reconId}, #{tenantId}, #{type}, #{partyId}, #{partyName}, #{period},
+            #{payableAmount}, #{paidAmount}, #{balance}, #{status}, #{items},
+            #{differenceItems}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateReconciliation" parameterType="com.aidotnet.erp.fms.infrastructure.data.ReconciliationDO">
+        UPDATE fms_reconciliation
+        SET type = #{type},
+            party_id = #{partyId},
+            party_name = #{partyName},
+            period = #{period},
+            payable_amount = #{payableAmount},
+            paid_amount = #{paidAmount},
+            balance = #{balance},
+            status = #{status},
+            items = #{items},
+            difference_items = #{differenceItems},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND recon_id = #{reconId}
+    </update>
+
+    <select id="selectReconciliation" resultType="com.aidotnet.erp.fms.infrastructure.data.ReconciliationDO">
+        SELECT recon_id, tenant_id, type, party_id, party_name, period,
+               payable_amount, paid_amount, balance, status, items,
+               difference_items, created_at, updated_at
+        FROM fms_reconciliation
+        WHERE tenant_id = #{tenantId}
+          AND recon_id = #{reconId}
+    </select>
+
+    <select id="selectReconciliations" resultType="com.aidotnet.erp.fms.infrastructure.data.ReconciliationDO">
+        SELECT recon_id, tenant_id, type, party_id, party_name, period,
+               payable_amount, paid_amount, balance, status, items,
+               difference_items, created_at, updated_at
+        FROM fms_reconciliation
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, recon_id DESC
+    </select>
+
+    <select id="selectReconciliationsByTypeAndParty" resultType="com.aidotnet.erp.fms.infrastructure.data.ReconciliationDO">
+        SELECT recon_id, tenant_id, type, party_id, party_name, period,
+               payable_amount, paid_amount, balance, status, items,
+               difference_items, created_at, updated_at
+        FROM fms_reconciliation
+        WHERE tenant_id = #{tenantId}
+          AND type = #{type}
+          AND party_id = #{partyId}
+        ORDER BY created_at DESC, recon_id DESC
+    </select>
+
+    <insert id="insertPlatformBill" parameterType="com.aidotnet.erp.fms.infrastructure.data.PlatformBillDO">
+        INSERT INTO fms_platform_bill (
+            bill_id, tenant_id, platform, store, bill_type, period,
+            seller_sku, marketplace_id, source_type, source_id,
+            currency, amount, raw_data, status, settlement_id,
+            created_at, updated_at
+        )
+        VALUES (
+            #{billId}, #{tenantId}, #{platform}, #{store}, #{billType}, #{period},
+            #{sellerSku}, #{marketplaceId}, #{sourceType}, #{sourceId},
+            #{currency}, #{amount}, #{rawData}, #{status}, #{settlementId},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updatePlatformBill" parameterType="com.aidotnet.erp.fms.infrastructure.data.PlatformBillDO">
+        UPDATE fms_platform_bill
+        SET platform = #{platform},
+            store = #{store},
+            bill_type = #{billType},
+            period = #{period},
+            seller_sku = #{sellerSku},
+            marketplace_id = #{marketplaceId},
+            source_type = #{sourceType},
+            source_id = #{sourceId},
+            currency = #{currency},
+            amount = #{amount},
+            raw_data = #{rawData},
+            status = #{status},
+            settlement_id = #{settlementId},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND bill_id = #{billId}
+    </update>
+
+    <select id="selectPlatformBill" resultType="com.aidotnet.erp.fms.infrastructure.data.PlatformBillDO">
+        SELECT bill_id, tenant_id, platform, store, bill_type, period,
+               seller_sku, marketplace_id, source_type, source_id,
+               currency, amount, raw_data, status, settlement_id,
+               created_at, updated_at
+        FROM fms_platform_bill
+        WHERE tenant_id = #{tenantId}
+          AND bill_id = #{billId}
+    </select>
+
+    <select id="selectPlatformBills" resultType="com.aidotnet.erp.fms.infrastructure.data.PlatformBillDO">
+        SELECT bill_id, tenant_id, platform, store, bill_type, period,
+               seller_sku, marketplace_id, source_type, source_id,
+               currency, amount, raw_data, status, settlement_id,
+               created_at, updated_at
+        FROM fms_platform_bill
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, bill_id DESC
+    </select>
+
+    <select id="selectPlatformBillsBySettlementId" resultType="com.aidotnet.erp.fms.infrastructure.data.PlatformBillDO">
+        SELECT bill_id, tenant_id, platform, store, bill_type, period,
+               seller_sku, marketplace_id, source_type, source_id,
+               currency, amount, raw_data, status, settlement_id,
+               created_at, updated_at
+        FROM fms_platform_bill
+        WHERE tenant_id = #{tenantId}
+          AND settlement_id = #{settlementId}
+        ORDER BY created_at DESC, bill_id DESC
+    </select>
+
+    <insert id="insertPlatformSettlement" parameterType="com.aidotnet.erp.fms.infrastructure.data.PlatformSettlementDO">
+        INSERT INTO fms_platform_settlement (
+            settlement_id, tenant_id, platform, store, settlement_type,
+            amount, reconciled_amount, linked_bill_count, received_amount,
+            currency, settlement_date, status, withdrawal_status,
+            withdrawal_reference, forex_status, forex_rate, received_at,
+            created_at, updated_at
+        )
+        VALUES (
+            #{settlementId}, #{tenantId}, #{platform}, #{store}, #{settlementType},
+            #{amount}, #{reconciledAmount}, #{linkedBillCount}, #{receivedAmount},
+            #{currency}, #{settlementDate}, #{status}, #{withdrawalStatus},
+            #{withdrawalReference}, #{forexStatus}, #{forexRate}, #{receivedAt},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updatePlatformSettlement" parameterType="com.aidotnet.erp.fms.infrastructure.data.PlatformSettlementDO">
+        UPDATE fms_platform_settlement
+        SET platform = #{platform},
+            store = #{store},
+            settlement_type = #{settlementType},
+            amount = #{amount},
+            reconciled_amount = #{reconciledAmount},
+            linked_bill_count = #{linkedBillCount},
+            received_amount = #{receivedAmount},
+            currency = #{currency},
+            settlement_date = #{settlementDate},
+            status = #{status},
+            withdrawal_status = #{withdrawalStatus},
+            withdrawal_reference = #{withdrawalReference},
+            forex_status = #{forexStatus},
+            forex_rate = #{forexRate},
+            received_at = #{receivedAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND settlement_id = #{settlementId}
+    </update>
+
+    <select id="selectPlatformSettlement" resultType="com.aidotnet.erp.fms.infrastructure.data.PlatformSettlementDO">
+        SELECT settlement_id, tenant_id, platform, store, settlement_type,
+               amount, reconciled_amount, linked_bill_count, received_amount,
+               currency, settlement_date, status, withdrawal_status,
+               withdrawal_reference, forex_status, forex_rate, received_at,
+               created_at, updated_at
+        FROM fms_platform_settlement
+        WHERE tenant_id = #{tenantId}
+          AND settlement_id = #{settlementId}
+    </select>
+
+    <select id="selectPlatformSettlements" resultType="com.aidotnet.erp.fms.infrastructure.data.PlatformSettlementDO">
+        SELECT settlement_id, tenant_id, platform, store, settlement_type,
+               amount, reconciled_amount, linked_bill_count, received_amount,
+               currency, settlement_date, status, withdrawal_status,
+               withdrawal_reference, forex_status, forex_rate, received_at,
+               created_at, updated_at
+        FROM fms_platform_settlement
+        WHERE tenant_id = #{tenantId}
+        ORDER BY settlement_date DESC, created_at DESC, settlement_id DESC
+    </select>
+
+    <insert id="insertForexRate" parameterType="com.aidotnet.erp.fms.infrastructure.data.ForexRateDO">
+        INSERT INTO fms_forex_rate (
+            rate_id, tenant_id, from_currency, to_currency, rate,
+            effective_date, source, created_at
+        )
+        VALUES (
+            #{rateId}, #{tenantId}, #{fromCurrency}, #{toCurrency}, #{rate},
+            #{effectiveDate}, #{source}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectForexRateByUnique" resultType="com.aidotnet.erp.fms.infrastructure.data.ForexRateDO">
+        SELECT rate_id, tenant_id, from_currency, to_currency, rate,
+               effective_date, source, created_at
+        FROM fms_forex_rate
+        WHERE tenant_id = #{tenantId}
+          AND from_currency = #{fromCurrency}
+          AND to_currency = #{toCurrency}
+          AND effective_date = #{effectiveDate}
+          AND source = #{source}
+    </select>
+
+    <select id="selectLatestForexRate" resultType="com.aidotnet.erp.fms.infrastructure.data.ForexRateDO">
+        SELECT rate_id, tenant_id, from_currency, to_currency, rate,
+               effective_date, source, created_at
+        FROM fms_forex_rate
+        WHERE tenant_id = #{tenantId}
+          AND from_currency = #{fromCurrency}
+          AND to_currency = #{toCurrency}
+        ORDER BY effective_date DESC, created_at DESC, rate_id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectLatestForexRateAsOf" resultType="com.aidotnet.erp.fms.infrastructure.data.ForexRateDO">
+        SELECT rate_id, tenant_id, from_currency, to_currency, rate,
+               effective_date, source, created_at
+        FROM fms_forex_rate
+        WHERE tenant_id = #{tenantId}
+          AND from_currency = #{fromCurrency}
+          AND to_currency = #{toCurrency}
+          AND effective_date &lt;= #{effectiveDate}
+        ORDER BY effective_date DESC, created_at DESC, rate_id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectForexRates" resultType="com.aidotnet.erp.fms.infrastructure.data.ForexRateDO">
+        SELECT rate_id, tenant_id, from_currency, to_currency, rate,
+               effective_date, source, created_at
+        FROM fms_forex_rate
+        WHERE tenant_id = #{tenantId}
+        ORDER BY from_currency ASC, to_currency ASC, effective_date DESC, created_at DESC, rate_id DESC
+    </select>
+
+    <select id="selectForexRateHistory" resultType="com.aidotnet.erp.fms.infrastructure.data.ForexRateDO">
+        SELECT rate_id, tenant_id, from_currency, to_currency, rate,
+               effective_date, source, created_at
+        FROM fms_forex_rate
+        WHERE tenant_id = #{tenantId}
+          AND from_currency = #{fromCurrency}
+          AND to_currency = #{toCurrency}
+        ORDER BY effective_date DESC, created_at DESC, rate_id DESC
+    </select>
+
+    <insert id="insertForexTransaction" parameterType="com.aidotnet.erp.fms.infrastructure.data.ForexTransactionDO">
+        INSERT INTO fms_forex_transaction (
+            forex_id, tenant_id, from_currency, to_currency, amount,
+            rate, fee, converted_amount, ref_type, ref_id, created_at
+        )
+        VALUES (
+            #{forexId}, #{tenantId}, #{fromCurrency}, #{toCurrency}, #{amount},
+            #{rate}, #{fee}, #{convertedAmount}, #{refType}, #{refId}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectForexTransactions" resultType="com.aidotnet.erp.fms.infrastructure.data.ForexTransactionDO">
+        SELECT forex_id, tenant_id, from_currency, to_currency, amount,
+               rate, fee, converted_amount, ref_type, ref_id, created_at
+        FROM fms_forex_transaction
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, forex_id DESC
+    </select>
+
+    <select id="selectForexTransactionsByRef" resultType="com.aidotnet.erp.fms.infrastructure.data.ForexTransactionDO">
+        SELECT forex_id, tenant_id, from_currency, to_currency, amount,
+               rate, fee, converted_amount, ref_type, ref_id, created_at
+        FROM fms_forex_transaction
+        WHERE tenant_id = #{tenantId}
+          AND ref_type = #{refType}
+          AND ref_id = #{refId}
+        ORDER BY created_at DESC, forex_id DESC
+    </select>
+
+    <insert id="insertCostEvent" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
+        INSERT INTO fms_cost_event (
+            cost_event_id, tenant_id, cost_type, source_type, source_id,
+            seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+        )
+        VALUES (
+            #{costEventId}, #{tenantId}, #{costType}, #{sourceType}, #{sourceId},
+            #{sellerSku}, #{marketplaceId}, #{currency}, #{amount}, #{occurredAt}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectCostEvent" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
+        SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
+               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+        FROM fms_cost_event
+        WHERE tenant_id = #{tenantId}
+          AND cost_event_id = #{costEventId}
+    </select>
+
+    <select id="selectCostEvents" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
+        SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
+               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+        FROM fms_cost_event
+        WHERE tenant_id = #{tenantId}
+        ORDER BY occurred_at DESC, cost_event_id DESC
+    </select>
+
+    <select id="selectCostEventsBySku" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
+        SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
+               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+        FROM fms_cost_event
+        WHERE tenant_id = #{tenantId}
+          AND seller_sku = #{sellerSku}
+        ORDER BY occurred_at DESC, cost_event_id DESC
+    </select>
+
+    <select id="selectCostEventsBySource" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
+        SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
+               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+        FROM fms_cost_event
+        WHERE tenant_id = #{tenantId}
+          AND source_type = #{sourceType}
+          AND source_id = #{sourceId}
+        ORDER BY occurred_at DESC, cost_event_id DESC
+    </select>
+
+    <insert id="insertProfitStatement" parameterType="com.aidotnet.erp.fms.infrastructure.data.ProfitStatementDO">
+        INSERT INTO fms_profit_statement (
+            statement_id, tenant_id, seller_sku, marketplace_id, order_id,
+            revenue, product_cost, shipping_cost, fba_fee, commission,
+            advertising_cost, other_cost, total_cost, gross_profit, gross_margin,
+            currency, created_at
+        )
+        VALUES (
+            #{statementId}, #{tenantId}, #{sellerSku}, #{marketplaceId}, #{orderId},
+            #{revenue}, #{productCost}, #{shippingCost}, #{fbaFee}, #{commission},
+            #{advertisingCost}, #{otherCost}, #{totalCost}, #{grossProfit}, #{grossMargin},
+            #{currency}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectProfitStatements" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitStatementDO">
+        SELECT statement_id, tenant_id, seller_sku, marketplace_id, order_id,
+               revenue, product_cost, shipping_cost, fba_fee, commission,
+               advertising_cost, other_cost, total_cost, gross_profit, gross_margin,
+               currency, created_at
+        FROM fms_profit_statement
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, statement_id DESC
+    </select>
+
+    <select id="selectProfitStatementsBySku" resultType="com.aidotnet.erp.fms.infrastructure.data.ProfitStatementDO">
+        SELECT statement_id, tenant_id, seller_sku, marketplace_id, order_id,
+               revenue, product_cost, shipping_cost, fba_fee, commission,
+               advertising_cost, other_cost, total_cost, gross_profit, gross_margin,
+               currency, created_at
+        FROM fms_profit_statement
+        WHERE tenant_id = #{tenantId}
+          AND seller_sku = #{sellerSku}
+        ORDER BY created_at DESC, statement_id DESC
+    </select>
+
+</mapper>

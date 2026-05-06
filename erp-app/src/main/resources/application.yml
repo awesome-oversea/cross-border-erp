@@ -1,0 +1,218 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: erp-app
+  datasource:
+    url: ${ERP_DATASOURCE_URL:jdbc:postgresql://localhost:5432/erp}
+    username: ${ERP_DATASOURCE_USERNAME:erp}
+    password: ${ERP_DATASOURCE_PASSWORD:erp}
+    driver-class-name: ${ERP_DATASOURCE_DRIVER:org.postgresql.Driver}
+    hikari:
+      connection-init-sql: SET search_path TO platform, iam, pdm, som, ads, oms, scm, wms, fba, tms, crm, fms, bi, sys, dashboard, public
+  flyway:
+    enabled: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      continue-on-error: true
+  data:
+    redis:
+      host: ${ERP_REDIS_HOST:localhost}
+      port: ${ERP_REDIS_PORT:6379}
+      password: ${ERP_REDIS_PASSWORD:}
+      database: ${ERP_REDIS_DATABASE:0}
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+      config:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        file-extension: yml
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 30000
+    stream:
+      default-binder: kafka
+      binders:
+        kafka:
+          type: kafka
+          environment:
+            spring:
+              kafka:
+                bootstrap-servers: ${ERP_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+        rocketmq:
+          type: rocketmq
+          environment:
+            spring:
+              cloud:
+                stream:
+                  rocketmq:
+                    binder:
+                      name-server: ${ERP_ROCKETMQ_NAME_SERVER:localhost:9876}
+      bindings:
+        erpKafkaOutbound-out-0:
+          binder: kafka
+          destination: ${ERP_KAFKA_TOPIC:erp.domain.events}
+          content-type: application/json
+        omsEvents-out-0:
+          binder: kafka
+          destination: erp.oms.events.v1
+          content-type: application/json
+        wmsEvents-out-0:
+          binder: kafka
+          destination: erp.wms.events.v1
+          content-type: application/json
+        scmEvents-out-0:
+          binder: kafka
+          destination: erp.scm.events.v1
+          content-type: application/json
+        tmsEvents-out-0:
+          binder: kafka
+          destination: erp.tms.events.v1
+          content-type: application/json
+        fmsEvents-out-0:
+          binder: kafka
+          destination: erp.fms.events.v1
+          content-type: application/json
+        adsEvents-out-0:
+          binder: kafka
+          destination: erp.ads.events.v1
+          content-type: application/json
+        crmEvents-out-0:
+          binder: kafka
+          destination: erp.crm.events.v1
+          content-type: application/json
+        fbaEvents-out-0:
+          binder: kafka
+          destination: erp.fba.events.v1
+          content-type: application/json
+        pdmEvents-out-0:
+          binder: kafka
+          destination: erp.pdm.events.v1
+          content-type: application/json
+        omsEvents-in-0:
+          binder: kafka
+          destination: erp.oms.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        wmsEvents-in-0:
+          binder: kafka
+          destination: erp.wms.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        scmEvents-in-0:
+          binder: kafka
+          destination: erp.scm.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        tmsEvents-in-0:
+          binder: kafka
+          destination: erp.tms.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        fmsEvents-in-0:
+          binder: kafka
+          destination: erp.fms.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        adsEvents-in-0:
+          binder: kafka
+          destination: erp.ads.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        crmEvents-in-0:
+          binder: kafka
+          destination: erp.crm.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        fbaEvents-in-0:
+          binder: kafka
+          destination: erp.fba.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+        pdmEvents-in-0:
+          binder: kafka
+          destination: erp.pdm.events.v1
+          group: ${spring.application.name}
+          content-type: application/json
+      function:
+        definition: omsEvents;wmsEvents;scmEvents;tmsEvents;fmsEvents;adsEvents;crmEvents;fbaEvents;pdmEvents
+
+mybatis-plus:
+  global-config:
+    banner: false
+  mapper-locations: classpath*:mapper/*.xml
+
+erp:
+  jwt:
+    secret: ${ERP_JWT_SECRET:default-secret-key-for-development-only-must-be-at-least-256-bits-long}
+    expiration-seconds: ${ERP_JWT_EXPIRATION:7200}
+  minio:
+    endpoint: ${ERP_MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${ERP_MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${ERP_MINIO_SECRET_KEY:minioadmin}
+    default-bucket: ${ERP_MINIO_BUCKET:erp-files}
+  elasticsearch:
+    host: ${ERP_ES_HOST:localhost}
+    port: ${ERP_ES_PORT:9200}
+  sentinel:
+    flow-rate: ${ERP_SENTINEL_FLOW_RATE:100}
+    degrade-rt: ${ERP_SENTINEL_DEGRADE_RT:3000}
+    degrade-ratio: ${ERP_SENTINEL_DEGRADE_RATIO:0.5}
+    degrade-window: ${ERP_SENTINEL_DEGRADE_WINDOW:10}
+    system-load: ${ERP_SENTINEL_SYSTEM_LOAD:-1}
+    system-cpu-usage: ${ERP_SENTINEL_SYSTEM_CPU_USAGE:0.8}
+  messaging:
+    default-binding: erpKafkaOutbound-out-0
+    routes:
+      - event-type-prefix: "erp.oms."
+        broker-type: KAFKA
+        binding-name: omsEvents-out-0
+      - event-type-prefix: "erp.wms."
+        broker-type: KAFKA
+        binding-name: wmsEvents-out-0
+      - event-type-prefix: "erp.scm."
+        broker-type: KAFKA
+        binding-name: scmEvents-out-0
+      - event-type-prefix: "erp.tms."
+        broker-type: KAFKA
+        binding-name: tmsEvents-out-0
+      - event-type-prefix: "erp.fms."
+        broker-type: KAFKA
+        binding-name: fmsEvents-out-0
+      - event-type-prefix: "erp.ads."
+        broker-type: KAFKA
+        binding-name: adsEvents-out-0
+      - event-type-prefix: "erp.crm."
+        broker-type: KAFKA
+        binding-name: crmEvents-out-0
+      - event-type-prefix: "erp.fba."
+        broker-type: KAFKA
+        binding-name: fbaEvents-out-0
+      - event-type-prefix: "erp.pdm."
+        broker-type: KAFKA
+        binding-name: pdmEvents-out-0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

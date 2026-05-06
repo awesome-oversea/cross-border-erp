@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.RoleMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
+        INSERT INTO iam_role (role_code, name, permissions)
+        VALUES (#{roleCode}, #{name}, #{permissions})
+    </insert>
+
+    <select id="selectByCode" resultType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
+        SELECT role_code, name, permissions
+        FROM iam_role
+        WHERE role_code = #{roleCode}
+    </select>
+
+    <select id="selectAll" resultType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
+        SELECT role_code, name, permissions
+        FROM iam_role
+        ORDER BY role_code
+    </select>
+
+    <update id="update" parameterType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
+        UPDATE iam_role
+        SET name = #{name}, permissions = #{permissions}
+        WHERE role_code = #{roleCode}
+    </update>
+
+</mapper>

@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.fba.infrastructure.mapper.FbaShipmentMapper">
+
+    <insert id="insertShipment" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaShipmentDO">
+        INSERT INTO fba_shipment (
+            fba_shipment_id, tenant_id, amazon_shipment_id, destination_fc, plan_id, carrier,
+            tracking_no, planned_quantity, received_quantity, carton_count, total_weight, status,
+            packed_at, shipped_at, created_at, updated_at
+        ) VALUES (
+            #{fbaShipmentId}, #{tenantId}, #{amazonShipmentId}, #{destinationFc}, #{planId}, #{carrier},
+            #{trackingNo}, #{plannedQuantity}, #{receivedQuantity}, #{cartonCount}, #{totalWeight}, #{status},
+            #{packedAt}, #{shippedAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateShipment" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaShipmentDO">
+        UPDATE fba_shipment
+        SET amazon_shipment_id = #{amazonShipmentId},
+            destination_fc = #{destinationFc},
+            plan_id = #{planId},
+            carrier = #{carrier},
+            tracking_no = #{trackingNo},
+            planned_quantity = #{plannedQuantity},
+            received_quantity = #{receivedQuantity},
+            carton_count = #{cartonCount},
+            total_weight = #{totalWeight},
+            status = #{status},
+            packed_at = #{packedAt},
+            shipped_at = #{shippedAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND fba_shipment_id = #{fbaShipmentId}
+    </update>
+
+    <select id="selectShipment" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaShipmentDO">
+        SELECT fba_shipment_id, tenant_id, amazon_shipment_id, destination_fc, plan_id, carrier,
+               tracking_no, planned_quantity, received_quantity, carton_count, total_weight, status,
+               packed_at, shipped_at, created_at, updated_at
+        FROM fba_shipment
+        WHERE tenant_id = #{tenantId}
+          AND fba_shipment_id = #{fbaShipmentId}
+    </select>
+
+    <select id="selectShipmentByAmazonId" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaShipmentDO">
+        SELECT fba_shipment_id, tenant_id, amazon_shipment_id, destination_fc, plan_id, carrier,
+               tracking_no, planned_quantity, received_quantity, carton_count, total_weight, status,
+               packed_at, shipped_at, created_at, updated_at
+        FROM fba_shipment
+        WHERE tenant_id = #{tenantId}
+          AND amazon_shipment_id = #{amazonShipmentId}
+    </select>
+
+    <select id="selectShipments" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaShipmentDO">
+        SELECT fba_shipment_id, tenant_id, amazon_shipment_id, destination_fc, plan_id, carrier,
+               tracking_no, planned_quantity, received_quantity, carton_count, total_weight, status,
+               packed_at, shipped_at, created_at, updated_at
+        FROM fba_shipment
+        WHERE tenant_id = #{tenantId}
+        <if test="planId != null and planId != ''">
+            AND plan_id = #{planId}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertShipmentItem" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaShipmentItemDO">
+        INSERT INTO fba_shipment_item (
+            item_id, tenant_id, shipment_id, product_id, seller_sku, fnsku, quantity, box_quantity, created_at
+        ) VALUES (
+            #{itemId}, #{tenantId}, #{shipmentId}, #{productId}, #{sellerSku}, #{fnsku}, #{quantity}, #{boxQuantity}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectShipmentItems" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaShipmentItemDO">
+        SELECT item_id, tenant_id, shipment_id, product_id, seller_sku, fnsku, quantity, box_quantity, created_at
+        FROM fba_shipment_item
+        WHERE tenant_id = #{tenantId}
+          AND shipment_id = #{shipmentId}
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertCartonLabel" parameterType="com.aidotnet.erp.fba.infrastructure.data.CartonLabelDO">
+        INSERT INTO fba_carton_label (
+            label_id, tenant_id, fba_shipment_id, carton_id, seller_sku, quantity_per_carton, number_of_cartons, label_url, created_at
+        ) VALUES (
+            #{labelId}, #{tenantId}, #{fbaShipmentId}, #{cartonId}, #{sellerSku}, #{quantityPerCarton}, #{numberOfCartons}, #{labelUrl}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectCartonLabels" resultType="com.aidotnet.erp.fba.infrastructure.data.CartonLabelDO">
+        SELECT label_id, tenant_id, fba_shipment_id, carton_id, seller_sku, quantity_per_carton, number_of_cartons, label_url, created_at
+        FROM fba_carton_label
+        WHERE tenant_id = #{tenantId}
+          AND fba_shipment_id = #{fbaShipmentId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertInboundPlan" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaInboundPlanDO">
+        INSERT INTO fba_inbound_plan (
+            plan_id, tenant_id, warehouse_id, plan_name, seller_sku, planned_quantity,
+            store_id, site_code, source_plan_id, status, created_at, updated_at
+        ) VALUES (
+            #{planId}, #{tenantId}, #{warehouseId}, #{planName}, #{sellerSku}, #{plannedQuantity},
+            #{storeId}, #{siteCode}, #{sourcePlanId}, #{status}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateInboundPlan" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaInboundPlanDO">
+        UPDATE fba_inbound_plan
+        SET warehouse_id = #{warehouseId},
+            plan_name = #{planName},
+            seller_sku = #{sellerSku},
+            planned_quantity = #{plannedQuantity},
+            store_id = #{storeId},
+            site_code = #{siteCode},
+            source_plan_id = #{sourcePlanId},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND plan_id = #{planId}
+    </update>
+
+    <select id="selectInboundPlan" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaInboundPlanDO">
+        SELECT plan_id, tenant_id, warehouse_id, plan_name, seller_sku, planned_quantity,
+               store_id, site_code, source_plan_id, status, created_at, updated_at
+        FROM fba_inbound_plan
+        WHERE tenant_id = #{tenantId}
+          AND plan_id = #{planId}
+    </select>
+
+    <select id="selectInboundPlans" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaInboundPlanDO">
+        SELECT plan_id, tenant_id, warehouse_id, plan_name, seller_sku, planned_quantity,
+               store_id, site_code, source_plan_id, status, created_at, updated_at
+        FROM fba_inbound_plan
+        WHERE tenant_id = #{tenantId}
+        <if test="warehouseId != null and warehouseId != ''">
+            AND warehouse_id = #{warehouseId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertLocation" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaLocationDO">
+        INSERT INTO fba_location (
+            location_id, tenant_id, name, country_code, address, location_type, status, created_at, updated_at
+        ) VALUES (
+            #{locationId}, #{tenantId}, #{name}, #{countryCode}, #{address}, #{locationType}, #{status}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <select id="selectLocation" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaLocationDO">
+        SELECT location_id, tenant_id, name, country_code, address, location_type, status, created_at, updated_at
+        FROM fba_location
+        WHERE tenant_id = #{tenantId}
+          AND location_id = #{locationId}
+    </select>
+
+    <select id="selectLocations" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaLocationDO">
+        SELECT location_id, tenant_id, name, country_code, address, location_type, status, created_at, updated_at
+        FROM fba_location
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertInventory" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaInventoryDO">
+        INSERT INTO fba_inventory (
+            inventory_id, tenant_id, warehouse_id, product_id, seller_sku, fnsku,
+            quantity, store_id, site_code, inventory_age_days, last_updated
+        ) VALUES (
+            #{inventoryId}, #{tenantId}, #{warehouseId}, #{productId}, #{sellerSku}, #{fnsku},
+            #{quantity}, #{storeId}, #{siteCode}, #{inventoryAgeDays}, #{lastUpdated}
+        )
+    </insert>
+
+    <update id="updateInventory" parameterType="com.aidotnet.erp.fba.infrastructure.data.FbaInventoryDO">
+        UPDATE fba_inventory
+        SET warehouse_id = #{warehouseId},
+            product_id = #{productId},
+            seller_sku = #{sellerSku},
+            fnsku = #{fnsku},
+            quantity = #{quantity},
+            store_id = #{storeId},
+            site_code = #{siteCode},
+            inventory_age_days = #{inventoryAgeDays},
+            last_updated = #{lastUpdated}
+        WHERE tenant_id = #{tenantId}
+          AND inventory_id = #{inventoryId}
+    </update>
+
+    <select id="selectInventory" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaInventoryDO">
+        SELECT inventory_id, tenant_id, warehouse_id, product_id, seller_sku, fnsku,
+               quantity, store_id, site_code, inventory_age_days, last_updated
+        FROM fba_inventory
+        WHERE tenant_id = #{tenantId}
+          AND inventory_id = #{inventoryId}
+    </select>
+
+    <select id="selectInventoryByKey" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaInventoryDO">
+        SELECT inventory_id, tenant_id, warehouse_id, product_id, seller_sku, fnsku,
+               quantity, store_id, site_code, inventory_age_days, last_updated
+        FROM fba_inventory
+        WHERE tenant_id = #{tenantId}
+          AND warehouse_id = #{warehouseId}
+          AND seller_sku = #{sellerSku}
+          <choose>
+              <when test="fnsku != null and fnsku != ''">
+                  AND fnsku = #{fnsku}
+              </when>
+              <otherwise>
+                  AND (fnsku IS NULL OR fnsku = '')
+              </otherwise>
+          </choose>
+          <choose>
+              <when test="storeId != null and storeId != ''">
+                  AND store_id = #{storeId}
+              </when>
+              <otherwise>
+                  AND (store_id IS NULL OR store_id = '')
+              </otherwise>
+          </choose>
+          <choose>
+              <when test="siteCode != null and siteCode != ''">
+                  AND site_code = #{siteCode}
+              </when>
+              <otherwise>
+                  AND (site_code IS NULL OR site_code = '')
+              </otherwise>
+          </choose>
+    </select>
+
+    <select id="selectInventories" resultType="com.aidotnet.erp.fba.infrastructure.data.FbaInventoryDO">
+        SELECT inventory_id, tenant_id, warehouse_id, product_id, seller_sku, fnsku,
+               quantity, store_id, site_code, inventory_age_days, last_updated
+        FROM fba_inventory
+        WHERE tenant_id = #{tenantId}
+        <if test="sellerSku != null and sellerSku != ''">
+            AND seller_sku = #{sellerSku}
+        </if>
+        <if test="storeId != null and storeId != ''">
+            AND store_id = #{storeId}
+        </if>
+        <if test="siteCode != null and siteCode != ''">
+            AND site_code = #{siteCode}
+        </if>
+        <if test="warehouseId != null and warehouseId != ''">
+            AND warehouse_id = #{warehouseId}
+        </if>
+        ORDER BY last_updated DESC, seller_sku ASC
+    </select>
+
+    <insert id="insertPlan" parameterType="com.aidotnet.erp.fba.infrastructure.data.ReplenishmentPlanDO">
+        INSERT INTO fba_replenishment_plan (
+            plan_id, tenant_id, seller_sku, destination_fc, suggested_quantity, source_warehouse_id, status, created_at, updated_at
+        ) VALUES (
+            #{planId}, #{tenantId}, #{sellerSku}, #{destinationFc}, #{suggestedQuantity}, #{sourceWarehouseId}, #{status}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updatePlan" parameterType="com.aidotnet.erp.fba.infrastructure.data.ReplenishmentPlanDO">
+        UPDATE fba_replenishment_plan
+        SET seller_sku = #{sellerSku},
+            destination_fc = #{destinationFc},
+            suggested_quantity = #{suggestedQuantity},
+            source_warehouse_id = #{sourceWarehouseId},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND plan_id = #{planId}
+    </update>
+
+    <select id="selectPlan" resultType="com.aidotnet.erp.fba.infrastructure.data.ReplenishmentPlanDO">
+        SELECT plan_id, tenant_id, seller_sku, destination_fc, suggested_quantity, source_warehouse_id, status, created_at, updated_at
+        FROM fba_replenishment_plan
+        WHERE tenant_id = #{tenantId}
+          AND plan_id = #{planId}
+    </select>
+
+    <select id="selectPlans" resultType="com.aidotnet.erp.fba.infrastructure.data.ReplenishmentPlanDO">
+        SELECT plan_id, tenant_id, seller_sku, destination_fc, suggested_quantity, source_warehouse_id, status, created_at, updated_at
+        FROM fba_replenishment_plan
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

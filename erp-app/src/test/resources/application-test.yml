@@ -1,0 +1,74 @@
+server:
+  port: 18080
+
+spring:
+  datasource:
+    url: ${ERP_TEST_DATASOURCE_URL:jdbc:postgresql://localhost:5432/erp_test}
+    driver-class-name: org.postgresql.Driver
+    username: ${ERP_TEST_DATASOURCE_USERNAME:erp}
+    password: ${ERP_TEST_DATASOURCE_PASSWORD:erp}
+    hikari:
+      connection-init-sql: SET search_path TO platform, iam, pdm, som, ads, oms, scm, wms, fba, tms, crm, fms, bi, sys, dashboard, public
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  sql:
+    init:
+      mode: always
+      schema-locations:
+        - classpath:postgresql-test-reset.sql
+        - classpath:postgresql-compat-aliases.sql
+        - classpath*:db/migration/V*.sql
+        - classpath:postgresql-test-patches.sql
+  cloud:
+    discovery:
+      client:
+        simple:
+          instances:
+            erp-app:
+              - uri: http://localhost:${server.port}
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
+    stream:
+      binders:
+        default:
+          type: kafka
+      kafka:
+        binder:
+          brokers: localhost:9092
+          auto-create-topics: true
+          auto-add-partitions: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: earliest
+  redis:
+    host: localhost
+    port: 6379
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+mybatis-plus:
+  global-config:
+    banner: false
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/*.xml
+
+logging:
+  level:
+    com.aidotnet.erp: DEBUG
+    org.springframework.web: INFO
+
+erp:
+  jwt:
+    secret: test-secret-key-for-integration-testing-must-be-at-least-256-bits-long
+    expiration-seconds: 7200
+  security:
+    permit-all: true

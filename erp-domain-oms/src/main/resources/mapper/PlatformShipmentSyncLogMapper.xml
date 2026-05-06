@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.oms.infrastructure.mapper.PlatformShipmentSyncLogMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.oms.infrastructure.data.PlatformShipmentSyncLogDO">
+        INSERT INTO oms_platform_shipment_sync_log (
+            log_id, tenant_id, order_id, package_id, platform, platform_order_no,
+            tracking_no, status, attempt_no, error_message, synced_at
+        )
+        VALUES (
+            #{logId}, #{tenantId}, #{orderId}, #{packageId}, #{platform}, #{platformOrderNo},
+            #{trackingNo}, #{status}, #{attemptNo}, #{errorMessage}, #{syncedAt}
+        )
+    </insert>
+
+    <select id="selectByOrderId" resultType="com.aidotnet.erp.oms.infrastructure.data.PlatformShipmentSyncLogDO">
+        SELECT log_id, tenant_id, order_id, package_id, platform, platform_order_no,
+               tracking_no, status, attempt_no, error_message, synced_at
+        FROM oms_platform_shipment_sync_log
+        WHERE tenant_id = #{tenantId}
+          AND order_id = #{orderId}
+        ORDER BY synced_at DESC, attempt_no DESC, log_id DESC
+    </select>
+
+</mapper>

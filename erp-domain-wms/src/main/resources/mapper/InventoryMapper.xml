@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.wms.infrastructure.mapper.InventoryMapper">
+
+    <insert id="insertWarehouse" parameterType="com.aidotnet.erp.wms.infrastructure.data.WarehouseDO">
+        INSERT INTO wms_warehouse (warehouse_id, tenant_id, code, name, country_code, created_at)
+        VALUES (#{warehouseId}, #{tenantId}, #{code}, #{name}, #{countryCode}, #{createdAt})
+    </insert>
+
+    <select id="selectWarehouse" resultType="com.aidotnet.erp.wms.infrastructure.data.WarehouseDO">
+        SELECT warehouse_id, tenant_id, code, name, country_code, created_at
+        FROM wms_warehouse
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+    </select>
+
+    <select id="selectWarehouses" resultType="com.aidotnet.erp.wms.infrastructure.data.WarehouseDO">
+        SELECT warehouse_id, tenant_id, code, name, country_code, created_at
+        FROM wms_warehouse
+        WHERE tenant_id = #{tenantId}
+        ORDER BY code
+    </select>
+
+    <insert id="insertBalance" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
+        INSERT INTO wms_inventory_balance (tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at)
+        VALUES (#{tenantId}, #{warehouseId}, #{sellerSku}, #{onHand}, #{reserved}, #{updatedAt})
+    </insert>
+
+    <update id="updateBalance" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
+        UPDATE wms_inventory_balance
+        SET on_hand = #{onHand}, reserved = #{reserved}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId} AND seller_sku = #{sellerSku}
+    </update>
+
+    <select id="selectBalance" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
+        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at
+        FROM wms_inventory_balance
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId} AND seller_sku = #{sellerSku}
+    </select>
+
+    <select id="selectBalances" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
+        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at
+        FROM wms_inventory_balance
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY seller_sku
+    </select>
+
+    <select id="selectBalancesBySku" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
+        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at
+        FROM wms_inventory_balance
+        WHERE tenant_id = #{tenantId} AND seller_sku = #{sellerSku}
+        ORDER BY warehouse_id
+    </select>
+
+    <insert id="insertLocation" parameterType="com.aidotnet.erp.wms.infrastructure.data.WarehouseLocationDO">
+        INSERT INTO wms_warehouse_location (location_id, tenant_id, warehouse_id, zone_code, aisle, rack, shelf, bin, barcode, enabled, created_at, updated_at)
+        VALUES (#{locationId}, #{tenantId}, #{warehouseId}, #{zoneCode}, #{aisle}, #{rack}, #{shelf}, #{bin}, #{barcode}, #{enabled}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <select id="selectLocation" resultType="com.aidotnet.erp.wms.infrastructure.data.WarehouseLocationDO">
+        SELECT location_id, tenant_id, warehouse_id, zone_code, aisle, rack, shelf, bin, barcode, enabled, created_at, updated_at
+        FROM wms_warehouse_location
+        WHERE tenant_id = #{tenantId} AND location_id = #{locationId}
+    </select>
+
+    <select id="selectLocations" resultType="com.aidotnet.erp.wms.infrastructure.data.WarehouseLocationDO">
+        SELECT location_id, tenant_id, warehouse_id, zone_code, aisle, rack, shelf, bin, barcode, enabled, created_at, updated_at
+        FROM wms_warehouse_location
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY zone_code, aisle, rack, shelf, bin
+    </select>
+
+    <insert id="insertStockCheck" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckDO">
+        INSERT INTO wms_stock_check (check_id, tenant_id, warehouse_id, check_type, status, scheduled_at, completed_at, created_at, updated_at)
+        VALUES (#{checkId}, #{tenantId}, #{warehouseId}, #{checkType}, #{status}, #{scheduledAt}, #{completedAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateStockCheck" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckDO">
+        UPDATE wms_stock_check
+        SET status = #{status},
+            scheduled_at = #{scheduledAt},
+            completed_at = #{completedAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND check_id = #{checkId}
+    </update>
+
+    <select id="selectStockCheck" resultType="com.aidotnet.erp.wms.infrastructure.data.StockCheckDO">
+        SELECT check_id, tenant_id, warehouse_id, check_type, status, scheduled_at, completed_at, created_at, updated_at
+        FROM wms_stock_check
+        WHERE tenant_id = #{tenantId} AND check_id = #{checkId}
+    </select>
+
+    <select id="selectStockChecks" resultType="com.aidotnet.erp.wms.infrastructure.data.StockCheckDO">
+        SELECT check_id, tenant_id, warehouse_id, check_type, status, scheduled_at, completed_at, created_at, updated_at
+        FROM wms_stock_check
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertStockCheckLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckLineDO">
+        INSERT INTO wms_stock_check_line (check_id, tenant_id, seller_sku, location_id, system_qty, actual_qty, diff_qty, status, created_at)
+        VALUES (#{checkId}, #{tenantId}, #{sellerSku}, #{locationId}, #{systemQty}, #{actualQty}, #{diffQty}, #{status}, #{createdAt})
+    </insert>
+
+    <update id="updateStockCheckLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckLineDO">
+        UPDATE wms_stock_check_line
+        SET seller_sku = #{sellerSku},
+            location_id = #{locationId},
+            system_qty = #{systemQty},
+            actual_qty = #{actualQty},
+            diff_qty = #{diffQty},
+            status = #{status}
+        WHERE tenant_id = #{tenantId} AND check_id = #{checkId}
+    </update>
+
+    <select id="selectStockCheckLine" resultType="com.aidotnet.erp.wms.infrastructure.data.StockCheckLineDO">
+        SELECT check_id, tenant_id, seller_sku, location_id, system_qty, actual_qty, diff_qty, status, created_at
+        FROM wms_stock_check_line
+        WHERE tenant_id = #{tenantId} AND check_id = #{checkId}
+        ORDER BY created_at
+        FETCH FIRST 1 ROWS ONLY
+    </select>
+
+    <insert id="insertPrediction" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryPredictionDO">
+        INSERT INTO wms_inventory_prediction (prediction_id, tenant_id, warehouse_id, seller_sku, predicted_demand, predicted_days_of_supply, recommended_restock_qty, confidence, model_version, prediction_date, horizon_days, created_at)
+        VALUES (#{predictionId}, #{tenantId}, #{warehouseId}, #{sellerSku}, #{predictedDemand}, #{predictedDaysOfSupply}, #{recommendedRestockQty}, #{confidence}, #{modelVersion}, #{predictionDate}, #{horizonDays}, #{createdAt})
+    </insert>
+
+    <select id="selectPredictions" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryPredictionDO">
+        SELECT prediction_id, tenant_id, warehouse_id, seller_sku, predicted_demand, predicted_days_of_supply, recommended_restock_qty, confidence, model_version, prediction_date, horizon_days, created_at
+        FROM wms_inventory_prediction
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY prediction_date DESC
+    </select>
+
+    <insert id="insertTransaction" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryTransactionDO">
+        INSERT INTO wms_inventory_transaction (
+            transaction_id, tenant_id, warehouse_id, seller_sku, transaction_type, quantity,
+            before_on_hand, before_reserved, after_on_hand, after_reserved,
+            reference_type, reference_id, remark, created_at
+        )
+        VALUES (
+            #{transactionId}, #{tenantId}, #{warehouseId}, #{sellerSku}, #{transactionType}, #{quantity},
+            #{beforeOnHand}, #{beforeReserved}, #{afterOnHand}, #{afterReserved},
+            #{referenceType}, #{referenceId}, #{remark}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectTransactions" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryTransactionDO">
+        SELECT transaction_id, tenant_id, warehouse_id, seller_sku, transaction_type, quantity,
+               before_on_hand, before_reserved, after_on_hand, after_reserved,
+               reference_type, reference_id, remark, created_at
+        FROM wms_inventory_transaction
+        WHERE tenant_id = #{tenantId}
+        <if test="warehouseId != null and warehouseId != ''">
+            AND warehouse_id = #{warehouseId}
+        </if>
+        <if test="sellerSku != null and sellerSku != ''">
+            AND seller_sku = #{sellerSku}
+        </if>
+        ORDER BY created_at DESC, transaction_id DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.pdm.infrastructure.mapper.ProductMapper">
+
+    <insert id="insertCategory" parameterType="com.aidotnet.erp.pdm.infrastructure.data.CategoryDO">
+        INSERT INTO pdm_category (category_id, tenant_id, name, parent_id, created_at)
+        VALUES (#{categoryId}, #{tenantId}, #{name}, #{parentId}, #{createdAt})
+    </insert>
+
+    <select id="selectCategory" resultType="com.aidotnet.erp.pdm.infrastructure.data.CategoryDO">
+        SELECT category_id, tenant_id, name, parent_id, created_at
+        FROM pdm_category WHERE category_id = #{categoryId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectCategories" resultType="com.aidotnet.erp.pdm.infrastructure.data.CategoryDO">
+        SELECT category_id, tenant_id, name, parent_id, created_at
+        FROM pdm_category WHERE tenant_id = #{tenantId} ORDER BY name
+    </select>
+
+    <insert id="insertBrand" parameterType="com.aidotnet.erp.pdm.infrastructure.data.BrandDO">
+        INSERT INTO pdm_brand (brand_id, tenant_id, name, created_at)
+        VALUES (#{brandId}, #{tenantId}, #{name}, #{createdAt})
+    </insert>
+
+    <select id="selectBrand" resultType="com.aidotnet.erp.pdm.infrastructure.data.BrandDO">
+        SELECT brand_id, tenant_id, name, created_at
+        FROM pdm_brand WHERE brand_id = #{brandId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectBrands" resultType="com.aidotnet.erp.pdm.infrastructure.data.BrandDO">
+        SELECT brand_id, tenant_id, name, created_at
+        FROM pdm_brand WHERE tenant_id = #{tenantId} ORDER BY name
+    </select>
+
+    <insert id="insertSpu" parameterType="com.aidotnet.erp.pdm.infrastructure.data.SpuDO">
+        INSERT INTO pdm_spu (spu_id, tenant_id, sku, title, description, category_id, brand_id, status, ip_status, created_at, updated_at)
+        VALUES (#{spuId}, #{tenantId}, #{sku}, #{title}, #{description}, #{categoryId}, #{brandId}, #{status}, #{ipStatus}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateSpu" parameterType="com.aidotnet.erp.pdm.infrastructure.data.SpuDO">
+        UPDATE pdm_spu SET sku = #{sku}, title = #{title}, description = #{description}, category_id = #{categoryId},
+        brand_id = #{brandId}, status = #{status}, ip_status = #{ipStatus}, updated_at = #{updatedAt}
+        WHERE spu_id = #{spuId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectSpu" resultType="com.aidotnet.erp.pdm.infrastructure.data.SpuDO">
+        SELECT spu_id, tenant_id, sku, title, description, category_id, brand_id, status, ip_status, created_at, updated_at
+        FROM pdm_spu WHERE spu_id = #{spuId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectSpus" resultType="com.aidotnet.erp.pdm.infrastructure.data.SpuDO">
+        SELECT spu_id, tenant_id, sku, title, description, category_id, brand_id, status, ip_status, created_at, updated_at
+        FROM pdm_spu WHERE tenant_id = #{tenantId} ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertSku" parameterType="com.aidotnet.erp.pdm.infrastructure.data.SkuDO">
+        INSERT INTO pdm_sku (sku_id, tenant_id, spu_id, seller_sku, title, weight_kg, declared_value, currency, status, created_at, updated_at)
+        VALUES (#{skuId}, #{tenantId}, #{spuId}, #{sellerSku}, #{title}, #{weightKg}, #{declaredValue}, #{currency}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateSku" parameterType="com.aidotnet.erp.pdm.infrastructure.data.SkuDO">
+        UPDATE pdm_sku SET title = #{title}, weight_kg = #{weightKg}, declared_value = #{declaredValue},
+        currency = #{currency}, status = #{status}, updated_at = #{updatedAt}
+        WHERE sku_id = #{skuId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectSkuBySellerSku" resultType="com.aidotnet.erp.pdm.infrastructure.data.SkuDO">
+        SELECT sku_id, tenant_id, spu_id, seller_sku, title, weight_kg, declared_value, currency, status, created_at, updated_at
+        FROM pdm_sku WHERE tenant_id = #{tenantId} AND seller_sku = #{sellerSku}
+    </select>
+
+    <select id="selectSkusBySpu" resultType="com.aidotnet.erp.pdm.infrastructure.data.SkuDO">
+        SELECT sku_id, tenant_id, spu_id, seller_sku, title, weight_kg, declared_value, currency, status, created_at, updated_at
+        FROM pdm_sku WHERE tenant_id = #{tenantId} AND spu_id = #{spuId} ORDER BY seller_sku
+    </select>
+
+    <insert id="insertProposal" parameterType="com.aidotnet.erp.pdm.infrastructure.data.SelectionProposalDO">
+        INSERT INTO pdm_selection_proposal (proposal_id, tenant_id, product_name, title, category_id, source, source_reference,
+        estimated_cost, market_analysis, profit_estimation, risk_assessment, ai_suggested,
+        status, submitted_by, reviewed_by, review_comment, created_at, updated_at)
+        VALUES (#{proposalId}, #{tenantId}, #{productName}, #{title}, #{categoryId}, #{source}, #{sourceReference},
+        #{estimatedCost}, #{marketAnalysis}, #{profitEstimation}, #{riskAssessment}, #{aiSuggested},
+        #{status}, #{submittedBy}, #{reviewedBy}, #{reviewComment}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateProposal" parameterType="com.aidotnet.erp.pdm.infrastructure.data.SelectionProposalDO">
+        UPDATE pdm_selection_proposal SET product_name = #{productName}, title = #{title}, category_id = #{categoryId},
+        source = #{source}, source_reference = #{sourceReference}, estimated_cost = #{estimatedCost},
+        market_analysis = #{marketAnalysis}, profit_estimation = #{profitEstimation}, risk_assessment = #{riskAssessment},
+        ai_suggested = #{aiSuggested}, status = #{status}, submitted_by = #{submittedBy},
+        reviewed_by = #{reviewedBy}, review_comment = #{reviewComment}, updated_at = #{updatedAt}
+        WHERE proposal_id = #{proposalId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectProposal" resultType="com.aidotnet.erp.pdm.infrastructure.data.SelectionProposalDO">
+        SELECT proposal_id, tenant_id, product_name, title, category_id, source, source_reference,
+        estimated_cost, market_analysis, profit_estimation, risk_assessment, ai_suggested,
+        status, submitted_by, reviewed_by, review_comment, created_at, updated_at
+        FROM pdm_selection_proposal WHERE proposal_id = #{proposalId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectProposals" resultType="com.aidotnet.erp.pdm.infrastructure.data.SelectionProposalDO">
+        SELECT proposal_id, tenant_id, product_name, title, category_id, source, source_reference,
+        estimated_cost, market_analysis, profit_estimation, risk_assessment, ai_suggested,
+        status, submitted_by, reviewed_by, review_comment, created_at, updated_at
+        FROM pdm_selection_proposal WHERE tenant_id = #{tenantId} ORDER BY created_at DESC
+    </select>
+
+    <select id="selectProposalsByStatus" resultType="com.aidotnet.erp.pdm.infrastructure.data.SelectionProposalDO">
+        SELECT proposal_id, tenant_id, product_name, title, category_id, source, source_reference,
+        estimated_cost, market_analysis, profit_estimation, risk_assessment, ai_suggested,
+        status, submitted_by, reviewed_by, review_comment, created_at, updated_at
+        FROM pdm_selection_proposal WHERE tenant_id = #{tenantId} AND status = #{status} ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertDevelopment" parameterType="com.aidotnet.erp.pdm.infrastructure.data.ProductDevelopmentDO">
+        INSERT INTO pdm_product_development (dev_id, tenant_id, spu_id, proposal_id, stage, stage_note,
+        developer, editor, designer, priority, status, created_at, updated_at)
+        VALUES (#{devId}, #{tenantId}, #{spuId}, #{proposalId}, #{stage}, #{stageNote},
+        #{developer}, #{editor}, #{designer}, #{priority}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateDevelopment" parameterType="com.aidotnet.erp.pdm.infrastructure.data.ProductDevelopmentDO">
+        UPDATE pdm_product_development SET proposal_id = #{proposalId}, stage = #{stage}, stage_note = #{stageNote},
+        developer = #{developer}, editor = #{editor}, designer = #{designer}, priority = #{priority},
+        status = #{status}, updated_at = #{updatedAt}
+        WHERE dev_id = #{devId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectDevelopment" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductDevelopmentDO">
+        SELECT dev_id, tenant_id, spu_id, proposal_id, stage, stage_note, developer, editor, designer, priority, status, created_at, updated_at
+        FROM pdm_product_development WHERE dev_id = #{devId} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectDevelopments" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductDevelopmentDO">
+        SELECT dev_id, tenant_id, spu_id, proposal_id, stage, stage_note, developer, editor, designer, priority, status, created_at, updated_at
+        FROM pdm_product_development WHERE tenant_id = #{tenantId} ORDER BY priority DESC, created_at DESC
+    </select>
+
+    <select id="selectDevelopmentsBySpu" resultType="com.aidotnet.erp.pdm.infrastructure.data.ProductDevelopmentDO">
+        SELECT dev_id, tenant_id, spu_id, proposal_id, stage, stage_note, developer, editor, designer, priority, status, created_at, updated_at
+        FROM pdm_product_development WHERE tenant_id = #{tenantId} AND spu_id = #{spuId} ORDER BY priority DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.ScmExtMapper">
+
+    <insert id="insertQuote" parameterType="com.aidotnet.erp.scm.infrastructure.data.QuoteDO">
+        INSERT INTO scm_quote (quote_id, tenant_id, supplier_id, seller_sku, currency, unit_price, total_price,
+                              quoted_quantity, lead_time_days, status, valid_until, remark, created_at, updated_at)
+        VALUES (#{quoteId}, #{tenantId}, #{supplierId}, #{sellerSku}, #{currency}, #{unitPrice}, #{totalPrice},
+                #{quotedQuantity}, #{leadTimeDays}, #{status}, #{validUntil}, #{remark}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateQuote" parameterType="com.aidotnet.erp.scm.infrastructure.data.QuoteDO">
+        UPDATE scm_quote SET status = #{status}, remark = #{remark}, updated_at = #{updatedAt}
+        WHERE quote_id = #{quoteId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectQuote" resultType="com.aidotnet.erp.scm.infrastructure.data.QuoteDO">
+        SELECT quote_id, tenant_id, supplier_id, seller_sku, currency, unit_price, total_price,
+               quoted_quantity, lead_time_days, status, valid_until, remark, created_at, updated_at
+        FROM scm_quote WHERE tenant_id = #{tenantId} AND quote_id = #{quoteId}
+    </select>
+
+    <select id="selectQuotes" resultType="com.aidotnet.erp.scm.infrastructure.data.QuoteDO">
+        SELECT quote_id, tenant_id, supplier_id, seller_sku, currency, unit_price, total_price,
+               quoted_quantity, lead_time_days, status, valid_until, remark, created_at, updated_at
+        FROM scm_quote WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectQuotesBySku" resultType="com.aidotnet.erp.scm.infrastructure.data.QuoteDO">
+        SELECT quote_id, tenant_id, supplier_id, seller_sku, currency, unit_price, total_price,
+               quoted_quantity, lead_time_days, status, valid_until, remark, created_at, updated_at
+        FROM scm_quote WHERE tenant_id = #{tenantId} AND seller_sku = #{sellerSku}
+        ORDER BY unit_price ASC
+    </select>
+
+    <insert id="insertSupplierScore" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierScoreDO">
+        INSERT INTO scm_supplier_score (score_id, tenant_id, supplier_id, quality_score, delivery_score,
+                                        price_score, service_score, overall_score, evaluation_count, scored_at)
+        VALUES (#{scoreId}, #{tenantId}, #{supplierId}, #{qualityScore}, #{deliveryScore},
+                #{priceScore}, #{serviceScore}, #{overallScore}, #{evaluationCount}, #{scoredAt})
+    </insert>
+
+    <update id="updateSupplierScore" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierScoreDO">
+        UPDATE scm_supplier_score SET quality_score = #{qualityScore}, delivery_score = #{deliveryScore},
+               price_score = #{priceScore}, service_score = #{serviceScore}, overall_score = #{overallScore},
+               evaluation_count = #{evaluationCount}, scored_at = #{scoredAt}
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+    </update>
+
+    <select id="selectSupplierScore" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierScoreDO">
+        SELECT score_id, tenant_id, supplier_id, quality_score, delivery_score,
+               price_score, service_score, overall_score, evaluation_count, scored_at
+        FROM scm_supplier_score WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+    </select>
+
+    <insert id="insertPurchaseApproval" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
+        INSERT INTO scm_purchase_approval (approval_id, tenant_id, po_id, status, approver_id, comment, approved_at, created_at)
+        VALUES (#{approvalId}, #{tenantId}, #{poId}, #{status}, #{approverId}, #{comment}, #{approvedAt}, #{createdAt})
+    </insert>
+
+    <select id="selectApprovalsByPo" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
+        SELECT approval_id, tenant_id, po_id, status, approver_id, comment, approved_at, created_at
+        FROM scm_purchase_approval WHERE tenant_id = #{tenantId} AND po_id = #{poId}
+        ORDER BY created_at ASC
+    </select>
+
+    <select id="selectPendingApprovals" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
+        SELECT approval_id, tenant_id, po_id, status, approver_id, comment, approved_at, created_at
+        FROM scm_purchase_approval WHERE tenant_id = #{tenantId} AND approver_id = #{approverId} AND status = 'PENDING'
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertProcessingOrder" parameterType="com.aidotnet.erp.scm.infrastructure.data.ProcessingOrderDO">
+        INSERT INTO scm_processing_order (process_id, tenant_id, name, raw_materials, output_sku, output_quantity,
+                                          total_cost, currency, status, created_at, updated_at)
+        VALUES (#{processId}, #{tenantId}, #{name}, #{rawMaterials}, #{outputSku}, #{outputQuantity},
+                #{totalCost}, #{currency}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateProcessingOrder" parameterType="com.aidotnet.erp.scm.infrastructure.data.ProcessingOrderDO">
+        UPDATE scm_processing_order SET name = #{name}, raw_materials = #{rawMaterials}, output_sku = #{outputSku},
+               output_quantity = #{outputQuantity}, total_cost = #{totalCost}, currency = #{currency},
+               status = #{status}, updated_at = #{updatedAt}
+        WHERE process_id = #{processId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectProcessingOrder" resultType="com.aidotnet.erp.scm.infrastructure.data.ProcessingOrderDO">
+        SELECT process_id, tenant_id, name, raw_materials, output_sku, output_quantity,
+               total_cost, currency, status, created_at, updated_at
+        FROM scm_processing_order WHERE tenant_id = #{tenantId} AND process_id = #{processId}
+    </select>
+
+    <select id="selectProcessingOrders" resultType="com.aidotnet.erp.scm.infrastructure.data.ProcessingOrderDO">
+        SELECT process_id, tenant_id, name, raw_materials, output_sku, output_quantity,
+               total_cost, currency, status, created_at, updated_at
+        FROM scm_processing_order WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

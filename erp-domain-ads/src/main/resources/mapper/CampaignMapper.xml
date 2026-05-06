@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.ads.infrastructure.mapper.CampaignMapper">
+
+    <!-- ==================== 广告活动(ads_campaign) ==================== -->
+
+    <insert id="insertCampaign" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdCampaignDO">
+        INSERT INTO ads_campaign (
+            campaign_id, tenant_id, platform, campaign_name, daily_budget, status,
+            pms_optimization_enabled, pms_optimization_scope, created_at, updated_at
+        ) VALUES (
+            #{campaignId}, #{tenantId}, #{platform}, #{campaignName}, #{dailyBudget}, #{status},
+            #{pmsOptimizationEnabled}, #{pmsOptimizationScope}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateCampaign" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdCampaignDO">
+        UPDATE ads_campaign
+        SET platform = #{platform},
+            campaign_name = #{campaignName},
+            daily_budget = #{dailyBudget},
+            status = #{status},
+            pms_optimization_enabled = #{pmsOptimizationEnabled},
+            pms_optimization_scope = #{pmsOptimizationScope},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+    </update>
+
+    <select id="selectCampaign" resultType="com.aidotnet.erp.ads.infrastructure.data.AdCampaignDO">
+        SELECT campaign_id, tenant_id, platform, campaign_name, daily_budget, status,
+               pms_optimization_enabled, pms_optimization_scope, created_at, updated_at
+        FROM ads_campaign
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+    </select>
+
+    <select id="selectCampaigns" resultType="com.aidotnet.erp.ads.infrastructure.data.AdCampaignDO">
+        SELECT campaign_id, tenant_id, platform, campaign_name, daily_budget, status,
+               pms_optimization_enabled, pms_optimization_scope, created_at, updated_at
+        FROM ads_campaign
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectCampaignsByStatus" resultType="com.aidotnet.erp.ads.infrastructure.data.AdCampaignDO">
+        SELECT campaign_id, tenant_id, platform, campaign_name, daily_budget, status,
+               pms_optimization_enabled, pms_optimization_scope, created_at, updated_at
+        FROM ads_campaign
+        WHERE tenant_id = #{tenantId}
+          AND status = #{status}
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="deleteCampaign">
+        DELETE FROM ads_campaign
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+    </delete>
+
+    <!-- ==================== 关键词竞价(ads_keyword_bid) ==================== -->
+
+    <insert id="insertKeywordBid" parameterType="com.aidotnet.erp.ads.infrastructure.data.KeywordBidDO">
+        INSERT INTO ads_keyword_bid (
+            bid_id, tenant_id, campaign_id, keyword, bid_amount, max_bid, strategy, created_at, updated_at
+        ) VALUES (
+            #{bidId}, #{tenantId}, #{campaignId}, #{keyword}, #{bidAmount}, #{maxBid}, #{strategy}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateKeywordBid" parameterType="com.aidotnet.erp.ads.infrastructure.data.KeywordBidDO">
+        UPDATE ads_keyword_bid
+        SET keyword = #{keyword},
+            bid_amount = #{bidAmount},
+            max_bid = #{maxBid},
+            strategy = #{strategy},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND bid_id = #{bidId}
+    </update>
+
+    <select id="selectKeywordBid" resultType="com.aidotnet.erp.ads.infrastructure.data.KeywordBidDO">
+        SELECT bid_id, tenant_id, campaign_id, keyword, bid_amount, max_bid, strategy, created_at, updated_at
+        FROM ads_keyword_bid
+        WHERE tenant_id = #{tenantId}
+          AND bid_id = #{bidId}
+    </select>
+
+    <select id="selectKeywordBidByCampaignAndKeyword" resultType="com.aidotnet.erp.ads.infrastructure.data.KeywordBidDO">
+        SELECT bid_id, tenant_id, campaign_id, keyword, bid_amount, max_bid, strategy, created_at, updated_at
+        FROM ads_keyword_bid
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+          AND keyword = #{keyword}
+        ORDER BY updated_at DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectKeywordBids" resultType="com.aidotnet.erp.ads.infrastructure.data.KeywordBidDO">
+        SELECT bid_id, tenant_id, campaign_id, keyword, bid_amount, max_bid, strategy, created_at, updated_at
+        FROM ads_keyword_bid
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+        ORDER BY updated_at DESC
+    </select>
+
+    <delete id="deleteKeywordBid">
+        DELETE FROM ads_keyword_bid
+        WHERE tenant_id = #{tenantId}
+          AND bid_id = #{bidId}
+    </delete>
+
+    <!-- ==================== 广告活动效果数据(ads_campaign_performance) ==================== -->
+
+    <insert id="insertPerformance" parameterType="com.aidotnet.erp.ads.infrastructure.data.CampaignPerformanceDO">
+        INSERT INTO ads_campaign_performance (
+            performance_id, tenant_id, campaign_id, spend, impressions, clicks, ctr, orders, acos, roas,
+            period_start, period_end, created_at
+        ) VALUES (
+            #{performanceId}, #{tenantId}, #{campaignId}, #{spend}, #{impressions}, #{clicks}, #{ctr}, #{orders}, #{acos}, #{roas},
+            #{periodStart}, #{periodEnd}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectPerformances" resultType="com.aidotnet.erp.ads.infrastructure.data.CampaignPerformanceDO">
+        SELECT performance_id, tenant_id, campaign_id, spend, impressions, clicks, ctr, orders, acos, roas,
+               period_start, period_end, created_at
+        FROM ads_campaign_performance
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPerformancesFiltered" resultType="com.aidotnet.erp.ads.infrastructure.data.CampaignPerformanceDO">
+        SELECT performance_id, tenant_id, campaign_id, spend, impressions, clicks, ctr, orders, acos, roas,
+               period_start, period_end, created_at
+        FROM ads_campaign_performance
+        WHERE tenant_id = #{tenantId}
+        <if test="campaignId != null and campaignId != ''">
+            AND campaign_id = #{campaignId}
+        </if>
+        <if test="periodStart != null">
+            AND period_start <![CDATA[>=]]> #{periodStart}
+        </if>
+        <if test="periodEnd != null">
+            AND period_end <![CDATA[<=]]> #{periodEnd}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPerformanceSummary" resultType="com.aidotnet.erp.ads.infrastructure.data.CampaignPerformanceDO">
+        SELECT 'SUMMARY' AS performance_id, #{tenantId} AS tenant_id, #{campaignId} AS campaign_id,
+               COALESCE(SUM(spend), 0) AS spend,
+               COALESCE(SUM(impressions), 0) AS impressions,
+               COALESCE(SUM(clicks), 0) AS clicks,
+               CASE WHEN SUM(impressions) > 0
+                    THEN SUM(clicks)::DECIMAL / SUM(impressions)
+                    ELSE 0 END AS ctr,
+               COALESCE(SUM(orders), 0) AS orders,
+               CASE WHEN SUM(orders) > 0 AND SUM(spend) > 0
+                    THEN SUM(spend) / SUM(orders)
+                    ELSE 0 END AS acos,
+               CASE WHEN SUM(spend) > 0
+                    THEN SUM(orders)::DECIMAL / SUM(spend)
+                    ELSE 0 END AS roas,
+               MIN(period_start) AS period_start,
+               MAX(period_end) AS period_end,
+               NOW() AS created_at
+        FROM ads_campaign_performance
+        WHERE tenant_id = #{tenantId}
+          AND campaign_id = #{campaignId}
+        <if test="periodStart != null">
+            AND period_start <![CDATA[>=]]> #{periodStart}
+        </if>
+        <if test="periodEnd != null">
+            AND period_end <![CDATA[<=]]> #{periodEnd}
+        </if>
+    </select>
+
+    <!-- ==================== 广告组(ads_ad_group) ==================== -->
+
+    <insert id="insertAdGroup" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdGroupDO">
+        INSERT INTO ads_ad_group (group_id, tenant_id, campaign_id, platform_group_id, name, bid, status, created_at, updated_at)
+        VALUES (#{groupId}, #{tenantId}, #{campaignId}, #{platformGroupId}, #{name}, #{bid}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateAdGroup" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdGroupDO">
+        UPDATE ads_ad_group SET name = #{name}, bid = #{bid}, status = #{status}, updated_at = #{updatedAt}
+        WHERE group_id = #{groupId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectAdGroup" resultType="com.aidotnet.erp.ads.infrastructure.data.AdGroupDO">
+        SELECT group_id, tenant_id, campaign_id, platform_group_id, name, bid, status, created_at, updated_at
+        FROM ads_ad_group WHERE tenant_id = #{tenantId} AND group_id = #{groupId}
+    </select>
+
+    <select id="selectAdGroupsByCampaign" resultType="com.aidotnet.erp.ads.infrastructure.data.AdGroupDO">
+        SELECT group_id, tenant_id, campaign_id, platform_group_id, name, bid, status, created_at, updated_at
+        FROM ads_ad_group WHERE tenant_id = #{tenantId} AND campaign_id = #{campaignId}
+        ORDER BY name ASC
+    </select>
+
+    <delete id="deleteAdGroup">
+        DELETE FROM ads_ad_group WHERE tenant_id = #{tenantId} AND group_id = #{groupId}
+    </delete>
+
+    <!-- ==================== 广告关键词(ads_keyword) ==================== -->
+
+    <insert id="insertAdKeyword" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdKeywordDO">
+        INSERT INTO ads_keyword (keyword_id, tenant_id, group_id, keyword_text, match_type, bid, status,
+                                 impressions, clicks, spend, sales, acos, created_at, updated_at)
+        VALUES (#{keywordId}, #{tenantId}, #{groupId}, #{keywordText}, #{matchType}, #{bid}, #{status},
+                #{impressions}, #{clicks}, #{spend}, #{sales}, #{acos}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateAdKeyword" parameterType="com.aidotnet.erp.ads.infrastructure.data.AdKeywordDO">
+        UPDATE ads_keyword SET bid = #{bid}, status = #{status}, impressions = #{impressions}, clicks = #{clicks},
+               spend = #{spend}, sales = #{sales}, acos = #{acos}, updated_at = #{updatedAt}
+        WHERE keyword_id = #{keywordId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectAdKeyword" resultType="com.aidotnet.erp.ads.infrastructure.data.AdKeywordDO">
+        SELECT keyword_id, tenant_id, group_id, keyword_text, match_type, bid, status,
+               impressions, clicks, spend, sales, acos, created_at, updated_at
+        FROM ads_keyword WHERE tenant_id = #{tenantId} AND keyword_id = #{keywordId}
+    </select>
+
+    <select id="selectAdKeywordsByGroup" resultType="com.aidotnet.erp.ads.infrastructure.data.AdKeywordDO">
+        SELECT keyword_id, tenant_id, group_id, keyword_text, match_type, bid, status,
+               impressions, clicks, spend, sales, acos, created_at, updated_at
+        FROM ads_keyword WHERE tenant_id = #{tenantId} AND group_id = #{groupId}
+        ORDER BY keyword_text ASC
+    </select>
+
+    <delete id="deleteAdKeyword">
+        DELETE FROM ads_keyword WHERE tenant_id = #{tenantId} AND keyword_id = #{keywordId}
+    </delete>
+
+</mapper>

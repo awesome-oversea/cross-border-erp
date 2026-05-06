@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.dashboard.infrastructure.mapper.DashboardMapper">
+
+    <!-- ================================ 仪表盘指标 ================================ -->
+
+    <insert id="insertDashboardMetric" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardMetricDO">
+        INSERT INTO dashboard_metric (metric_id, tenant_id, metric_code, metric_name, metric_value, unit, updated_at)
+        VALUES (#{metricId}, #{tenantId}, #{metricCode}, #{metricName}, #{metricValue}, #{unit}, #{updatedAt})
+    </insert>
+
+    <update id="updateDashboardMetric" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardMetricDO">
+        UPDATE dashboard_metric
+        SET metric_code = #{metricCode}, metric_name = #{metricName}, metric_value = #{metricValue},
+            unit = #{unit}, updated_at = #{updatedAt}
+        WHERE metric_id = #{metricId} AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteDashboardMetric">
+        DELETE FROM dashboard_metric WHERE tenant_id = #{tenantId} AND metric_id = #{metricId}
+    </delete>
+
+    <select id="selectDashboardMetric" resultType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardMetricDO">
+        SELECT metric_id, tenant_id, metric_code, metric_name, metric_value, unit, updated_at
+        FROM dashboard_metric
+        WHERE tenant_id = #{tenantId} AND metric_id = #{metricId}
+    </select>
+
+    <select id="selectDashboardMetricByCode" resultType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardMetricDO">
+        SELECT metric_id, tenant_id, metric_code, metric_name, metric_value, unit, updated_at
+        FROM dashboard_metric
+        WHERE tenant_id = #{tenantId} AND metric_code = #{metricCode}
+    </select>
+
+    <select id="selectDashboardMetrics" resultType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardMetricDO">
+        SELECT metric_id, tenant_id, metric_code, metric_name, metric_value, unit, updated_at
+        FROM dashboard_metric
+        WHERE tenant_id = #{tenantId}
+        ORDER BY metric_code ASC
+    </select>
+
+    <!-- ================================ 用户仪表盘 ================================ -->
+
+    <insert id="insertUserDashboard" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.UserDashboardDO">
+        INSERT INTO dashboard_user_dashboard (dashboard_id, tenant_id, user_id, layout_config, widgets, is_default, created_at, updated_at)
+        VALUES (#{dashboardId}, #{tenantId}, #{userId}, #{layoutConfig}, #{widgets}, #{isDefault}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateUserDashboard" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.UserDashboardDO">
+        UPDATE dashboard_user_dashboard
+        SET layout_config = #{layoutConfig}, widgets = #{widgets}, is_default = #{isDefault}, updated_at = #{updatedAt}
+        WHERE dashboard_id = #{dashboardId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectUserDashboard" resultType="com.aidotnet.erp.dashboard.infrastructure.data.UserDashboardDO">
+        SELECT dashboard_id, tenant_id, user_id, layout_config, widgets, is_default, created_at, updated_at
+        FROM dashboard_user_dashboard
+        WHERE tenant_id = #{tenantId} AND dashboard_id = #{dashboardId}
+    </select>
+
+    <select id="selectDefaultUserDashboard" resultType="com.aidotnet.erp.dashboard.infrastructure.data.UserDashboardDO">
+        SELECT dashboard_id, tenant_id, user_id, layout_config, widgets, is_default, created_at, updated_at
+        FROM dashboard_user_dashboard
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId} AND is_default = true
+    </select>
+
+    <select id="selectUserDashboards" resultType="com.aidotnet.erp.dashboard.infrastructure.data.UserDashboardDO">
+        SELECT dashboard_id, tenant_id, user_id, layout_config, widgets, is_default, created_at, updated_at
+        FROM dashboard_user_dashboard
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+        ORDER BY is_default DESC, created_at DESC
+    </select>
+
+    <!-- ================================ 公告 ================================ -->
+
+    <insert id="insertAnnouncement" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.AnnouncementDO">
+        INSERT INTO dashboard_announcement (announce_id, tenant_id, title, content, type, priority,
+                                            publish_time, expire_time, status, created_at)
+        VALUES (#{announceId}, #{tenantId}, #{title}, #{content}, #{type}, #{priority},
+                #{publishTime}, #{expireTime}, #{status}, #{createdAt})
+    </insert>
+
+    <delete id="deleteAnnouncement">
+        DELETE FROM dashboard_announcement WHERE tenant_id = #{tenantId} AND announce_id = #{announceId}
+    </delete>
+
+    <select id="selectAnnouncement" resultType="com.aidotnet.erp.dashboard.infrastructure.data.AnnouncementDO">
+        SELECT announce_id, tenant_id, title, content, type, priority, publish_time, expire_time, status, created_at
+        FROM dashboard_announcement
+        WHERE tenant_id = #{tenantId} AND announce_id = #{announceId}
+    </select>
+
+    <select id="selectAnnouncements" resultType="com.aidotnet.erp.dashboard.infrastructure.data.AnnouncementDO">
+        SELECT announce_id, tenant_id, title, content, type, priority, publish_time, expire_time, status, created_at
+        FROM dashboard_announcement
+        WHERE tenant_id = #{tenantId}
+        ORDER BY priority DESC, created_at DESC
+    </select>
+
+    <select id="selectPublishedAnnouncements" resultType="com.aidotnet.erp.dashboard.infrastructure.data.AnnouncementDO">
+        SELECT announce_id, tenant_id, title, content, type, priority, publish_time, expire_time, status, created_at
+        FROM dashboard_announcement
+        WHERE tenant_id = #{tenantId} AND status = 'PUBLISHED'
+        ORDER BY priority DESC, publish_time DESC
+    </select>
+
+    <!-- ================================ 帮助文章 ================================ -->
+
+    <insert id="insertHelpArticle" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.HelpArticleDO">
+        INSERT INTO dashboard_help_article (article_id, tenant_id, title, content, category, tags,
+                                            view_count, status, created_at, updated_at)
+        VALUES (#{articleId}, #{tenantId}, #{title}, #{content}, #{category}, #{tags},
+                #{viewCount}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateHelpArticle" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.HelpArticleDO">
+        UPDATE dashboard_help_article
+        SET title = #{title}, content = #{content}, category = #{category}, tags = #{tags},
+            view_count = #{viewCount}, status = #{status}, updated_at = #{updatedAt}
+        WHERE article_id = #{articleId} AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteHelpArticle">
+        DELETE FROM dashboard_help_article WHERE tenant_id = #{tenantId} AND article_id = #{articleId}
+    </delete>
+
+    <select id="selectHelpArticle" resultType="com.aidotnet.erp.dashboard.infrastructure.data.HelpArticleDO">
+        SELECT article_id, tenant_id, title, content, category, tags, view_count, status, created_at, updated_at
+        FROM dashboard_help_article
+        WHERE tenant_id = #{tenantId} AND article_id = #{articleId}
+    </select>
+
+    <select id="selectHelpArticles" resultType="com.aidotnet.erp.dashboard.infrastructure.data.HelpArticleDO">
+        SELECT article_id, tenant_id, title, content, category, tags, view_count, status, created_at, updated_at
+        FROM dashboard_help_article
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPublishedHelpArticles" resultType="com.aidotnet.erp.dashboard.infrastructure.data.HelpArticleDO">
+        SELECT article_id, tenant_id, title, content, category, tags, view_count, status, created_at, updated_at
+        FROM dashboard_help_article
+        WHERE tenant_id = #{tenantId} AND status = 'PUBLISHED'
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectHelpArticlesByCategory" resultType="com.aidotnet.erp.dashboard.infrastructure.data.HelpArticleDO">
+        SELECT article_id, tenant_id, title, content, category, tags, view_count, status, created_at, updated_at
+        FROM dashboard_help_article
+        WHERE tenant_id = #{tenantId} AND category = #{category} AND status = 'PUBLISHED'
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- ================================ 待办事项 ================================ -->
+
+    <insert id="insertTodoItem" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.TodoItemDO">
+        INSERT INTO dashboard_todo_item (todo_id, tenant_id, user_id, type, business_type, business_id,
+                                         title, status, due_time, created_at, updated_at)
+        VALUES (#{todoId}, #{tenantId}, #{userId}, #{type}, #{businessType}, #{businessId},
+                #{title}, #{status}, #{dueTime}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateTodoItem" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.TodoItemDO">
+        UPDATE dashboard_todo_item
+        SET status = #{status}, due_time = #{dueTime}, updated_at = #{updatedAt}
+        WHERE todo_id = #{todoId} AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteTodoItem">
+        DELETE FROM dashboard_todo_item WHERE tenant_id = #{tenantId} AND todo_id = #{todoId}
+    </delete>
+
+    <select id="selectTodoItem" resultType="com.aidotnet.erp.dashboard.infrastructure.data.TodoItemDO">
+        SELECT todo_id, tenant_id, user_id, type, business_type, business_id, title, status, due_time, created_at, updated_at
+        FROM dashboard_todo_item
+        WHERE tenant_id = #{tenantId} AND todo_id = #{todoId}
+    </select>
+
+    <select id="selectTodoItems" resultType="com.aidotnet.erp.dashboard.infrastructure.data.TodoItemDO">
+        SELECT todo_id, tenant_id, user_id, type, business_type, business_id, title, status, due_time, created_at, updated_at
+        FROM dashboard_todo_item
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPendingTodoItems" resultType="com.aidotnet.erp.dashboard.infrastructure.data.TodoItemDO">
+        SELECT todo_id, tenant_id, user_id, type, business_type, business_id, title, status, due_time, created_at, updated_at
+        FROM dashboard_todo_item
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId} AND status IN ('PENDING', 'IN_PROGRESS')
+        ORDER BY due_time ASC, created_at ASC
+    </select>
+
+    <!-- ================================ 仪表盘组件 ================================ -->
+
+    <insert id="insertDashboardWidget" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardWidgetDO">
+        INSERT INTO dashboard_widget (widget_id, tenant_id, type, name, data_source, refresh_rate_seconds, config, status, category, description, created_at, updated_at)
+        VALUES (#{widgetId}, #{tenantId}, #{type}, #{name}, #{dataSource}, #{refreshRateSeconds}, #{config}, #{status}, #{category}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateDashboardWidget" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardWidgetDO">
+        UPDATE dashboard_widget SET name = #{name}, data_source = #{dataSource}, refresh_rate_seconds = #{refreshRateSeconds},
+               config = #{config}, status = #{status}, category = #{category}, description = #{description}, updated_at = #{updatedAt}
+        WHERE widget_id = #{widgetId} AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteDashboardWidget">
+        DELETE FROM dashboard_widget WHERE tenant_id = #{tenantId} AND widget_id = #{widgetId}
+    </delete>
+
+    <select id="selectDashboardWidget" resultType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardWidgetDO">
+        SELECT widget_id, tenant_id, type, name, data_source, refresh_rate_seconds, config, status, category, description, created_at, updated_at
+        FROM dashboard_widget WHERE tenant_id = #{tenantId} AND widget_id = #{widgetId}
+    </select>
+
+    <select id="selectDashboardWidgets" resultType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardWidgetDO">
+        SELECT widget_id, tenant_id, type, name, data_source, refresh_rate_seconds, config, status, category, description, created_at, updated_at
+        FROM dashboard_widget
+        WHERE tenant_id = #{tenantId}
+        <if test="category != null">AND category = #{category}</if>
+        ORDER BY category, name
+    </select>
+
+    <select id="selectActiveDashboardWidgets" resultType="com.aidotnet.erp.dashboard.infrastructure.data.DashboardWidgetDO">
+        SELECT widget_id, tenant_id, type, name, data_source, refresh_rate_seconds, config, status, category, description, created_at, updated_at
+        FROM dashboard_widget WHERE tenant_id = #{tenantId} AND status = 'ACTIVE'
+        ORDER BY category, name
+    </select>
+
+    <!-- ================================ 日历事件 ================================ -->
+
+    <insert id="insertCalendarEvent" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.CalendarEventDO">
+        INSERT INTO dashboard_calendar_event (event_id, tenant_id, user_id, title, description, event_type,
+            start_time, end_time, business_type, business_id, color, all_day, reminder, created_at, updated_at)
+        VALUES (#{eventId}, #{tenantId}, #{userId}, #{title}, #{description}, #{eventType},
+            #{startTime}, #{endTime}, #{businessType}, #{businessId}, #{color}, #{allDay}, #{reminder}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateCalendarEvent" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.CalendarEventDO">
+        UPDATE dashboard_calendar_event SET title = #{title}, description = #{description}, event_type = #{eventType},
+            start_time = #{startTime}, end_time = #{endTime}, business_type = #{businessType}, business_id = #{businessId},
+            color = #{color}, all_day = #{allDay}, reminder = #{reminder}, updated_at = #{updatedAt}
+        WHERE event_id = #{eventId} AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteCalendarEvent">
+        DELETE FROM dashboard_calendar_event WHERE tenant_id = #{tenantId} AND event_id = #{eventId}
+    </delete>
+
+    <select id="selectCalendarEvent" resultType="com.aidotnet.erp.dashboard.infrastructure.data.CalendarEventDO">
+        SELECT event_id, tenant_id, user_id, title, description, event_type, start_time, end_time,
+               business_type, business_id, color, all_day, reminder, created_at, updated_at
+        FROM dashboard_calendar_event WHERE tenant_id = #{tenantId} AND event_id = #{eventId}
+    </select>
+
+    <select id="selectCalendarEvents" resultType="com.aidotnet.erp.dashboard.infrastructure.data.CalendarEventDO">
+        SELECT event_id, tenant_id, user_id, title, description, event_type, start_time, end_time,
+               business_type, business_id, color, all_day, reminder, created_at, updated_at
+        FROM dashboard_calendar_event
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+        <if test="startTime != null">AND start_time >= #{startTime}</if>
+        <if test="endTime != null">AND end_time &lt;= #{endTime}</if>
+        ORDER BY start_time ASC
+    </select>
+
+    <select id="selectUpcomingCalendarEvents" resultType="com.aidotnet.erp.dashboard.infrastructure.data.CalendarEventDO">
+        SELECT event_id, tenant_id, user_id, title, description, event_type, start_time, end_time,
+               business_type, business_id, color, all_day, reminder, created_at, updated_at
+        FROM dashboard_calendar_event
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId} AND start_time >= #{fromTime}
+        ORDER BY start_time ASC LIMIT 20
+    </select>
+
+    <!-- ================================ AI洞察卡片 ================================ -->
+
+    <insert id="insertAIInsightCard" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.AIInsightCardDO">
+        INSERT INTO dashboard_ai_insight_card (card_id, tenant_id, user_id, title, summary, insight_type,
+            severity, data, source_domain, suggestion, action_url, is_read, is_dismissed, valid_until, created_at, updated_at)
+        VALUES (#{cardId}, #{tenantId}, #{userId}, #{title}, #{summary}, #{insightType},
+            #{severity}, #{data}, #{sourceDomain}, #{suggestion}, #{actionUrl}, #{isRead}, #{isDismissed}, #{validUntil}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <delete id="deleteAIInsightCard">
+        DELETE FROM dashboard_ai_insight_card WHERE tenant_id = #{tenantId} AND card_id = #{cardId}
+    </delete>
+
+    <select id="selectAIInsightCard" resultType="com.aidotnet.erp.dashboard.infrastructure.data.AIInsightCardDO">
+        SELECT card_id, tenant_id, user_id, title, summary, insight_type, severity, data, source_domain,
+               suggestion, action_url, is_read, is_dismissed, valid_until, created_at, updated_at
+        FROM dashboard_ai_insight_card WHERE tenant_id = #{tenantId} AND card_id = #{cardId}
+    </select>
+
+    <select id="selectAIInsightCards" resultType="com.aidotnet.erp.dashboard.infrastructure.data.AIInsightCardDO">
+        SELECT card_id, tenant_id, user_id, title, summary, insight_type, severity, data, source_domain,
+               suggestion, action_url, is_read, is_dismissed, valid_until, created_at, updated_at
+        FROM dashboard_ai_insight_card
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId} AND is_dismissed = false
+        <if test="insightType != null">AND insight_type = #{insightType}</if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectUnreadAIInsightCards" resultType="com.aidotnet.erp.dashboard.infrastructure.data.AIInsightCardDO">
+        SELECT card_id, tenant_id, user_id, title, summary, insight_type, severity, data, source_domain,
+               suggestion, action_url, is_read, is_dismissed, valid_until, created_at, updated_at
+        FROM dashboard_ai_insight_card
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId} AND is_read = false AND is_dismissed = false
+        ORDER BY severity DESC, created_at DESC
+    </select>
+
+    <update id="updateAIInsightCardReadStatus">
+        UPDATE dashboard_ai_insight_card SET is_read = #{isRead}, updated_at = NOW()
+        WHERE tenant_id = #{tenantId} AND card_id = #{cardId}
+    </update>
+
+    <update id="updateAIInsightCardDismissed">
+        UPDATE dashboard_ai_insight_card SET is_dismissed = #{isDismissed}, updated_at = NOW()
+        WHERE tenant_id = #{tenantId} AND card_id = #{cardId}
+    </update>
+
+    <!-- ================================ 快捷入口 ================================ -->
+
+    <insert id="insertQuickEntry" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.QuickEntryDO">
+        INSERT INTO dashboard_quick_entry (entry_id, tenant_id, user_id, entry_code, entry_name, icon, url, category, sort_order, created_at, updated_at)
+        VALUES (#{entryId}, #{tenantId}, #{userId}, #{entryCode}, #{entryName}, #{icon}, #{url}, #{category}, #{sortOrder}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateQuickEntry" parameterType="com.aidotnet.erp.dashboard.infrastructure.data.QuickEntryDO">
+        UPDATE dashboard_quick_entry SET entry_name = #{entryName}, icon = #{icon}, url = #{url},
+               category = #{category}, sort_order = #{sortOrder}, updated_at = #{updatedAt}
+        WHERE entry_id = #{entryId} AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteQuickEntry">
+        DELETE FROM dashboard_quick_entry WHERE tenant_id = #{tenantId} AND entry_id = #{entryId}
+    </delete>
+
+    <select id="selectQuickEntries" resultType="com.aidotnet.erp.dashboard.infrastructure.data.QuickEntryDO">
+        SELECT entry_id, tenant_id, user_id, entry_code, entry_name, icon, url, category, sort_order, created_at, updated_at
+        FROM dashboard_quick_entry
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+        ORDER BY sort_order ASC, created_at ASC
+    </select>
+
+</mapper>
