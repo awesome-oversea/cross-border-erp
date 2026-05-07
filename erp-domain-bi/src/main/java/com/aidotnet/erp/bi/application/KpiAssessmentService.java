@@ -13,6 +13,14 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * KPI考核评估应用服务
+ * <p>
+ * 描述: BI域KPI考核服务，负责KPI目标设定、考核评估、部门评分、达成率计算。
+ * </p>
+ *
+ * @author ERP系统
+ */
 @Service
 public class KpiAssessmentService {
 

@@ -13,6 +13,7 @@ import com.aidotnet.erp.common.exception.BizException;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
+import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +28,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 数据分析应用服务
+ * <p>
+ * 描述: BI域数据分析服务，提供交叉分析、数据导出等能力。
+ * </p>
+ *
+ * @author ERP系统
+ */
 @Service
 public class DataAnalysisService {
 
