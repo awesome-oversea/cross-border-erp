@@ -10,7 +10,6 @@ import com.aidotnet.erp.dashboard.infrastructure.DashboardRepository;
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,13 +113,6 @@ public class DashboardEventHandlers {
         log.info("[DASHBOARD] Order created: tenant={}, orderId={}", tenantId, event.aggregateId());
         try {
             upsertMetric(tenantId, "ORDER_COUNT", "订单量", BigDecimal.ONE, "件");
-            Map<String, Object> payload = event.payload();
-            String userId = payload != null ? (String) payload.get("userId") : null;
-            if (userId != null) {
-                workspaceService.createTodoItem(tenantId, new WorkspaceService.CreateTodoCommand(
-                        userId, "approval", "ORDER", event.aggregateId(),
-                        "新订单待审核: " + event.aggregateId(), Instant.now().plusSeconds(86400)));
-            }
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle order created: tenant={}, error={}", tenantId, e.getMessage(), e);
         }
@@ -139,10 +131,7 @@ public class DashboardEventHandlers {
         String tenantId = event.tenantId();
         log.info("[DASHBOARD] Order delivered: tenant={}, orderId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            Object amountObj = payload != null ? payload.get("amount") : null;
-            BigDecimal amount = amountObj != null ? new BigDecimal(amountObj.toString()) : BigDecimal.ZERO;
-            upsertMetric(tenantId, "DAILY_SALES", "日销售额", amount, "CNY");
+            incrementMetric(tenantId, "DAILY_SALES", "日销售额", "CNY");
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle order delivered: tenant={}, error={}", tenantId, e.getMessage(), e);
         }
@@ -161,16 +150,6 @@ public class DashboardEventHandlers {
         String tenantId = event.tenantId();
         log.info("[DASHBOARD] Stock warning: tenant={}, skuId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            String skuName = payload != null ? (String) payload.get("skuName") : "未知SKU";
-            String userId = payload != null ? (String) payload.get("userId") : null;
-            if (userId != null) {
-                workspaceService.createAIInsightCard(tenantId, new WorkspaceService.CreateAIInsightCardCommand(
-                        userId, "库存预警: " + skuName, "库存低于安全库存，建议及时补货",
-                        "risk", "high", payload, "WMS",
-                        "建议立即创建采购补货单", "/wms/inventory?sku=" + event.aggregateId(),
-                        Instant.now().plusSeconds(7 * 86400)));
-            }
             incrementMetric(tenantId, "INVENTORY_WARNING_COUNT", "库存预警数", "件");
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle stock warning: tenant={}, error={}", tenantId, e.getMessage(), e);
@@ -189,10 +168,7 @@ public class DashboardEventHandlers {
         String tenantId = event.tenantId();
         log.info("[DASHBOARD] Inbound completed: tenant={}, inboundId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            Object valueObj = payload != null ? payload.get("totalValue") : null;
-            BigDecimal value = valueObj != null ? new BigDecimal(valueObj.toString()) : BigDecimal.ZERO;
-            upsertMetric(tenantId, "INVENTORY_VALUE", "库存金额", value, "CNY");
+            incrementMetric(tenantId, "INVENTORY_VALUE", "库存金额", "CNY");
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle inbound completed: tenant={}, error={}", tenantId, e.getMessage(), e);
         }
@@ -210,10 +186,7 @@ public class DashboardEventHandlers {
         String tenantId = event.tenantId();
         log.info("[DASHBOARD] Payment received: tenant={}, paymentId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            Object amountObj = payload != null ? payload.get("amount") : null;
-            BigDecimal amount = amountObj != null ? new BigDecimal(amountObj.toString()) : BigDecimal.ZERO;
-            upsertMetric(tenantId, "RECEIVED_AMOUNT", "已收金额", amount, "CNY");
+            incrementMetric(tenantId, "RECEIVED_AMOUNT", "已收金额", "CNY");
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle payment received: tenant={}, error={}", tenantId, e.getMessage(), e);
         }
@@ -231,13 +204,7 @@ public class DashboardEventHandlers {
         String tenantId = event.tenantId();
         log.info("[DASHBOARD] Purchase approved: tenant={}, purchaseId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            String userId = payload != null ? (String) payload.get("approverId") : null;
-            if (userId != null) {
-                workspaceService.createTodoItem(tenantId, new WorkspaceService.CreateTodoCommand(
-                        userId, "review", "PURCHASE", event.aggregateId(),
-                        "采购单待复核: " + event.aggregateId(), Instant.now().plusSeconds(3 * 86400)));
-            }
+            incrementMetric(tenantId, "PURCHASE_APPROVED_COUNT", "采购审批数", "件");
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle purchase approved: tenant={}, error={}", tenantId, e.getMessage(), e);
         }
@@ -256,10 +223,7 @@ public class DashboardEventHandlers {
         String tenantId = event.tenantId();
         log.info("[DASHBOARD] Campaign updated: tenant={}, campaignId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            Object roasObj = payload != null ? payload.get("roas") : null;
-            BigDecimal roas = roasObj != null ? new BigDecimal(roasObj.toString()) : BigDecimal.ZERO;
-            upsertMetric(tenantId, "ADS_ROAS", "广告ROAS", roas, "%");
+            incrementMetric(tenantId, "ADS_CAMPAIGN_UPDATED_COUNT", "广告更新数", "件");
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle campaign updated: tenant={}, error={}", tenantId, e.getMessage(), e);
         }
@@ -278,15 +242,6 @@ public class DashboardEventHandlers {
         String tenantId = event.tenantId();
         log.info("[DASHBOARD] Shipment delayed: tenant={}, shipmentId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            String userId = payload != null ? (String) payload.get("userId") : null;
-            if (userId != null) {
-                workspaceService.createAIInsightCard(tenantId, new WorkspaceService.CreateAIInsightCardCommand(
-                        userId, "物流异常: 发货单" + event.aggregateId(), "物流配送延迟，请关注客户体验",
-                        "anomaly", "high", payload, "TMS",
-                        "建议联系物流商确认配送进度", "/tms/shipments/" + event.aggregateId(),
-                        Instant.now().plusSeconds(3 * 86400)));
-            }
             incrementMetric(tenantId, "SHIPMENT_EXCEPTION_COUNT", "物流异常数", "件");
         } catch (Exception e) {
             log.error("[DASHBOARD] Failed to handle shipment delayed: tenant={}, error={}", tenantId, e.getMessage(), e);

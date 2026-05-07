@@ -1,16 +1,13 @@
 'use client';
 
-import { Card, Typography, Table, Tag, Input, Space, Button, Badge } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Card, Typography, Table, Tag, Input, Space, Button, Badge, Descriptions, Modal, Timeline, Select } from 'antd';
+import { SearchOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { usePageApi, useApi } from '@/lib/hooks';
+import { tmsApi } from '@/lib/api';
+import type { ShipmentTracking, PageParams } from '@/types';
 
 const { Title } = Typography;
-
-const mockTracking = [
-  { key: '1', trackingNo: 'DHL-2026050301', carrier: 'DHL', origin: '深圳', destination: '洛杉矶', status: 'IN_TRANSIT', lastUpdate: '2026-05-03 08:30', eta: '2026-05-08' },
-  { key: '2', trackingNo: 'FEDEX-2026050205', carrier: 'FedEx', origin: '义乌', destination: '纽约', status: 'DELIVERED', lastUpdate: '2026-05-02 16:00', eta: '-' },
-  { key: '3', trackingNo: 'UPS-2026050112', carrier: 'UPS', origin: '深圳', destination: '伦敦', status: 'CUSTOMS', lastUpdate: '2026-05-03 10:15', eta: '2026-05-10' },
-  { key: '4', trackingNo: 'DHL-2026050408', carrier: 'DHL', origin: '广州', destination: '东京', status: 'PICKED_UP', lastUpdate: '2026-05-04 09:00', eta: '2026-05-07' },
-];
 
 const statusMap: Record<string, { color: string; text: string }> = {
   PICKED_UP: { color: 'blue', text: '已揽收' },
@@ -22,28 +19,115 @@ const statusMap: Record<string, { color: string; text: string }> = {
 };
 
 export default function TrackingPage() {
+  const [params, setParams] = useState<PageParams & Record<string, unknown>>({ page: 1, size: 20 });
+  const [searchNo, setSearchNo] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedTracking, setSelectedTracking] = useState<ShipmentTracking | null>(null);
+  const { data, mutate } = usePageApi<ShipmentTracking>('/tms/api/in/v1/trackings', params);
+
+  const handleSearch = async () => {
+    if (!searchNo) return;
+    try {
+      const tracking = await tmsApi.getShipmentTracking(searchNo);
+      setSelectedTracking(tracking);
+      setDetailOpen(true);
+    } catch {
+      setSelectedTracking(null);
+    }
+  };
+
+  const showDetail = async (trackingNo: string) => {
+    try {
+      const tracking = await tmsApi.getShipmentTracking(trackingNo);
+      setSelectedTracking(tracking);
+      setDetailOpen(true);
+    } catch {}
+  };
+
   const columns = [
-    { title: '运单号', dataIndex: 'trackingNo', key: 'trackingNo', render: (v: string) => <code>{v}</code> },
-    { title: '物流商', dataIndex: 'carrier', key: 'carrier', render: (v: string) => <Tag>{v}</Tag> },
+    { title: '运单号', dataIndex: 'trackingNo', key: 'trackingNo', render: (v: string) => (
+      <a onClick={() => showDetail(v)}><code>{v}</code></a>
+    )},
+    { title: '物流商', dataIndex: 'carrierName', key: 'carrierName', render: (v: string) => <Tag>{v}</Tag> },
     { title: '始发地', dataIndex: 'origin', key: 'origin' },
     { title: '目的地', dataIndex: 'destination', key: 'destination' },
     { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => <Badge color={statusMap[v]?.color || 'default'} text={statusMap[v]?.text || v} /> },
-    { title: '最后更新', dataIndex: 'lastUpdate', key: 'lastUpdate' },
-    { title: '预计到达', dataIndex: 'eta', key: 'eta' },
+    { title: '最后更新', dataIndex: 'lastEventTime', key: 'lastEventTime', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
+    { title: '预计到达', dataIndex: 'eta', key: 'eta', render: (v: string) => v || '-' },
+    { title: '操作', key: 'action', render: (_: unknown, r: ShipmentTracking) => (
+      <Space>
+        <Button type="link" size="small" icon={<EnvironmentOutlined />} onClick={() => showDetail(r.trackingNo)}>详情</Button>
+        {r.shipmentId && (
+          <Button type="link" size="small" onClick={() => {
+            window.location.href = `/fba/shipments?shipmentId=${r.shipmentId}`;
+          }}>关联货件</Button>
+        )}
+      </Space>
+    )},
   ];
 
   return (
     <div>
-      <Title level={4} style={{ marginBottom: 16 }}>轨迹查询</Title>
-      <Card style={{ borderRadius: 8, marginBottom: 16 }}>
-        <Space>
-          <Input placeholder="输入运单号" prefix={<SearchOutlined />} style={{ width: 300 }} />
-          <Button type="primary">查询</Button>
-        </Space>
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Title level={4} style={{ margin: 0 }}>轨迹查询</Title>
+          <Space>
+            <Input placeholder="输入运单号查询" prefix={<SearchOutlined />} style={{ width: 300 }}
+              value={searchNo} onChange={(e) => setSearchNo(e.target.value)}
+              onPressEnter={handleSearch} />
+            <Button type="primary" onClick={handleSearch}>查询</Button>
+            <Select placeholder="状态" allowClear style={{ width: 120 }}
+              options={Object.entries(statusMap).map(([k, v]) => ({ value: k, label: v.text }))}
+              onChange={(v) => setParams({ ...params, status: v })} />
+          </Space>
+        </div>
+        <Table
+          rowKey="trackingId"
+          columns={columns}
+          dataSource={data?.list || []}
+          pagination={{
+            current: params.page,
+            pageSize: params.size,
+            total: data?.total || 0,
+            onChange: (page, size) => setParams({ ...params, page, size }),
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+        />
       </Card>
-      <Card style={{ borderRadius: 8 }}>
-        <Table columns={columns} dataSource={mockTracking} size="middle" />
-      </Card>
+
+      <Modal
+        title={`物流轨迹 - ${selectedTracking?.trackingNo || ''}`}
+        open={detailOpen}
+        onCancel={() => setDetailOpen(false)}
+        footer={null}
+        width={700}
+      >
+        {selectedTracking && (
+          <>
+            <Descriptions bordered column={2} size="small" style={{ marginBottom: 24 }}>
+              <Descriptions.Item label="运单号">{selectedTracking.trackingNo}</Descriptions.Item>
+              <Descriptions.Item label="物流商">{selectedTracking.carrierName}</Descriptions.Item>
+              <Descriptions.Item label="始发地">{selectedTracking.origin}</Descriptions.Item>
+              <Descriptions.Item label="目的地">{selectedTracking.destination}</Descriptions.Item>
+              <Descriptions.Item label="状态">
+                <Badge color={statusMap[selectedTracking.status]?.color} text={statusMap[selectedTracking.status]?.text || selectedTracking.status} />
+              </Descriptions.Item>
+              <Descriptions.Item label="预计到达">{selectedTracking.eta || '-'}</Descriptions.Item>
+            </Descriptions>
+            <Title level={5}>物流轨迹</Title>
+            <Timeline
+              items={(selectedTracking.events || []).map((e: { eventTime: string; location: string; description: string }) => ({
+                children: (
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{e.description}</div>
+                    <div style={{ fontSize: 12, color: '#999' }}>{e.location} · {new Date(e.eventTime).toLocaleString()}</div>
+                  </div>
+                ),
+              }))}
+            />
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

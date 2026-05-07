@@ -288,7 +288,8 @@
         INSERT INTO bi_dashboard (
             dashboard_id, tenant_id, dashboard_name, dashboard_type, config, owner, enabled, created_at, updated_at
         ) VALUES (
-            #{dashboardId}, #{tenantId}, #{dashboardName}, #{dashboardType}, #{config}, #{owner}, #{enabled}, #{createdAt}, #{updatedAt}
+            #{dashboardId}, #{tenantId}, #{dashboardName}, #{dashboardType},
+            CAST(#{config} AS JSONB), #{owner}, #{enabled}, #{createdAt}, #{updatedAt}
         )
     </insert>
 
@@ -296,7 +297,7 @@
         UPDATE bi_dashboard
         SET dashboard_name = #{dashboardName},
             dashboard_type = #{dashboardType},
-            config = #{config},
+            config = CAST(#{config} AS JSONB),
             owner = #{owner},
             enabled = #{enabled},
             updated_at = #{updatedAt}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.SupplierQualificationMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierQualificationDO">
+        INSERT INTO scm_supplier_qualification (qualification_id, tenant_id, supplier_id, qualification_type,
+                                                qualification_no, issued_by, valid_from, valid_until, status,
+                                                remark, created_at, updated_at)
+        VALUES (#{qualificationId}, #{tenantId}, #{supplierId}, #{qualificationType},
+                #{qualificationNo}, #{issuedBy}, #{validFrom}, #{validUntil}, #{status},
+                #{remark}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <delete id="deleteBySupplier">
+        DELETE FROM scm_supplier_qualification
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+    </delete>
+
+    <select id="selectBySupplier" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierQualificationDO">
+        SELECT qualification_id, tenant_id, supplier_id, qualification_type, qualification_no, issued_by,
+               valid_from, valid_until, status, remark, created_at, updated_at
+        FROM scm_supplier_qualification
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+        ORDER BY created_at DESC
+    </select>
+</mapper>

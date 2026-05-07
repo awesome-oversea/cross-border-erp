@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/fms/api/v1/cost-engine")
+@RequestMapping("/platform/fms/api/v1/cost-engine")
 public class CostEngineController {
 
     private final CostEngineService costEngineService;

@@ -3,11 +3,14 @@ package com.aidotnet.erp.som.application;
 import com.aidotnet.erp.common.context.TraceContext;
 import com.aidotnet.erp.common.event.DomainEventPublisher;
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.common.exception.ErrorCode;
 import com.aidotnet.erp.som.domain.ChannelSku;
 import com.aidotnet.erp.som.domain.ChannelSkuStatus;
 import com.aidotnet.erp.som.domain.Listing;
 import com.aidotnet.erp.som.domain.ListingOptimization;
 import com.aidotnet.erp.som.domain.ListingPerformance;
+import com.aidotnet.erp.som.domain.ListingSchedule;
+import com.aidotnet.erp.som.domain.SyncedReview;
 import com.aidotnet.erp.som.domain.ListingPublishedEvent;
 import com.aidotnet.erp.som.domain.ListingStatus;
 import com.aidotnet.erp.som.domain.OptimizationType;
@@ -21,7 +24,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -413,6 +419,196 @@ public class ListingService {
     public void acknowledgeAlert(String tenantId, String alertId) {
         somRepository.acknowledgeAlert(alertId, tenantId);
     }
+
+    // ========== 定时上下架管理(内存存储) ==========
+
+    private final Map<String, ListingSchedule> scheduleStore = new ConcurrentHashMap<>();
+
+    public ListingSchedule createSchedule(String tenantId, CreateScheduleCommand command) {
+        Instant now = Instant.now();
+        if (command.scheduledAt().isBefore(now)) {
+            throw new BizException(ErrorCode.INVALID_STATUS, "计划执行时间不能早于当前时间");
+        }
+        getListing(tenantId, command.listingId());
+        ListingSchedule schedule = new ListingSchedule(UUID.randomUUID().toString(), tenantId,
+                command.listingId(), command.actionType(), command.scheduledAt(),
+                command.targetPrice(), "PENDING", null, null, now, now);
+        scheduleStore.put(schedule.scheduleId(), schedule);
+        return schedule;
+    }
+
+    public void cancelSchedule(String tenantId, String scheduleId) {
+        ListingSchedule schedule = scheduleStore.get(scheduleId);
+        if (schedule == null || !schedule.tenantId().equals(tenantId)) {
+            throw new BizException(ErrorCode.NOT_FOUND, "定时计划不存在");
+        }
+        if (!"PENDING".equals(schedule.status())) {
+            throw new BizException(ErrorCode.INVALID_STATUS, "只能取消待执行的计划");
+        }
+        scheduleStore.put(schedule.scheduleId(), new ListingSchedule(
+                schedule.scheduleId(), schedule.tenantId(), schedule.listingId(),
+                schedule.actionType(), schedule.scheduledAt(), schedule.targetPrice(),
+                "CANCELLED", null, null, schedule.createdAt(), Instant.now()));
+    }
+
+    public void executeSchedule(ListingSchedule schedule) {
+        if (!"PENDING".equals(schedule.status())) return;
+        String listingId = schedule.listingId();
+        String tenantId = schedule.tenantId();
+        Listing listing = getListing(tenantId, listingId);
+        switch (schedule.actionType()) {
+            case "PUBLISH" -> {
+                if (listing.status() != ListingStatus.ACTIVE) {
+                    updateStatus(listing, ListingStatus.ACTIVE);
+                }
+            }
+            case "UNPUBLISH" -> {
+                if (listing.status() == ListingStatus.ACTIVE) {
+                    updateStatus(listing, ListingStatus.INACTIVE);
+                }
+            }
+            case "ADJUST_PRICE" -> {
+                if (schedule.targetPrice() != null) {
+                    somRepository.saveListing(new Listing(listing.listingId(), tenantId,
+                            listing.productId(), listing.storeId(), listing.title(), listing.description(),
+                            schedule.targetPrice(), listing.originalPrice(), listing.platform(),
+                            listing.marketplace(), listing.marketplaceListingId(),
+                            listing.qualityScore(), listing.status(), listing.createdAt(), Instant.now()));
+                }
+            }
+            default -> {}
+        }
+        scheduleStore.put(schedule.scheduleId(), new ListingSchedule(
+                schedule.scheduleId(), tenantId, listingId,
+                schedule.actionType(), schedule.scheduledAt(), schedule.targetPrice(),
+                "EXECUTED", Instant.now(), "system", schedule.createdAt(), Instant.now()));
+    }
+
+    public List<ListingSchedule> listSchedules(String tenantId, String listingId) {
+        return scheduleStore.values().stream()
+                .filter(s -> s.tenantId().equals(tenantId))
+                .filter(s -> listingId == null || s.listingId().equals(listingId))
+                .collect(Collectors.toList());
+    }
+
+    public record CreateScheduleCommand(String listingId, String actionType,
+                                         Instant scheduledAt, java.math.BigDecimal targetPrice) {}
+
+    // ========== Reviews同步管理(内存存储) ==========
+
+    private final Map<String, SyncedReview> reviewStore = new ConcurrentHashMap<>();
+
+    public SyncedReview syncReview(String tenantId, SyncReviewCommand command) {
+        Instant now = Instant.now();
+        boolean hasQualityIssue = command.rating() < 3;
+        String issueCategory = hasQualityIssue ? resolveIssueCategory(command.content()) : null;
+        SyncedReview review = new SyncedReview(UUID.randomUUID().toString(), tenantId,
+                command.listingId(), command.productId(), command.platform(),
+                command.marketplace(), command.platformReviewId(), command.reviewerName(),
+                command.rating(), command.title(), command.content(),
+                hasQualityIssue, issueCategory, command.reviewDate(), now, now);
+        reviewStore.put(review.reviewId(), review);
+        return review;
+    }
+
+    public List<SyncedReview> listReviews(String tenantId, String listingId) {
+        return reviewStore.values().stream()
+                .filter(r -> r.tenantId().equals(tenantId))
+                .filter(r -> listingId == null || r.listingId().equals(listingId))
+                .collect(Collectors.toList());
+    }
+
+    public List<SyncedReview> listQualityIssues(String tenantId) {
+        return reviewStore.values().stream()
+                .filter(r -> r.tenantId().equals(tenantId) && r.qualityIssue())
+                .collect(Collectors.toList());
+    }
+
+    private String resolveIssueCategory(String content) {
+        if (content == null) return "OTHER";
+        String c = content.toLowerCase();
+        if (c.contains("broken") || c.contains("defect") || c.contains("crack")
+                || c.contains("damage") || c.contains("stop working")) return "QUALITY";
+        if (c.contains("shipping") || c.contains("delivery") || c.contains("late")
+                || c.contains("package") || c.contains("box")) return "SHIPPING";
+        if (c.contains("description") || c.contains("size") || c.contains("color")
+                || c.contains("different") || c.contains("not as")) return "DESCRIPTION";
+        return "OTHER";
+    }
+
+    public record SyncReviewCommand(String listingId, String productId, String platform,
+                                     String marketplace, String platformReviewId, String reviewerName,
+                                     int rating, String title, String content, Instant reviewDate) {}
+
+    /**
+     * 批量调价
+     * <p>
+     * 按指定规则批量更新Listing价格，支持固定价/百分比/保底价三种模式。
+     * 所有调价操作记录ListingOptimization，支持效果追踪。
+     * </p>
+     *
+     * @param tenantId  租户ID
+     * @param listingIds 要调价的Listing ID列表
+     * @param adjustment 调价策略
+     * @return 更新后的Listing列表
+     */
+    @Transactional
+    public List<Listing> batchUpdatePrice(String tenantId, List<String> listingIds, BatchPriceAdjustment adjustment) {
+        if (listingIds == null || listingIds.isEmpty()) {
+            throw new BizException("LISTING_IDS_REQUIRED", "请选择需要调价的Listing");
+        }
+        List<Listing> results = new java.util.ArrayList<>();
+        for (String listingId : listingIds) {
+            Listing listing = getListing(tenantId, listingId);
+            BigDecimal newPrice = calculateAdjustedPrice(listing.price(), adjustment);
+            if (newPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            BigDecimal oldPrice = listing.price();
+            Instant now = Instant.now();
+            Listing updated = somRepository.saveListing(new Listing(listing.listingId(), listing.tenantId(),
+                    listing.productId(), listing.storeId(), listing.title(), listing.description(),
+                    newPrice, listing.originalPrice(), listing.platform(), listing.marketplace(),
+                    listing.marketplaceListingId(), listing.qualityScore(), listing.status(),
+                    listing.createdAt(), now));
+            // 记录调价优化历史
+            somRepository.saveListingOptimization(new ListingOptimization(UUID.randomUUID().toString(), tenantId,
+                    listingId, OptimizationType.PRICE, oldPrice.toString(),
+                    newPrice.toString(), "batch", "batch price adjustment", now));
+            results.add(updated);
+        }
+        return results;
+    }
+
+    /**
+     * 计算调整后的价格
+     */
+    private BigDecimal calculateAdjustedPrice(BigDecimal currentPrice, BatchPriceAdjustment adj) {
+        return switch (adj.mode()) {
+            case "FIXED" -> adj.value();
+            case "PERCENTAGE" -> currentPrice.multiply(
+                    BigDecimal.ONE.add(adj.value().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))
+                    .setScale(2, RoundingMode.HALF_UP);
+            case "MIN_MAX" -> {
+                BigDecimal min = adj.minPrice() != null ? adj.minPrice() : BigDecimal.ZERO;
+                BigDecimal max = adj.maxPrice() != null ? adj.maxPrice() : currentPrice;
+                if (currentPrice.compareTo(min) < 0) yield min.setScale(2, RoundingMode.HALF_UP);
+                if (currentPrice.compareTo(max) > 0) yield max.setScale(2, RoundingMode.HALF_UP);
+                yield currentPrice;
+            }
+            default -> currentPrice;
+        };
+    }
+
+    public record BatchPriceAdjustment(
+            /** 调价模式: FIXED/PERCENTAGE/MIN_MAX */
+            String mode,
+            /** 目标价(固定模式)/百分比(百分比模式+/-5) */
+            BigDecimal value,
+            /** 最低限价(可选) */
+            BigDecimal minPrice,
+            /** 最高限价(可选) */
+            BigDecimal maxPrice) {}
 
     private Listing updateStatus(Listing listing, ListingStatus status) {
         return somRepository.saveListing(new Listing(listing.listingId(), listing.tenantId(), listing.productId(),

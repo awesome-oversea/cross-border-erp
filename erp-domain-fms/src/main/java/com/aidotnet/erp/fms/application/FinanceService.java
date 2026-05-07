@@ -152,6 +152,10 @@ public class FinanceService {
         return financeStore.listPaymentRequests(tenantId);
     }
 
+    public List<PaymentRequest> listPaymentRequestsByPo(String tenantId, String poId) {
+        return financeStore.listPaymentRequestsByPo(tenantId, poId);
+    }
+
     public PaymentRequest getPaymentRequest(String tenantId, String requestId) {
         return financeStore.findPaymentRequest(tenantId, requestId)
                 .orElseThrow(() -> new BizException("PAYMENT_REQUEST_NOT_FOUND", "Payment request does not exist"));
@@ -465,6 +469,8 @@ public class FinanceService {
                 "PLATFORM_BILL",
                 billId,
                 trimToNull(command.sellerSku()),
+                platformBill.store(),
+                platformBill.platform(),
                 trimToNull(command.marketplaceId()),
                 command.currency().trim(),
                 command.amount(),
@@ -707,6 +713,7 @@ public class FinanceService {
         Instant occurredAt = command.occurredAt() != null ? command.occurredAt() : Instant.now();
         return financeStore.saveCostEvent(new CostEvent(UUID.randomUUID().toString(), tenantId,
                 command.costType(), command.sourceType(), command.sourceId(), command.sellerSku(),
+                trimToNull(command.storeId()), trimToNull(command.channelCode()),
                 command.marketplaceId(), command.currency(), command.amount(), occurredAt, Instant.now()));
     }
 
@@ -1125,7 +1132,8 @@ public class FinanceService {
     public record UpdatePlatformSettlementForexCommand(String forexStatus, BigDecimal forexRate) {}
 
     public record RecordCostEventCommand(String costType, String sourceType, String sourceId, String sellerSku,
-                                         String marketplaceId, String currency, BigDecimal amount, Instant occurredAt) {}
+                                         String storeId, String channelCode, String marketplaceId,
+                                         String currency, BigDecimal amount, Instant occurredAt) {}
 
     public record CalculateProfitCommand(String sellerSku, String marketplaceId, String orderId,
                                          BigDecimal revenue, String currency) {}

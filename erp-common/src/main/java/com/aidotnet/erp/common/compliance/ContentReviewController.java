@@ -1,6 +1,8 @@
 package com.aidotnet.erp.common.compliance;
 
 import com.aidotnet.erp.common.api.Result;
+import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.common.exception.ErrorCode;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/sys/api/v1/content-review")
+@RequestMapping("/platform/sys/api/v1/content-review")
 public class ContentReviewController {
 
     private final ContentReviewService contentReviewService;
@@ -48,13 +50,13 @@ public class ContentReviewController {
 
     @PostMapping("/trademark-words/batch")
     public Result<Void> batchAddTrademarkWords(@RequestBody List<String> words) {
-        contentReviewService.batchAddTrademarkWords(words);
+        words.forEach(contentReviewService::addTrademarkWord);
         return Result.ok(null);
     }
 
     @PostMapping("/prohibited-words/batch")
     public Result<Void> batchAddProhibitedWords(@RequestBody List<String> words) {
-        contentReviewService.batchAddProhibitedWords(words);
+        words.forEach(contentReviewService::addProhibitedWord);
         return Result.ok(null);
     }
 }

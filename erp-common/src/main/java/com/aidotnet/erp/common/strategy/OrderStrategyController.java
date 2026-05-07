@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/oms/api/v1/strategies")
+@RequestMapping("/platform/oms/api/v1/strategies")
 public class OrderStrategyController {
 
     private final OrderStrategyService strategyService;

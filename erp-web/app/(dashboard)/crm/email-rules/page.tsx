@@ -1,91 +1,46 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Card, Typography, Popconfirm } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Card, Typography, Badge, Switch } from 'antd';
+import { PlusOutlined, EditOutlined } from '@ant-design/icons';
+import { usePageApi } from '@/lib/hooks';
 import { crmApi } from '@/lib/api';
-import type { EmailRule } from '@/types';
+import type { EmailRule, PageParams } from '@/types';
 
 const { Title } = Typography;
 
+const triggerMap: Record<string, string> = {
+  ORDER_CREATED: '订单创建', ORDER_SHIPPED: '订单发货', ORDER_DELIVERED: '订单签收',
+  TICKET_CREATED: '工单创建', TICKET_RESOLVED: '工单解决', PAYMENT_RECEIVED: '付款到账',
+};
+
 export default function EmailRulesPage() {
-  const [rules, setRules] = useState<EmailRule[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [params, setParams] = useState<PageParams & Record<string, unknown>>({ page: 1, size: 20 });
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<EmailRule | null>(null);
   const [form] = Form.useForm();
+  const { data, mutate } = usePageApi<EmailRule>('/crm/api/in/v1/email-rules', params);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await crmApi.listEmailRules();
-      setRules(data || []);
-    } catch {
-      setRules([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const handleCreate = () => {
-    setEditing(null);
-    form.resetFields();
-    setModalOpen(true);
-  };
-
-  const handleEdit = (record: EmailRule) => {
-    setEditing(record);
-    form.setFieldsValue({ conditions: JSON.stringify(record.conditions), assignTo: record.assignTo, priority: record.priority, status: record.status });
-    setModalOpen(true);
-  };
+  const handleCreate = () => { setEditing(null); form.resetFields(); setModalOpen(true); };
+  const handleEdit = (record: EmailRule) => { setEditing(record); form.setFieldsValue(record); setModalOpen(true); };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const ruleData = { ...values, conditions: JSON.parse(values.conditions) };
-      if (editing) {
-        await crmApi.updateEmailRule(editing.ruleId, ruleData);
-        message.success('规则更新成功');
-      } else {
-        await crmApi.createEmailRule(ruleData);
-        message.success('规则创建成功');
-      }
+      if (editing) { await crmApi.updateEmailRule(editing.ruleId, values); }
+      else { await crmApi.createEmailRule(values); }
+      message.success(editing ? '规则更新成功' : '规则创建成功');
       setModalOpen(false);
-      fetchData();
-    } catch {
-      message.error('操作失败');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await crmApi.deleteEmailRule(id);
-      message.success('规则已删除');
-      fetchData();
-    } catch {
-      message.error('删除失败');
-    }
+      mutate();
+    } catch { message.error('操作失败'); }
   };
 
   const columns = [
-    { title: '分配给', dataIndex: 'assignTo', key: 'assignTo' },
-    { title: '优先级', dataIndex: 'priority', key: 'priority', render: (v: number) => <Tag color={v <= 3 ? 'red' : v <= 6 ? 'orange' : 'blue'}>P{v}</Tag> },
-    { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => <Tag color={v === 'ACTIVE' ? 'green' : 'default'}>{v}</Tag> },
-    { title: '条件', dataIndex: 'conditions', key: 'conditions', render: (v: Record<string, unknown>) => <Tag>{JSON.stringify(v).substring(0, 50)}...</Tag> },
-    { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
-    {
-      title: '操作', key: 'action',
-      render: (_: unknown, record: EmailRule) => (
-        <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
-          <Popconfirm title="确认删除?" onConfirm={() => handleDelete(record.ruleId)}>
-            <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+    { title: '规则名称', dataIndex: 'name', key: 'name' },
+    { title: '触发条件', dataIndex: 'trigger', key: 'trigger', render: (v: string) => <Tag color="blue">{triggerMap[v] || v}</Tag> },
+    { title: '模板', dataIndex: 'templateId', key: 'templateId' },
+    { title: '启用', dataIndex: 'enabled', key: 'enabled', render: (v: boolean) => <Badge color={v ? 'green' : 'default'} text={v ? '是' : '否'} /> },
+    { title: '操作', key: 'action', render: (_: unknown, record: EmailRule) => <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button> },
   ];
 
   return (
@@ -95,23 +50,17 @@ export default function EmailRulesPage() {
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建规则</Button>
       </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="ruleId" columns={columns} dataSource={rules} loading={loading} size="middle" />
+        <Table rowKey="ruleId" columns={columns} dataSource={data?.list || []} size="middle"
+          pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
-      <Modal title={editing ? '编辑邮件规则' : '新建邮件规则'} open={modalOpen} onOk={handleSubmit} onCancel={() => setModalOpen(false)} width={560}>
+      <Modal title={editing ? '编辑规则' : '新建规则'} open={modalOpen} onOk={handleSubmit} onCancel={() => setModalOpen(false)} width={520}>
         <Form form={form} layout="vertical">
-          <Form.Item name="conditions" label="匹配条件(JSON)" rules={[{ required: true }]}
-            extra='例如: {"subject.contains":"refund","from.domain":"gmail.com"}'>
-            <Input.TextArea rows={4} placeholder='{"subject.contains":"refund"}' />
+          <Form.Item name="name" label="规则名称" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="trigger" label="触发条件" rules={[{ required: true }]}>
+            <Select options={Object.entries(triggerMap).map(([k, v]) => ({ value: k, label: v }))} />
           </Form.Item>
-          <Form.Item name="assignTo" label="分配给" rules={[{ required: true }]}>
-            <Input placeholder="客服人员ID或邮箱" />
-          </Form.Item>
-          <Form.Item name="priority" label="优先级" rules={[{ required: true }]} initialValue={5}>
-            <Select options={Array.from({ length: 10 }, (_, i) => ({ value: i + 1, label: `P${i + 1}` }))} />
-          </Form.Item>
-          <Form.Item name="status" label="状态" initialValue="ACTIVE">
-            <Select options={[{ value: 'ACTIVE', label: '启用' }, { value: 'DISABLED', label: '禁用' }]} />
-          </Form.Item>
+          <Form.Item name="templateId" label="邮件模板" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="enabled" label="启用" valuePropName="checked" initialValue={true}><Switch /></Form.Item>
         </Form>
       </Modal>
     </div>

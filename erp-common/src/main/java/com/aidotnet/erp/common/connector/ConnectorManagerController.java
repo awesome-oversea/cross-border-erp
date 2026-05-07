@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/sys/api/v1/connector")
+@RequestMapping("/platform/sys/api/v1/connector")
 public class ConnectorManagerController {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectorManagerController.class);

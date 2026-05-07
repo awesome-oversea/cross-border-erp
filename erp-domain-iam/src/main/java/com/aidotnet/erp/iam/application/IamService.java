@@ -2,6 +2,7 @@ package com.aidotnet.erp.iam.application;
 
 import com.aidotnet.erp.common.context.TraceContext;
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.common.exception.ErrorCode;
 import com.aidotnet.erp.common.tenant.TenantContext;
 import com.aidotnet.erp.iam.domain.AuditLog;
 import com.aidotnet.erp.iam.domain.Department;
@@ -85,7 +86,7 @@ public class IamService {
      */
     public Tenant createTenant(String tenantId, String name, String code, String plan, Instant expireAt) {
         if (iamStore.findTenant(tenantId).isPresent()) {
-            throw new BizException("TENANT_EXISTS", "租户已存在");
+            throw new BizException(ErrorCode.TENANT_EXISTS, "租户已存在");
         }
         Instant now = Instant.now();
         Tenant tenant = iamStore.saveTenant(new Tenant(tenantId, name, code, TenantStatus.ACTIVE, plan, expireAt, now, now));

@@ -45,9 +45,9 @@ public class WmsExtStore {
         return mapper.selectTransferOrders(tenantId, warehouseId).stream().map(this::toTransferOrderDomain).collect(Collectors.toList());
     }
 
-    public TransferOrderLine saveTransferOrderLine(TransferOrderLine line) {
-        TransferOrderLineDO existing = mapper.selectTransferOrderLine(line.lineId());
-        TransferOrderLineDO data = toTransferOrderLineData(line);
+    public TransferOrderLine saveTransferOrderLine(String tenantId, TransferOrderLine line) {
+        TransferOrderLineDO existing = mapper.selectTransferOrderLine(tenantId, line.lineId());
+        TransferOrderLineDO data = toTransferOrderLineData(tenantId, line);
         if (existing == null) {
             mapper.insertTransferOrderLine(data);
         } else {
@@ -56,8 +56,8 @@ public class WmsExtStore {
         return line;
     }
 
-    public List<TransferOrderLine> listTransferOrderLines(String transferId) {
-        return mapper.selectTransferOrderLines(transferId).stream().map(this::toTransferOrderLineDomain).collect(Collectors.toList());
+    public List<TransferOrderLine> listTransferOrderLines(String tenantId, String transferId) {
+        return mapper.selectTransferOrderLines(tenantId, transferId).stream().map(this::toTransferOrderLineDomain).collect(Collectors.toList());
     }
 
     public StockCheckOrder saveStockCheckOrder(StockCheckOrder order) {
@@ -79,9 +79,9 @@ public class WmsExtStore {
         return mapper.selectStockCheckOrders(tenantId, warehouseId).stream().map(this::toStockCheckOrderDomain).collect(Collectors.toList());
     }
 
-    public StockCheckOrderLine saveStockCheckOrderLine(StockCheckOrderLine line) {
-        StockCheckOrderLineDO existing = mapper.selectStockCheckOrderLine(line.lineId());
-        StockCheckOrderLineDO data = toStockCheckOrderLineData(line);
+    public StockCheckOrderLine saveStockCheckOrderLine(String tenantId, StockCheckOrderLine line) {
+        StockCheckOrderLineDO existing = mapper.selectStockCheckOrderLine(tenantId, line.checkOrderId(), line.lineId());
+        StockCheckOrderLineDO data = toStockCheckOrderLineData(tenantId, line);
         if (existing == null) {
             mapper.insertStockCheckOrderLine(data);
         } else {
@@ -90,12 +90,13 @@ public class WmsExtStore {
         return line;
     }
 
-    public Optional<StockCheckOrderLine> findStockCheckOrderLine(String checkOrderId, String lineId) {
-        return Optional.ofNullable(mapper.selectStockCheckOrderLine(lineId)).map(this::toStockCheckOrderLineDomain);
+    public Optional<StockCheckOrderLine> findStockCheckOrderLine(String tenantId, String checkOrderId, String lineId) {
+        return Optional.ofNullable(mapper.selectStockCheckOrderLine(tenantId, checkOrderId, lineId))
+                .map(this::toStockCheckOrderLineDomain);
     }
 
-    public List<StockCheckOrderLine> listStockCheckOrderLines(String checkOrderId) {
-        return mapper.selectStockCheckOrderLines(checkOrderId).stream().map(this::toStockCheckOrderLineDomain).collect(Collectors.toList());
+    public List<StockCheckOrderLine> listStockCheckOrderLines(String tenantId, String checkOrderId) {
+        return mapper.selectStockCheckOrderLines(tenantId, checkOrderId).stream().map(this::toStockCheckOrderLineDomain).collect(Collectors.toList());
     }
 
     private TransferOrderDO toTransferOrderData(TransferOrder o) {
@@ -116,9 +117,10 @@ public class WmsExtStore {
                 TransferOrder.TransferStatus.valueOf(d.getStatus()), d.getRemark(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
-    private TransferOrderLineDO toTransferOrderLineData(TransferOrderLine l) {
+    private TransferOrderLineDO toTransferOrderLineData(String tenantId, TransferOrderLine l) {
         TransferOrderLineDO data = new TransferOrderLineDO();
         data.setLineId(l.lineId());
+        data.setTenantId(tenantId);
         data.setTransferId(l.transferId());
         data.setSellerSku(l.sellerSku());
         data.setTransferQuantity(l.transferQuantity());
@@ -153,9 +155,10 @@ public class WmsExtStore {
                 d.getCheckedBy(), d.getRemark(), d.getCreatedAt(), d.getCompletedAt());
     }
 
-    private StockCheckOrderLineDO toStockCheckOrderLineData(StockCheckOrderLine l) {
+    private StockCheckOrderLineDO toStockCheckOrderLineData(String tenantId, StockCheckOrderLine l) {
         StockCheckOrderLineDO data = new StockCheckOrderLineDO();
         data.setLineId(l.lineId());
+        data.setTenantId(tenantId);
         data.setCheckOrderId(l.checkOrderId());
         data.setSellerSku(l.sellerSku());
         data.setLocationId(l.locationId());

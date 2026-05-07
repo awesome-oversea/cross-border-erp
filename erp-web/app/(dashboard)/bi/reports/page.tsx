@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Table, Card, Typography, Tag, Select, Space, Button, Badge } from 'antd';
-import { biApi } from '@/lib/api';
-import type { ReportDefinition } from '@/types';
+import { useState } from 'react';
+import { Table, Card, Typography, Tag, Select, Space, Button } from 'antd';
+import { usePageApi } from '@/lib/hooks';
+import type { ReportDefinition, PageParams } from '@/types';
 
 const { Title } = Typography;
 
@@ -15,23 +15,8 @@ const typeMap: Record<string, { color: string; text: string }> = {
 };
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState<ReportDefinition[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [reportType, setReportType] = useState<string>('');
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await biApi.listReports(reportType || undefined);
-      setReports(data || []);
-    } catch {
-      setReports([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [reportType]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const [params, setParams] = useState<PageParams & Record<string, unknown>>({ page: 1, size: 20 });
+  const { data } = usePageApi<ReportDefinition>('/bi/api/in/v1/reports', params);
 
   const columns = [
     { title: '报表编码', dataIndex: 'reportCode', key: 'reportCode' },
@@ -39,24 +24,20 @@ export default function ReportsPage() {
     { title: '类型', dataIndex: 'reportType', key: 'reportType', render: (v: string) => <Tag color={typeMap[v]?.color || 'default'}>{typeMap[v]?.text || v}</Tag> },
     { title: '数据源', dataIndex: 'dataSource', key: 'dataSource', render: (v: string) => <Tag>{v}</Tag> },
     { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
-    {
-      title: '操作', key: 'action',
-      render: () => <Button type="link">查看</Button>,
-    },
+    { title: '操作', key: 'action', render: () => <Button type="link">查看</Button> },
   ];
 
   return (
     <div>
-      <Title level={4} style={{ marginBottom: 16 }}>报表中心</Title>
-      <Card style={{ borderRadius: 8, marginBottom: 16 }}>
-        <Space>
-          <Select placeholder="报表类型" allowClear style={{ width: 160 }} value={reportType || undefined} onChange={setReportType}
-            options={Object.entries(typeMap).map(([k, v]) => ({ value: k, label: v.text }))} />
-          <Button type="primary" onClick={fetchData}>查询</Button>
-        </Space>
-      </Card>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>报表中心</Title>
+        <Select placeholder="报表类型" allowClear style={{ width: 160 }}
+          options={Object.entries(typeMap).map(([k, v]) => ({ value: k, label: v.text }))}
+          onChange={(v) => setParams({ ...params, reportType: v })} />
+      </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="reportId" columns={columns} dataSource={reports} loading={loading} size="middle" />
+        <Table rowKey="reportId" columns={columns} dataSource={data?.list || []} size="middle"
+          pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
     </div>
   );

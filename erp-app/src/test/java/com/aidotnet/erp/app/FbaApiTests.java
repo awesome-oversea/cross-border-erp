@@ -8,10 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,8 +29,10 @@ class FbaApiTests {
 
     @Test
     void manageInboundPlanShipmentAndInventoryFlow() throws Exception {
+        String tenantId = uniqueTenant("fba-flow");
+        String otherTenantId = uniqueTenant("fba-flow-other");
         String inboundPlanResponse = mockMvc.perform(post("/fba/api/in/v1/inbound-plans")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -49,7 +51,7 @@ class FbaApiTests {
         String inboundPlanId = objectMapper.readTree(inboundPlanResponse).at("/data/planId").asText();
 
         mockMvc.perform(patch("/fba/api/in/v1/inbound-plans/" + inboundPlanId)
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -60,7 +62,7 @@ class FbaApiTests {
                 .andExpect(jsonPath("$.data.plannedQuantity").value(10));
 
         String splitResponse = mockMvc.perform(post("/fba/api/in/v1/inbound-plans/" + inboundPlanId + "/split")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -75,12 +77,12 @@ class FbaApiTests {
         String childPlanId = objectMapper.readTree(splitResponse).at("/data/childPlan/planId").asText();
 
         mockMvc.perform(patch("/fba/api/in/v1/inbound-plans/" + childPlanId + "/submit")
-                        .header("X-Tenant-Id", "tenant-demo"))
+                        .header("X-Tenant-Id", tenantId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"));
 
         String locationResponse = mockMvc.perform(post("/fba/api/in/v1/locations")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -97,7 +99,7 @@ class FbaApiTests {
         String locationId = objectMapper.readTree(locationResponse).at("/data/locationId").asText();
 
         String shipmentResponse = mockMvc.perform(post("/fba/api/in/v1/shipments")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -124,17 +126,17 @@ class FbaApiTests {
         String shipmentId = objectMapper.readTree(shipmentResponse).at("/data/fbaShipmentId").asText();
 
         mockMvc.perform(get("/fba/api/in/v1/shipments/" + shipmentId + "/items")
-                        .header("X-Tenant-Id", "tenant-demo"))
+                        .header("X-Tenant-Id", tenantId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].sellerSku").value("SKU-001"));
 
         mockMvc.perform(patch("/fba/api/in/v1/shipments/" + shipmentId + "/submit")
-                        .header("X-Tenant-Id", "tenant-demo"))
+                        .header("X-Tenant-Id", tenantId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"));
 
         mockMvc.perform(put("/fba/api/in/v1/shipments/" + shipmentId + "/pack")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -148,7 +150,7 @@ class FbaApiTests {
                 .andExpect(jsonPath("$.data.cartonCount").value(2));
 
         mockMvc.perform(post("/fba/api/in/v1/shipments/" + shipmentId + "/carton-labels")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -163,7 +165,7 @@ class FbaApiTests {
                 .andExpect(jsonPath("$.data.cartonId").value("CTN-001"));
 
         mockMvc.perform(put("/fba/api/in/v1/shipments/" + shipmentId + "/ship")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -176,7 +178,7 @@ class FbaApiTests {
                 .andExpect(jsonPath("$.data.trackingNo").value("1Z999AA10123456784"));
 
         mockMvc.perform(patch("/fba/api/in/v1/shipments/" + shipmentId + "/receive")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -187,7 +189,7 @@ class FbaApiTests {
                 .andExpect(jsonPath("$.data.status").value("CLOSED"));
 
         String inventoryResponse = mockMvc.perform(post("/fba/api/in/v1/inventories/sync")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -207,7 +209,7 @@ class FbaApiTests {
         String inventoryId = objectMapper.readTree(inventoryResponse).at("/data/inventoryId").asText();
 
         mockMvc.perform(get("/fba/api/in/v1/inventories")
-                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Tenant-Id", tenantId)
                         .param("sellerSku", "SKU-001")
                         .param("storeId", "AMZ-US-01")
                         .param("siteCode", "US"))
@@ -216,18 +218,26 @@ class FbaApiTests {
                 .andExpect(jsonPath("$.data[0].inventoryAgeDays").value(15));
 
         mockMvc.perform(get("/fba/api/in/v1/inventories/" + inventoryId)
-                        .header("X-Tenant-Id", "tenant-demo"))
+                        .header("X-Tenant-Id", tenantId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.inventoryId").value(inventoryId));
 
         mockMvc.perform(get("/fba/api/in/v1/inbound-plans")
-                        .header("X-Tenant-Id", "tenant-other"))
+                        .header("X-Tenant-Id", otherTenantId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(0));
 
         mockMvc.perform(get("/fba/api/in/v1/inventories")
-                        .header("X-Tenant-Id", "tenant-other"))
+                        .header("X-Tenant-Id", otherTenantId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    /**
+     * PG 集成测试会复用同一 Spring 上下文和数据库实例。
+     * 为避免不同用例之间租户数据串扰，每个场景使用独立租户编码。
+     */
+    private String uniqueTenant(String scenario) {
+        return scenario + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 }

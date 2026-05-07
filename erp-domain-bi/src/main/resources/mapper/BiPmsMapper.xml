@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.bi.infrastructure.mapper.BiPmsMapper">
+
+    <insert id="insertPmsInsight" parameterType="com.aidotnet.erp.bi.infrastructure.data.PmsInsightDO">
+        INSERT INTO bi_pms_insight_recommendation (
+            insight_id, tenant_id, erp_reference_id, idempotency_key, submission_type,
+            title, summary, insight_type, severity, category,
+            metric_code, metric_name, target_user_id, trend_period,
+            prediction_points_json, insight_data_json, suggestion, action_url, valid_until,
+            status, submitted_by, submitted_actor_type, approved_by, approved_at,
+            generated_trend_id, dashboard_card_id, trace_id, purpose, raw_scope,
+            created_at, updated_at
+        ) VALUES (
+            #{insightId}, #{tenantId}, #{erpReferenceId}, #{idempotencyKey}, #{submissionType},
+            #{title}, #{summary}, #{insightType}, #{severity}, #{category},
+            #{metricCode}, #{metricName}, #{targetUserId}, #{trendPeriod},
+            CAST(#{predictionPointsJson} AS JSONB), CAST(#{insightDataJson} AS JSONB), #{suggestion}, #{actionUrl}, #{validUntil},
+            #{status}, #{submittedBy}, #{submittedActorType}, #{approvedBy}, #{approvedAt},
+            #{generatedTrendId}, #{dashboardCardId}, #{traceId}, #{purpose}, #{rawScope},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updatePmsInsight" parameterType="com.aidotnet.erp.bi.infrastructure.data.PmsInsightDO">
+        UPDATE bi_pms_insight_recommendation
+        SET erp_reference_id = #{erpReferenceId},
+            idempotency_key = #{idempotencyKey},
+            submission_type = #{submissionType},
+            title = #{title},
+            summary = #{summary},
+            insight_type = #{insightType},
+            severity = #{severity},
+            category = #{category},
+            metric_code = #{metricCode},
+            metric_name = #{metricName},
+            target_user_id = #{targetUserId},
+            trend_period = #{trendPeriod},
+            prediction_points_json = CAST(#{predictionPointsJson} AS JSONB),
+            insight_data_json = CAST(#{insightDataJson} AS JSONB),
+            suggestion = #{suggestion},
+            action_url = #{actionUrl},
+            valid_until = #{validUntil},
+            status = #{status},
+            submitted_by = #{submittedBy},
+            submitted_actor_type = #{submittedActorType},
+            approved_by = #{approvedBy},
+            approved_at = #{approvedAt},
+            generated_trend_id = #{generatedTrendId},
+            dashboard_card_id = #{dashboardCardId},
+            trace_id = #{traceId},
+            purpose = #{purpose},
+            raw_scope = #{rawScope},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND insight_id = #{insightId}
+    </update>
+
+    <select id="selectPmsInsight" resultType="com.aidotnet.erp.bi.infrastructure.data.PmsInsightDO">
+        SELECT insight_id, tenant_id, erp_reference_id, idempotency_key, submission_type,
+               title, summary, insight_type, severity, category,
+               metric_code, metric_name, target_user_id, trend_period,
+               CAST(prediction_points_json AS TEXT) AS prediction_points_json,
+               CAST(insight_data_json AS TEXT) AS insight_data_json,
+               suggestion, action_url, valid_until,
+               status, submitted_by, submitted_actor_type, approved_by, approved_at,
+               generated_trend_id, dashboard_card_id, trace_id, purpose, raw_scope,
+               created_at, updated_at
+        FROM bi_pms_insight_recommendation
+        WHERE tenant_id = #{tenantId}
+          AND insight_id = #{insightId}
+    </select>
+
+    <select id="selectPmsInsightByIdempotencyKey" resultType="com.aidotnet.erp.bi.infrastructure.data.PmsInsightDO">
+        SELECT insight_id, tenant_id, erp_reference_id, idempotency_key, submission_type,
+               title, summary, insight_type, severity, category,
+               metric_code, metric_name, target_user_id, trend_period,
+               CAST(prediction_points_json AS TEXT) AS prediction_points_json,
+               CAST(insight_data_json AS TEXT) AS insight_data_json,
+               suggestion, action_url, valid_until,
+               status, submitted_by, submitted_actor_type, approved_by, approved_at,
+               generated_trend_id, dashboard_card_id, trace_id, purpose, raw_scope,
+               created_at, updated_at
+        FROM bi_pms_insight_recommendation
+        WHERE tenant_id = #{tenantId}
+          AND idempotency_key = #{idempotencyKey}
+    </select>
+</mapper>

@@ -2,12 +2,16 @@ package com.aidotnet.erp.fms.infrastructure.mapper;
 
 import com.aidotnet.erp.fms.infrastructure.data.BillingRuleDO;
 import com.aidotnet.erp.fms.infrastructure.data.CostAggregationRuleDO;
+import com.aidotnet.erp.fms.infrastructure.data.CostAnomalyDO;
 import com.aidotnet.erp.fms.infrastructure.data.CostAllocationResultDO;
 import com.aidotnet.erp.fms.infrastructure.data.CostBreakdownDO;
 import com.aidotnet.erp.fms.infrastructure.data.CurrencyRateDO;
 import com.aidotnet.erp.fms.infrastructure.data.CurrencyRateSyncLogDO;
 import com.aidotnet.erp.fms.infrastructure.data.FraudDetectionResultDO;
+import com.aidotnet.erp.fms.infrastructure.data.ExternalFinanceVoucherDO;
+import com.aidotnet.erp.fms.infrastructure.data.FinanceSyncConfigDO;
 import com.aidotnet.erp.fms.infrastructure.data.InvoiceDO;
+import com.aidotnet.erp.fms.infrastructure.data.InvoiceSettingDO;
 import com.aidotnet.erp.fms.infrastructure.data.JournalEntryDO;
 import com.aidotnet.erp.fms.infrastructure.data.ProfitDeviationAlertDO;
 import com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO;
@@ -50,6 +54,23 @@ public interface FmsExtMapper {
     List<VoucherDO> selectVouchers(@Param("tenantId") String tenantId, @Param("voucherType") String voucherType, @Param("status") String status);
     List<VoucherDO> selectVouchersByReference(@Param("tenantId") String tenantId, @Param("referenceType") String referenceType, @Param("referenceId") String referenceId);
 
+    void insertInvoiceSetting(InvoiceSettingDO setting);
+    void updateInvoiceSetting(InvoiceSettingDO setting);
+    InvoiceSettingDO selectInvoiceSetting(@Param("tenantId") String tenantId, @Param("settingId") String settingId);
+    InvoiceSettingDO selectInvoiceSettingByScope(@Param("tenantId") String tenantId, @Param("storeId") String storeId, @Param("marketplaceId") String marketplaceId);
+    List<InvoiceSettingDO> selectInvoiceSettings(@Param("tenantId") String tenantId);
+
+    void insertExternalFinanceVoucher(ExternalFinanceVoucherDO voucher);
+    void updateExternalFinanceVoucher(ExternalFinanceVoucherDO voucher);
+    ExternalFinanceVoucherDO selectExternalFinanceVoucher(@Param("tenantId") String tenantId, @Param("voucherId") String voucherId);
+    List<ExternalFinanceVoucherDO> selectExternalFinanceVouchers(@Param("tenantId") String tenantId, @Param("syncStatus") String syncStatus);
+
+    void insertFinanceSyncConfig(FinanceSyncConfigDO config);
+    void updateFinanceSyncConfig(FinanceSyncConfigDO config);
+    FinanceSyncConfigDO selectFinanceSyncConfig(@Param("tenantId") String tenantId, @Param("configId") String configId);
+    FinanceSyncConfigDO selectFinanceSyncConfigBySystem(@Param("tenantId") String tenantId, @Param("financeSystem") String financeSystem);
+    List<FinanceSyncConfigDO> selectFinanceSyncConfigs(@Param("tenantId") String tenantId);
+
     void insertCostAggregationRule(CostAggregationRuleDO rule);
     void updateCostAggregationRule(CostAggregationRuleDO rule);
     CostAggregationRuleDO selectCostAggregationRule(@Param("tenantId") String tenantId, @Param("ruleId") String ruleId);
@@ -59,6 +80,15 @@ public interface FmsExtMapper {
     List<CostAllocationResultDO> selectCostAllocationResults(@Param("tenantId") String tenantId, @Param("targetDimension") String targetDimension, @Param("targetId") String targetId);
     List<CostAllocationResultDO> selectCostAllocationResultsBySku(@Param("tenantId") String tenantId, @Param("sellerSku") String sellerSku);
     List<CostAllocationResultDO> selectCostAllocationResultsByTarget(@Param("tenantId") String tenantId, @Param("dimensionType") String dimensionType, @Param("dimensionId") String dimensionId);
+
+    void insertCostAnomaly(CostAnomalyDO anomaly);
+    void updateCostAnomaly(CostAnomalyDO anomaly);
+    CostAnomalyDO selectCostAnomaly(@Param("tenantId") String tenantId, @Param("anomalyId") String anomalyId);
+    CostAnomalyDO selectCostAnomalyByIdempotencyKey(@Param("tenantId") String tenantId, @Param("idempotencyKey") String idempotencyKey);
+    List<CostAnomalyDO> selectCostAnomalies(@Param("tenantId") String tenantId,
+                                            @Param("status") String status,
+                                            @Param("sellerSku") String sellerSku,
+                                            @Param("storeId") String storeId);
 
     void insertProfitResult(ProfitResultDO result);
     ProfitResultDO selectProfitResult(@Param("tenantId") String tenantId, @Param("resultId") String resultId);

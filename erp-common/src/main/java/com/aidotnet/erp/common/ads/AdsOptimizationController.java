@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/ads/api/v1/optimization")
+@RequestMapping("/platform/ads/api/v1/optimization")
 public class AdsOptimizationController {
 
     private final AdsOptimizationService optimizationService;

@@ -15,6 +15,7 @@ import com.aidotnet.erp.oms.domain.OrderRefund;
 import com.aidotnet.erp.oms.domain.OrderRiskCheck;
 import com.aidotnet.erp.oms.domain.OrderStrategy;
 import com.aidotnet.erp.oms.domain.OrderSyncLog;
+import com.aidotnet.erp.oms.domain.PmsRiskAlertReviewLog;
 import com.aidotnet.erp.oms.domain.PmsRiskAlert;
 import com.aidotnet.erp.oms.domain.Promotion;
 import com.aidotnet.erp.oms.domain.SalesOrder;
@@ -82,6 +83,11 @@ public class OrderController {
     @GetMapping
     public Result<List<SalesOrder>> listOrders() {
         return Result.ok(orderService.list(currentTenant()));
+    }
+
+    @GetMapping("/procurement-demand")
+    public Result<List<OrderService.ProcurementDemandResponse>> listProcurementDemand() {
+        return Result.ok(orderService.listProcurementDemand(currentTenant()));
     }
 
     @GetMapping("/{orderId}")
@@ -171,6 +177,11 @@ public class OrderController {
                                                 @Valid @RequestBody ReviewRiskAlertRequest request) {
         return Result.ok(orderService.reviewPmsRiskAlert(currentTenant(), alertId,
                 request.action(), request.reviewerNote()));
+    }
+
+    @GetMapping("/risk-alerts/{alertId}/review-logs")
+    public Result<List<PmsRiskAlertReviewLog>> listRiskAlertReviewLogs(@PathVariable String alertId) {
+        return Result.ok(orderService.listRiskAlertReviewLogs(currentTenant(), alertId));
     }
 
     @GetMapping("/sync-logs")

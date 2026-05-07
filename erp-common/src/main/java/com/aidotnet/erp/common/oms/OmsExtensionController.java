@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/oms/api/v1")
+@RequestMapping("/platform/oms/api/v1")
 public class OmsExtensionController {
 
     private final OmsExtensionService omsExtService;

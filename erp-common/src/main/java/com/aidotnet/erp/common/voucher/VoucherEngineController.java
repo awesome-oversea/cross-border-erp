@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/fms/api/v1/voucher-engine")
+/**
+ * 平台共享凭证引擎正式能力已迁移至 erp-domain-fms 平台控制器。
+ * 当前类保留源代码语义，避免误删历史实现，但不再注册为运行时接口。
+ */
+@RequestMapping("/platform/fms/api/v1/voucher-engine")
 public class VoucherEngineController {
 
     private final VoucherEngineService voucherEngineService;
@@ -71,8 +74,11 @@ public class VoucherEngineController {
     }
 }
 
-@RestController
-@RequestMapping("/fms/api/out/v1/voucher-engine")
+/**
+ * 平台共享凭证对外推送正式能力已迁移至 erp-domain-fms 平台控制器。
+ * 当前类保留源代码语义，避免误删历史实现，但不再注册为运行时接口。
+ */
+@RequestMapping("/platform/fms/api/out/v1/voucher-engine")
 class VoucherOutboundController {
 
     @PostMapping("/push-kingdee")

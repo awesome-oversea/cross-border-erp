@@ -1,103 +1,42 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Card, Typography, Badge } from 'antd';
-import { PlusOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { crmApi } from '@/lib/api';
-import type { QualityIssue } from '@/types';
+import { useState } from 'react';
+import { Table, Card, Typography, Tag, Space, Select, Badge } from 'antd';
+import { usePageApi } from '@/lib/hooks';
+import type { QualityInspection, PageParams } from '@/types';
 
 const { Title } = Typography;
 
-const severityMap: Record<string, { color: string; text: string }> = {
-  CRITICAL: { color: 'red', text: '严重' },
-  MAJOR: { color: 'orange', text: '重要' },
-  MINOR: { color: 'blue', text: '一般' },
+const resultMap: Record<string, { color: string; text: string }> = {
+  PASSED: { color: 'green', text: '合格' }, FAILED: { color: 'red', text: '不合格' }, PENDING: { color: 'orange', text: '待检' },
 };
 
-export default function QualityIssuesPage() {
-  const [issues, setIssues] = useState<QualityIssue[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form] = Form.useForm();
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await crmApi.listQualityIssues();
-      setIssues(data || []);
-    } catch {
-      setIssues([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const handleCreate = async () => {
-    try {
-      const values = await form.validateFields();
-      await crmApi.createQualityIssue(values);
-      message.success('质量问题已创建');
-      setModalOpen(false);
-      fetchData();
-    } catch {
-      message.error('操作失败');
-    }
-  };
-
-  const handleResolve = async (id: string) => {
-    try {
-      await crmApi.resolveQualityIssue(id);
-      message.success('质量问题已解决');
-      fetchData();
-    } catch {
-      message.error('操作失败');
-    }
-  };
+export default function QualityPage() {
+  const [params, setParams] = useState<PageParams & Record<string, unknown>>({ page: 1, size: 20 });
+  const { data } = usePageApi<QualityInspection>('/crm/api/in/v1/quality-inspections', params);
 
   const columns = [
-    { title: '产品ID', dataIndex: 'productId', key: 'productId' },
-    { title: '来源', dataIndex: 'source', key: 'source', render: (v: string) => <Tag>{v}</Tag> },
-    { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
-    { title: '严重程度', dataIndex: 'severity', key: 'severity', render: (v: string) => <Badge color={severityMap[v]?.color || 'default'} text={severityMap[v]?.text || v} /> },
-    { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => <Tag color={v === 'OPEN' ? 'orange' : v === 'RESOLVED' ? 'green' : 'default'}>{v}</Tag> },
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
-    {
-      title: '操作', key: 'action',
-      render: (_: unknown, record: QualityIssue) => (
-        record.status !== 'RESOLVED' ? (
-          <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleResolve(record.issueId)}>解决</Button>
-        ) : null
-      ),
-    },
+    { title: '质检单号', dataIndex: 'inspectionNo', key: 'inspectionNo' },
+    { title: '关联订单', dataIndex: 'orderId', key: 'orderId', render: (v: string) => <a href={`/oms/orders?orderId=${v}`}>{v}</a> },
+    { title: '产品', dataIndex: 'productId', key: 'productId', render: (v: string) => <a href={`/pdm/products?productId=${v}`}>{v}</a> },
+    { title: '质检结果', dataIndex: 'result', key: 'result', render: (v: string) => <Badge color={resultMap[v]?.color || 'default'} text={resultMap[v]?.text || v} /> },
+    { title: '缺陷数', dataIndex: 'defectCount', key: 'defectCount' },
+    { title: '质检员', dataIndex: 'inspector', key: 'inspector' },
+    { title: '日期', dataIndex: 'inspectionDate', key: 'inspectionDate', render: (v: string) => v ? new Date(v).toLocaleDateString() : '-' },
   ];
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>质量问题</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>上报问题</Button>
+        <Title level={4} style={{ margin: 0 }}>质检管理</Title>
+        <Select placeholder="质检结果" allowClear style={{ width: 120 }}
+          options={Object.entries(resultMap).map(([k, v]) => ({ value: k, label: v.text }))}
+          onChange={(v) => setParams({ ...params, result: v })} />
       </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="issueId" columns={columns} dataSource={issues} loading={loading} size="middle" />
+        <Table rowKey="inspectionId" columns={columns} dataSource={data?.list || []} size="middle"
+          pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
-      <Modal title="上报质量问题" open={modalOpen} onOk={handleCreate} onCancel={() => setModalOpen(false)} width={520}>
-        <Form form={form} layout="vertical">
-          <Form.Item name="productId" label="产品ID" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="source" label="来源" rules={[{ required: true }]}>
-            <Select options={[{ value: 'CUSTOMER', label: '客户反馈' }, { value: 'INSPECTION', label: '质检发现' }, { value: 'RETURN', label: '退货分析' }]} />
-          </Form.Item>
-          <Form.Item name="description" label="问题描述" rules={[{ required: true }]}>
-            <Input.TextArea rows={4} />
-          </Form.Item>
-          <Form.Item name="severity" label="严重程度" rules={[{ required: true }]}>
-            <Select options={Object.entries(severityMap).map(([k, v]) => ({ value: k, label: v.text }))} />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 }

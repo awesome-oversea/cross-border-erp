@@ -14,8 +14,13 @@ public interface WmsClient {
     @GetMapping("/warehouses/{warehouseId}")
     Result<Map<String, Object>> getWarehouse(@PathVariable String warehouseId);
 
+    @GetMapping("/inventory/{sellerSku}/availability")
+    Result<InventoryAvailabilityResponse> getAvailability(@PathVariable String sellerSku);
+
     @PostMapping("/inventory/receive")
     Result<Map<String, Object>> receive(@RequestBody StockRequest request);
+
+    record InventoryAvailabilityResponse(String sellerSku, int onHand, int reserved, int available) {}
 
     record StockRequest(String warehouseId, String sellerSku, int quantity) {}
 }

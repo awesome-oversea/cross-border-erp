@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.wms.infrastructure.mapper.WmsExtMapper">
+
+    <insert id="insertTransferOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderDO">
+        INSERT INTO wms_transfer_order (
+            transfer_id, tenant_id, from_warehouse_id, to_warehouse_id, status, remark, created_at, updated_at
+        )
+        VALUES (
+            #{transferId}, #{tenantId}, #{fromWarehouseId}, #{toWarehouseId}, #{status}, #{remark}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateTransferOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderDO">
+        UPDATE wms_transfer_order
+        SET status = #{status},
+            remark = #{remark},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND transfer_id = #{transferId}
+    </update>
+
+    <select id="selectTransferOrder" resultType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderDO">
+        SELECT transfer_id, tenant_id, from_warehouse_id, to_warehouse_id, status, remark, created_at, updated_at
+        FROM wms_transfer_order
+        WHERE tenant_id = #{tenantId} AND transfer_id = #{transferId}
+    </select>
+
+    <select id="selectTransferOrders" resultType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderDO">
+        SELECT transfer_id, tenant_id, from_warehouse_id, to_warehouse_id, status, remark, created_at, updated_at
+        FROM wms_transfer_order
+        WHERE tenant_id = #{tenantId}
+          AND (from_warehouse_id = #{warehouseId} OR to_warehouse_id = #{warehouseId})
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertTransferOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderLineDO">
+        INSERT INTO wms_transfer_order_line (
+            line_id, tenant_id, transfer_id, seller_sku, transfer_quantity, received_quantity, unit_cost, batch_no
+        )
+        VALUES (
+            #{lineId}, #{tenantId}, #{transferId}, #{sellerSku}, #{transferQuantity}, #{receivedQuantity}, #{unitCost}, #{batchNo}
+        )
+    </insert>
+
+    <update id="updateTransferOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderLineDO">
+        UPDATE wms_transfer_order_line
+        SET seller_sku = #{sellerSku},
+            transfer_quantity = #{transferQuantity},
+            received_quantity = #{receivedQuantity},
+            unit_cost = #{unitCost},
+            batch_no = #{batchNo}
+        WHERE tenant_id = #{tenantId} AND line_id = #{lineId}
+    </update>
+
+    <select id="selectTransferOrderLine" resultType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderLineDO">
+        SELECT line_id, tenant_id, transfer_id, seller_sku, transfer_quantity, received_quantity, unit_cost, batch_no
+        FROM wms_transfer_order_line
+        WHERE tenant_id = #{tenantId} AND line_id = #{lineId}
+    </select>
+
+    <select id="selectTransferOrderLines" resultType="com.aidotnet.erp.wms.infrastructure.data.TransferOrderLineDO">
+        SELECT line_id, tenant_id, transfer_id, seller_sku, transfer_quantity, received_quantity, unit_cost, batch_no
+        FROM wms_transfer_order_line
+        WHERE tenant_id = #{tenantId} AND transfer_id = #{transferId}
+        ORDER BY line_id
+    </select>
+
+    <insert id="insertStockCheckOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderDO">
+        INSERT INTO wms_stock_check_order (
+            check_order_id, tenant_id, warehouse_id, check_type, status, checked_by, remark, created_at, completed_at
+        )
+        VALUES (
+            #{checkOrderId}, #{tenantId}, #{warehouseId}, #{checkType}, #{status}, #{checkedBy}, #{remark}, #{createdAt}, #{completedAt}
+        )
+    </insert>
+
+    <update id="updateStockCheckOrder" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderDO">
+        UPDATE wms_stock_check_order
+        SET status = #{status},
+            checked_by = #{checkedBy},
+            remark = #{remark},
+            completed_at = #{completedAt}
+        WHERE tenant_id = #{tenantId} AND check_order_id = #{checkOrderId}
+    </update>
+
+    <select id="selectStockCheckOrder" resultType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderDO">
+        SELECT check_order_id, tenant_id, warehouse_id, check_type, status, checked_by, remark, created_at, completed_at
+        FROM wms_stock_check_order
+        WHERE tenant_id = #{tenantId} AND check_order_id = #{checkOrderId}
+    </select>
+
+    <select id="selectStockCheckOrders" resultType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderDO">
+        SELECT check_order_id, tenant_id, warehouse_id, check_type, status, checked_by, remark, created_at, completed_at
+        FROM wms_stock_check_order
+        WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertStockCheckOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderLineDO">
+        INSERT INTO wms_stock_check_order_line (
+            line_id, tenant_id, check_order_id, seller_sku, location_id, system_quantity, actual_quantity, difference, status
+        )
+        VALUES (
+            #{lineId}, #{tenantId}, #{checkOrderId}, #{sellerSku}, #{locationId}, #{systemQuantity}, #{actualQuantity}, #{difference}, #{status}
+        )
+    </insert>
+
+    <update id="updateStockCheckOrderLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderLineDO">
+        UPDATE wms_stock_check_order_line
+        SET seller_sku = #{sellerSku},
+            location_id = #{locationId},
+            system_quantity = #{systemQuantity},
+            actual_quantity = #{actualQuantity},
+            difference = #{difference},
+            status = #{status}
+        WHERE tenant_id = #{tenantId} AND line_id = #{lineId}
+    </update>
+
+    <select id="selectStockCheckOrderLine" resultType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderLineDO">
+        SELECT line_id, tenant_id, check_order_id, seller_sku, location_id, system_quantity, actual_quantity, difference, status
+        FROM wms_stock_check_order_line
+        WHERE tenant_id = #{tenantId} AND check_order_id = #{checkOrderId} AND line_id = #{lineId}
+    </select>
+
+    <select id="selectStockCheckOrderLines" resultType="com.aidotnet.erp.wms.infrastructure.data.StockCheckOrderLineDO">
+        SELECT line_id, tenant_id, check_order_id, seller_sku, location_id, system_quantity, actual_quantity, difference, status
+        FROM wms_stock_check_order_line
+        WHERE tenant_id = #{tenantId} AND check_order_id = #{checkOrderId}
+        ORDER BY line_id
+    </select>
+
+    <insert id="insertInventoryMovement" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryMovementDO">
+        INSERT INTO wms_inventory_movement (
+            movement_id, tenant_id, warehouse_id, seller_sku, from_location_id, to_location_id, quantity, type,
+            reference_type, reference_id, moved_at
+        )
+        VALUES (
+            #{movementId}, #{tenantId}, #{warehouseId}, #{sellerSku}, #{fromLocationId}, #{toLocationId}, #{quantity}, #{type},
+            #{referenceType}, #{referenceId}, #{movedAt}
+        )
+    </insert>
+
+</mapper>

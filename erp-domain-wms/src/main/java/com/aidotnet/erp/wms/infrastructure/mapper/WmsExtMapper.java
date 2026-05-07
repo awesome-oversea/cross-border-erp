@@ -19,8 +19,9 @@ public interface WmsExtMapper {
 
     void insertTransferOrderLine(TransferOrderLineDO line);
     void updateTransferOrderLine(TransferOrderLineDO line);
-    TransferOrderLineDO selectTransferOrderLine(@Param("lineId") String lineId);
-    List<TransferOrderLineDO> selectTransferOrderLines(@Param("transferId") String transferId);
+    TransferOrderLineDO selectTransferOrderLine(@Param("tenantId") String tenantId, @Param("lineId") String lineId);
+    List<TransferOrderLineDO> selectTransferOrderLines(@Param("tenantId") String tenantId,
+                                                       @Param("transferId") String transferId);
 
     void insertStockCheckOrder(StockCheckOrderDO order);
     void updateStockCheckOrder(StockCheckOrderDO order);
@@ -29,8 +30,11 @@ public interface WmsExtMapper {
 
     void insertStockCheckOrderLine(StockCheckOrderLineDO line);
     void updateStockCheckOrderLine(StockCheckOrderLineDO line);
-    StockCheckOrderLineDO selectStockCheckOrderLine(@Param("lineId") String lineId);
-    List<StockCheckOrderLineDO> selectStockCheckOrderLines(@Param("checkOrderId") String checkOrderId);
+    StockCheckOrderLineDO selectStockCheckOrderLine(@Param("tenantId") String tenantId,
+                                                    @Param("checkOrderId") String checkOrderId,
+                                                    @Param("lineId") String lineId);
+    List<StockCheckOrderLineDO> selectStockCheckOrderLines(@Param("tenantId") String tenantId,
+                                                           @Param("checkOrderId") String checkOrderId);
 
     void insertInventoryMovement(InventoryMovementDO movement);
 }

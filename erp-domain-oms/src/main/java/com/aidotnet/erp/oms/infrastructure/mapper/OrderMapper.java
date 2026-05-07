@@ -9,6 +9,7 @@ import com.aidotnet.erp.oms.infrastructure.data.OrderRiskCheckDO;
 import com.aidotnet.erp.oms.infrastructure.data.OrderStrategyDO;
 import com.aidotnet.erp.oms.infrastructure.data.OrderSyncLogDO;
 import com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertDO;
+import com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertReviewLogDO;
 import com.aidotnet.erp.oms.infrastructure.data.PromotionDO;
 import java.time.Instant;
 import java.util.List;
@@ -131,6 +132,12 @@ public interface OrderMapper {
 
     /** 更新PMS告警状态 */
     void updatePmsRiskAlertStatus(@Param("alertId") String alertId, @Param("status") String status);
+
+    /** 新增PMS告警处理日志 */
+    void insertPmsRiskAlertReviewLog(PmsRiskAlertReviewLogDO reviewLog);
+
+    /** 按告警ID查询PMS告警处理日志 */
+    List<PmsRiskAlertReviewLogDO> selectPmsRiskAlertReviewLogs(@Param("tenantId") String tenantId, @Param("alertId") String alertId);
 
     // ---- 同步日志 ----
 

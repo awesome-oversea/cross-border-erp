@@ -13,8 +13,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * TMS 中台共享能力入口。
+ * <p>
+ * `erp-common` 承载的是业务中台和技术中台的可复用能力。为避免与 TMS 领域主控接口
+ * `/tms/api/v1/...` 发生资源冲突，中台能力统一收敛到 `/platform/tms/api/v1/...`。
+ * </p>
+ */
 @RestController
-@RequestMapping("/tms/api/v1")
+@RequestMapping("/platform/tms/api/v1")
 public class TmsExtensionController {
 
     private final TmsExtensionService tmsExtService;

@@ -9,11 +9,17 @@ import com.aidotnet.erp.crm.domain.CustomerProfile;
 import com.aidotnet.erp.crm.domain.CustomerTag;
 import com.aidotnet.erp.crm.domain.ReplyTemplate;
 import com.aidotnet.erp.crm.infrastructure.data.ComplaintDO;
+import com.aidotnet.erp.crm.infrastructure.data.CustomerBehaviorDO;
+import com.aidotnet.erp.crm.infrastructure.data.CustomerProfileDO;
 import com.aidotnet.erp.crm.infrastructure.data.CustomerTagDO;
 import com.aidotnet.erp.crm.infrastructure.data.ReplyTemplateDO;
 import com.aidotnet.erp.crm.infrastructure.mapper.CrmExtMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
@@ -23,10 +29,11 @@ import org.springframework.stereotype.Repository;
  * <p>
  * 描述: CRM域扩展功能数据持久化层，负责回复模板、客诉、客户标签、
  *       客户画像、客户行为等业务对象与数据库之间的转换和持久化操作。
- *       客户画像和客户行为使用内存ConcurrentHashMap暂存，后续迁移至数据库。
+ *       所有数据均通过MyBatis持久化到数据库，支持多租户隔离。
  * </p>
  * <p>
  * 数据转换: 领域模型(Domain) ↔ 数据对象(DO)，通过手动映射实现
+ *            Map/Object类型字段通过Jackson序列化为JSON存储
  * </p>
  *
  * @author ERP系统
@@ -36,9 +43,11 @@ import org.springframework.stereotype.Repository;
 public class CrmExtStore {
 
     private final CrmExtMapper mapper;
+    private final ObjectMapper jsonMapper;
 
-    public CrmExtStore(CrmExtMapper mapper) {
+    public CrmExtStore(CrmExtMapper mapper, ObjectMapper jsonMapper) {
         this.mapper = mapper;
+        this.jsonMapper = jsonMapper;
     }
 
     public ReplyTemplate saveReplyTemplate(ReplyTemplate template) {
@@ -94,6 +103,38 @@ public class CrmExtStore {
 
     public List<CustomerTag> listCustomerTags(String tenantId, String customerId) {
         return mapper.selectCustomerTags(tenantId, customerId).stream().map(this::toCustomerTagDomain).collect(Collectors.toList());
+    }
+
+    public CustomerProfile saveCustomerProfile(CustomerProfile profile) {
+        CustomerProfileDO existing = mapper.selectCustomerProfile(profile.tenantId(), profile.profileId());
+        CustomerProfileDO data = toCustomerProfileData(profile);
+        if (existing == null) {
+            mapper.insertCustomerProfile(data);
+        } else {
+            mapper.updateCustomerProfile(data);
+        }
+        return profile;
+    }
+
+    public Optional<CustomerProfile> findCustomerProfile(String tenantId, String profileId) {
+        return Optional.ofNullable(mapper.selectCustomerProfile(tenantId, profileId)).map(this::toCustomerProfileDomain);
+    }
+
+    public Optional<CustomerProfile> findCustomerProfileByCustomerId(String tenantId, String customerId) {
+        return Optional.ofNullable(mapper.selectCustomerProfileByCustomerId(tenantId, customerId)).map(this::toCustomerProfileDomain);
+    }
+
+    public List<CustomerProfile> listCustomerProfiles(String tenantId, String segment) {
+        return mapper.selectCustomerProfiles(tenantId, segment).stream().map(this::toCustomerProfileDomain).collect(Collectors.toList());
+    }
+
+    public CustomerBehavior saveCustomerBehavior(CustomerBehavior behavior) {
+        mapper.insertCustomerBehavior(toCustomerBehaviorData(behavior));
+        return behavior;
+    }
+
+    public List<CustomerBehavior> listCustomerBehaviors(String tenantId, String customerId, String behaviorType) {
+        return mapper.selectCustomerBehaviors(tenantId, customerId, behaviorType).stream().map(this::toCustomerBehaviorDomain).collect(Collectors.toList());
     }
 
     private ReplyTemplateDO toReplyTemplateData(ReplyTemplate t) {
@@ -158,44 +199,75 @@ public class CrmExtStore {
         return new CustomerTag(d.getTagId(), d.getTenantId(), d.getCustomerId(), d.getTagName(), d.getTagValue(), d.getTaggedAt());
     }
 
-    private final java.util.Map<String, CustomerProfile> profileStore = new java.util.concurrent.ConcurrentHashMap<>();
-    private final java.util.Map<String, CustomerBehavior> behaviorStore = new java.util.concurrent.ConcurrentHashMap<>();
-
-    public CustomerProfile saveCustomerProfile(CustomerProfile profile) {
-        profileStore.put(profile.profileId(), profile);
-        return profile;
+    private CustomerProfileDO toCustomerProfileData(CustomerProfile p) {
+        CustomerProfileDO data = new CustomerProfileDO();
+        data.setProfileId(p.profileId());
+        data.setTenantId(p.tenantId());
+        data.setCustomerId(p.customerId());
+        data.setSegment(p.segment());
+        data.setLifetimeValue(p.lifetimeValue());
+        data.setAvgOrderValue(p.avgOrderValue());
+        data.setTotalOrders(p.totalOrders());
+        data.setTotalReturns(p.totalReturns());
+        data.setReturnRate(p.returnRate());
+        data.setPreferredChannel(p.preferredChannel());
+        data.setPreferredLanguage(p.preferredLanguage());
+        data.setRiskLevel(p.riskLevel());
+        data.setAttributes(toJson(p.attributes()));
+        data.setFirstOrderAt(p.firstOrderAt());
+        data.setLastOrderAt(p.lastOrderAt());
+        data.setCreatedAt(p.createdAt() != null ? p.createdAt() : Instant.now());
+        data.setUpdatedAt(p.updatedAt() != null ? p.updatedAt() : Instant.now());
+        return data;
     }
 
-    public Optional<CustomerProfile> findCustomerProfile(String tenantId, String profileId) {
-        return profileStore.values().stream()
-                .filter(p -> p.tenantId().equals(tenantId) && p.profileId().equals(profileId))
-                .findFirst();
+    private CustomerProfile toCustomerProfileDomain(CustomerProfileDO d) {
+        return new CustomerProfile(d.getProfileId(), d.getTenantId(), d.getCustomerId(), d.getSegment(),
+                d.getLifetimeValue(), d.getAvgOrderValue(),
+                d.getTotalOrders() != null ? d.getTotalOrders() : 0,
+                d.getTotalReturns() != null ? d.getTotalReturns() : 0,
+                d.getReturnRate(), d.getPreferredChannel(), d.getPreferredLanguage(), d.getRiskLevel(),
+                fromJson(d.getAttributes(), new TypeReference<Map<String, Object>>() {}),
+                d.getFirstOrderAt(), d.getLastOrderAt(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
-    public Optional<CustomerProfile> findCustomerProfileByCustomerId(String tenantId, String customerId) {
-        return profileStore.values().stream()
-                .filter(p -> p.tenantId().equals(tenantId) && p.customerId().equals(customerId))
-                .findFirst();
+    private CustomerBehaviorDO toCustomerBehaviorData(CustomerBehavior b) {
+        CustomerBehaviorDO data = new CustomerBehaviorDO();
+        data.setBehaviorId(b.behaviorId());
+        data.setTenantId(b.tenantId());
+        data.setCustomerId(b.customerId());
+        data.setBehaviorType(b.behaviorType());
+        data.setChannel(b.channel());
+        data.setObjectType(b.objectType());
+        data.setObjectId(b.objectId());
+        data.setContext(toJson(b.context()));
+        data.setOccurredAt(b.occurredAt());
+        data.setCreatedAt(b.createdAt() != null ? b.createdAt() : Instant.now());
+        return data;
     }
 
-    public List<CustomerProfile> listCustomerProfiles(String tenantId, String segment) {
-        return profileStore.values().stream()
-                .filter(p -> p.tenantId().equals(tenantId))
-                .filter(p -> segment == null || p.segment().equals(segment))
-                .collect(Collectors.toList());
+    private CustomerBehavior toCustomerBehaviorDomain(CustomerBehaviorDO d) {
+        return new CustomerBehavior(d.getBehaviorId(), d.getTenantId(), d.getCustomerId(), d.getBehaviorType(),
+                d.getChannel(), d.getObjectType(), d.getObjectId(),
+                fromJson(d.getContext(), new TypeReference<Map<String, Object>>() {}),
+                d.getOccurredAt(), d.getCreatedAt());
     }
 
-    public CustomerBehavior saveCustomerBehavior(CustomerBehavior behavior) {
-        behaviorStore.put(behavior.behaviorId(), behavior);
-        return behavior;
+    private String toJson(Object obj) {
+        if (obj == null) return null;
+        try {
+            return jsonMapper.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
-    public List<CustomerBehavior> listCustomerBehaviors(String tenantId, String customerId, String behaviorType) {
-        return behaviorStore.values().stream()
-                .filter(b -> b.tenantId().equals(tenantId))
-                .filter(b -> customerId == null || b.customerId().equals(customerId))
-                .filter(b -> behaviorType == null || b.behaviorType().equals(behaviorType))
-                .sorted((a, b) -> b.occurredAt().compareTo(a.occurredAt()))
-                .collect(Collectors.toList());
+    private <T> T fromJson(String json, TypeReference<T> typeRef) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return jsonMapper.readValue(json, typeRef);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 }

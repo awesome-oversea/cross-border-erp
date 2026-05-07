@@ -3,27 +3,45 @@
 <mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.IamMapper">
 
     <insert id="insertUser" parameterType="com.aidotnet.erp.iam.infrastructure.data.UserAccountDO">
-        INSERT INTO iam_user_account (user_id, tenant_id, username, password_hash, enabled, roles, created_at, updated_at)
-        VALUES (#{userId}, #{tenantId}, #{username}, #{passwordHash}, #{enabled}, #{roles}, #{createdAt}, #{updatedAt})
+        INSERT INTO iam_user_account (user_id, tenant_id, org_id, username, email, phone, password_hash, enabled, status, last_login, created_at, updated_at)
+        VALUES (#{userId}, #{tenantId}, #{orgId}, #{username}, #{email}, #{phone}, #{passwordHash}, #{enabled}, #{status}, #{lastLogin}, #{createdAt}, #{updatedAt})
     </insert>
 
+    <update id="updateUser" parameterType="com.aidotnet.erp.iam.infrastructure.data.UserAccountDO">
+        UPDATE iam_user_account
+        SET org_id = #{orgId}, email = #{email}, phone = #{phone}, password_hash = #{passwordHash},
+            enabled = #{enabled}, status = #{status}, last_login = #{lastLogin}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteUser">
+        DELETE FROM iam_user_account
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+    </delete>
+
     <select id="selectUserByTenantAndUsername" resultType="com.aidotnet.erp.iam.infrastructure.data.UserAccountDO">
-        SELECT user_id, tenant_id, username, password_hash, enabled, roles, created_at, updated_at
+        SELECT user_id, tenant_id, org_id, username, email, phone, password_hash, enabled, status, last_login, created_at, updated_at
         FROM iam_user_account
         WHERE tenant_id = #{tenantId} AND username = #{username}
     </select>
 
     <select id="selectUserById" resultType="com.aidotnet.erp.iam.infrastructure.data.UserAccountDO">
-        SELECT user_id, tenant_id, username, password_hash, enabled, roles, created_at, updated_at
+        SELECT user_id, tenant_id, org_id, username, email, phone, password_hash, enabled, status, last_login, created_at, updated_at
         FROM iam_user_account
         WHERE tenant_id = #{tenantId} AND user_id = #{userId}
     </select>
 
     <select id="selectUsersByTenant" resultType="com.aidotnet.erp.iam.infrastructure.data.UserAccountDO">
-        SELECT user_id, tenant_id, username, password_hash, enabled, roles, created_at, updated_at
+        SELECT user_id, tenant_id, org_id, username, email, phone, password_hash, enabled, status, last_login, created_at, updated_at
         FROM iam_user_account
         WHERE tenant_id = #{tenantId}
         ORDER BY created_at
+    </select>
+
+    <select id="selectUserByIdGlobal" resultType="com.aidotnet.erp.iam.infrastructure.data.UserAccountDO">
+        SELECT user_id, tenant_id, org_id, username, email, phone, password_hash, enabled, status, last_login, created_at, updated_at
+        FROM iam_user_account
+        WHERE user_id = #{userId}
     </select>
 
 </mapper>

@@ -1,13 +1,16 @@
 package com.aidotnet.erp.pdm.infrastructure;
 
 import com.aidotnet.erp.pdm.domain.CollectionStatus;
+import com.aidotnet.erp.pdm.domain.ImageLibrary;
 import com.aidotnet.erp.pdm.domain.IntellectualProperty;
 import com.aidotnet.erp.pdm.domain.IpStatus;
 import com.aidotnet.erp.pdm.domain.IpType;
+import com.aidotnet.erp.pdm.domain.PlatformPriceLimit;
 import com.aidotnet.erp.pdm.domain.ProductCollection;
 import com.aidotnet.erp.pdm.domain.ProductStatus;
 import com.aidotnet.erp.pdm.domain.ProductVariant;
 import com.aidotnet.erp.pdm.domain.QualityStandard;
+import com.aidotnet.erp.pdm.domain.TitleLibrary;
 import com.aidotnet.erp.pdm.infrastructure.data.IntellectualPropertyDO;
 import com.aidotnet.erp.pdm.infrastructure.data.ProductCollectionDO;
 import com.aidotnet.erp.pdm.infrastructure.data.ProductVariantDO;
@@ -19,7 +22,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
@@ -231,6 +236,57 @@ public class PdmExtStore {
                 d.getSourceUrl(), d.getProductName(), d.getDescription(), d.getImages(),
                 d.getPrice(), d.getCurrency(), d.getCategoryId(), d.getCollectedBy(),
                 CollectionStatus.valueOf(d.getStatus()), d.getCreatedAt(), d.getUpdatedAt());
+    }
+
+    // ========== 标题库/图片库/限价管理(内存存储) ==========
+
+    private final Map<String, TitleLibrary> titleStore = new ConcurrentHashMap<>();
+    private final Map<String, ImageLibrary> imageStore = new ConcurrentHashMap<>();
+    private final Map<String, PlatformPriceLimit> priceLimitStore = new ConcurrentHashMap<>();
+
+    public TitleLibrary saveTitle(TitleLibrary title) {
+        titleStore.put(title.titleId(), title);
+        return title;
+    }
+
+    public Optional<TitleLibrary> findTitle(String tenantId, String titleId) {
+        return Optional.ofNullable(titleStore.get(titleId))
+                .filter(t -> t.tenantId().equals(tenantId));
+    }
+
+    public List<TitleLibrary> listTitles(String tenantId, String spuId) {
+        return titleStore.values().stream()
+                .filter(t -> t.tenantId().equals(tenantId) && t.spuId().equals(spuId))
+                .collect(Collectors.toList());
+    }
+
+    public ImageLibrary saveImage(ImageLibrary image) {
+        imageStore.put(image.imageId(), image);
+        return image;
+    }
+
+    public List<ImageLibrary> listImages(String tenantId, String spuId) {
+        return imageStore.values().stream()
+                .filter(img -> img.tenantId().equals(tenantId) && img.spuId().equals(spuId))
+                .collect(Collectors.toList());
+    }
+
+    public List<ImageLibrary> listImagesByType(String tenantId, String spuId, String imageType) {
+        return imageStore.values().stream()
+                .filter(img -> img.tenantId().equals(tenantId) && img.spuId().equals(spuId)
+                        && img.imageType().equals(imageType))
+                .collect(Collectors.toList());
+    }
+
+    public PlatformPriceLimit savePriceLimit(PlatformPriceLimit limit) {
+        priceLimitStore.put(limit.limitId(), limit);
+        return limit;
+    }
+
+    public List<PlatformPriceLimit> listPriceLimits(String tenantId, String spuId) {
+        return priceLimitStore.values().stream()
+                .filter(l -> l.tenantId().equals(tenantId) && l.spuId().equals(spuId))
+                .collect(Collectors.toList());
     }
 
     private String serializeList(List<String> list) {

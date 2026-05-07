@@ -12,6 +12,7 @@ public class PurchaseApprovalDO {
     private String approvalId;
     private String tenantId;
     private String poId;
+    private Integer approvalLevel;
     private String status;
     private String approverId;
     private String comment;
@@ -26,6 +27,8 @@ public class PurchaseApprovalDO {
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getPoId() { return poId; }
     public void setPoId(String poId) { this.poId = poId; }
+    public Integer getApprovalLevel() { return approvalLevel; }
+    public void setApprovalLevel(Integer approvalLevel) { this.approvalLevel = approvalLevel; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getApproverId() { return approverId; }

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.ReplenishmentSuggestionMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.scm.infrastructure.data.ReplenishmentSuggestionDO">
+        INSERT INTO scm_replenishment_suggestion (
+            suggestion_id,
+            tenant_id,
+            seller_sku,
+            warehouse_id,
+            current_stock,
+            avg_daily_sales,
+            lead_time_days,
+            safety_stock,
+            suggested_quantity,
+            priority,
+            status,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            #{suggestionId},
+            #{tenantId},
+            #{sellerSku},
+            #{warehouseId},
+            #{currentStock},
+            #{avgDailySales},
+            #{leadTimeDays},
+            #{safetyStock},
+            #{suggestedQuantity},
+            #{priority},
+            #{status},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.aidotnet.erp.scm.infrastructure.data.ReplenishmentSuggestionDO">
+        UPDATE scm_replenishment_suggestion
+        SET seller_sku = #{sellerSku},
+            warehouse_id = #{warehouseId},
+            current_stock = #{currentStock},
+            avg_daily_sales = #{avgDailySales},
+            lead_time_days = #{leadTimeDays},
+            safety_stock = #{safetyStock},
+            suggested_quantity = #{suggestedQuantity},
+            priority = #{priority},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND suggestion_id = #{suggestionId}
+    </update>
+
+    <select id="selectById" resultType="com.aidotnet.erp.scm.infrastructure.data.ReplenishmentSuggestionDO">
+        SELECT suggestion_id,
+               tenant_id,
+               seller_sku,
+               warehouse_id,
+               current_stock,
+               avg_daily_sales,
+               lead_time_days,
+               safety_stock,
+               suggested_quantity,
+               priority,
+               status,
+               created_at,
+               updated_at
+        FROM scm_replenishment_suggestion
+        WHERE tenant_id = #{tenantId} AND suggestion_id = #{suggestionId}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.scm.infrastructure.data.ReplenishmentSuggestionDO">
+        SELECT suggestion_id,
+               tenant_id,
+               seller_sku,
+               warehouse_id,
+               current_stock,
+               avg_daily_sales,
+               lead_time_days,
+               safety_stock,
+               suggested_quantity,
+               priority,
+               status,
+               created_at,
+               updated_at
+        FROM scm_replenishment_suggestion
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPending" resultType="com.aidotnet.erp.scm.infrastructure.data.ReplenishmentSuggestionDO">
+        SELECT suggestion_id,
+               tenant_id,
+               seller_sku,
+               warehouse_id,
+               current_stock,
+               avg_daily_sales,
+               lead_time_days,
+               safety_stock,
+               suggested_quantity,
+               priority,
+               status,
+               created_at,
+               updated_at
+        FROM scm_replenishment_suggestion
+        WHERE tenant_id = #{tenantId} AND status = 'PENDING'
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByStatus" resultType="com.aidotnet.erp.scm.infrastructure.data.ReplenishmentSuggestionDO">
+        SELECT suggestion_id,
+               tenant_id,
+               seller_sku,
+               warehouse_id,
+               current_stock,
+               avg_daily_sales,
+               lead_time_days,
+               safety_stock,
+               suggested_quantity,
+               priority,
+               status,
+               created_at,
+               updated_at
+        FROM scm_replenishment_suggestion
+        WHERE tenant_id = #{tenantId} AND status = #{status}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

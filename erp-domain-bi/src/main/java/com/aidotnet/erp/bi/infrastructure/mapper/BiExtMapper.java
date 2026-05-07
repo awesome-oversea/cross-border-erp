@@ -5,6 +5,8 @@ import com.aidotnet.erp.bi.domain.Dimension;
 import com.aidotnet.erp.bi.domain.ReportSnapshot;
 import com.aidotnet.erp.bi.infrastructure.data.AlertRuleDO;
 import com.aidotnet.erp.bi.infrastructure.data.CockpitTrendDO;
+import com.aidotnet.erp.bi.infrastructure.data.CustomReportDO;
+import com.aidotnet.erp.bi.infrastructure.data.DeveloperCommissionReportDO;
 import com.aidotnet.erp.bi.infrastructure.data.KpiAssessmentDO;
 import com.aidotnet.erp.bi.infrastructure.data.KpiTargetDO;
 import com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO;
@@ -53,6 +55,21 @@ public interface BiExtMapper {
     ReportSnapshotDO selectReportSnapshot(@Param("tenantId") String tenantId, @Param("snapshotId") String snapshotId);
     List<ReportSnapshotDO> selectReportSnapshots(@Param("tenantId") String tenantId, @Param("reportId") String reportId);
     void deleteReportSnapshot(@Param("tenantId") String tenantId, @Param("snapshotId") String snapshotId);
+
+    void insertCustomReport(CustomReportDO report);
+    void updateCustomReport(CustomReportDO report);
+    CustomReportDO selectCustomReport(@Param("tenantId") String tenantId, @Param("reportId") String reportId);
+    CustomReportDO selectCustomReportByCode(@Param("tenantId") String tenantId, @Param("reportCode") String reportCode);
+    List<CustomReportDO> selectCustomReports(@Param("tenantId") String tenantId, @Param("subjectArea") String subjectArea);
+    void deleteCustomReport(@Param("tenantId") String tenantId, @Param("reportId") String reportId);
+
+    void insertDeveloperCommissionReport(DeveloperCommissionReportDO report);
+    DeveloperCommissionReportDO selectDeveloperCommissionReport(@Param("tenantId") String tenantId,
+                                                                @Param("reportId") String reportId);
+    List<DeveloperCommissionReportDO> selectDeveloperCommissionReports(@Param("tenantId") String tenantId,
+                                                                       @Param("period") String period,
+                                                                       @Param("userId") String userId);
+    void deleteDeveloperCommissionReport(@Param("tenantId") String tenantId, @Param("reportId") String reportId);
 
     void insertDataExportTask(DataExportTask task);
     DataExportTask selectDataExportTask(@Param("tenantId") String tenantId, @Param("taskId") String taskId);

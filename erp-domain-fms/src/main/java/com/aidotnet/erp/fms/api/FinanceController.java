@@ -23,6 +23,9 @@ import com.aidotnet.erp.fms.application.FinanceService.RecordCostEventCommand;
 import com.aidotnet.erp.fms.application.FinanceService.SaveForexRateCommand;
 import com.aidotnet.erp.fms.application.FinanceService.UpdatePlatformSettlementForexCommand;
 import com.aidotnet.erp.fms.application.FinanceService.UpdatePlatformSettlementWithdrawalCommand;
+import com.aidotnet.erp.fms.application.FmsOutboundService;
+import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitReportQuery;
+import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitReportResult;
 import com.aidotnet.erp.fms.domain.CostEvent;
 import com.aidotnet.erp.fms.domain.ForexRate;
 import com.aidotnet.erp.fms.domain.ForexRiskAlert;
@@ -53,6 +56,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * FMS核心财务控制器
@@ -78,13 +82,15 @@ import org.springframework.web.bind.annotation.RestController;
  * @see FinanceService
  */
 @RestController
-@RequestMapping("/fms/api/in/v1")
+@RequestMapping({"/fms/api/in/v1", "/fms/api/v1"})
 public class FinanceController {
 
     private final FinanceService financeService;
+    private final FmsOutboundService fmsOutboundService;
 
-    public FinanceController(FinanceService financeService) {
+    public FinanceController(FinanceService financeService, FmsOutboundService fmsOutboundService) {
         this.financeService = financeService;
+        this.fmsOutboundService = fmsOutboundService;
     }
 
     @PostMapping("/receivables")
@@ -127,7 +133,10 @@ public class FinanceController {
     }
 
     @GetMapping("/payment-requests")
-    public Result<List<PaymentRequest>> listPaymentRequests() {
+    public Result<List<PaymentRequest>> listPaymentRequests(@RequestParam(required = false) String poId) {
+        if (poId != null && !poId.isBlank()) {
+            return Result.ok(financeService.listPaymentRequestsByPo(currentTenant(), poId));
+        }
         return Result.ok(financeService.listPaymentRequests(currentTenant()));
     }
 
@@ -304,7 +313,8 @@ public class FinanceController {
     public Result<CostEvent> recordCostEvent(@Valid @RequestBody RecordCostEventRequest request) {
         return Result.ok(financeService.recordCostEvent(currentTenant(), new RecordCostEventCommand(
                 request.costType(), request.sourceType(), request.sourceId(), request.sellerSku(),
-                request.marketplaceId(), request.currency(), request.amount(), request.occurredAt())));
+                request.storeId(), request.channelCode(), request.marketplaceId(),
+                request.currency(), request.amount(), request.occurredAt())));
     }
 
     @GetMapping("/cost-events")
@@ -343,6 +353,37 @@ public class FinanceController {
         return Result.ok(financeService.listProfitStatementsBySku(currentTenant(), sellerSku));
     }
 
+    /**
+     * 统一利润分析读模型，兼容域内直接通过 /fms/api/v1 读取店铺、渠道、市场级利润闭环视图。
+     */
+    @GetMapping("/profit/by-store")
+    public Result<ProfitReportResult> getProfitByStore(@RequestParam String storeId,
+                                                       @RequestParam(required = false) String sellerSku,
+                                                       @RequestParam(required = false) String marketplaceId,
+                                                       @RequestParam(required = false) String currency,
+                                                       @RequestParam(required = false) String alertStatus) {
+        return Result.ok(buildProfitReport("STORE", storeId, sellerSku, storeId, marketplaceId, currency, alertStatus));
+    }
+
+    @GetMapping("/profit/by-channel")
+    public Result<ProfitReportResult> getProfitByChannel(@RequestParam String channelCode,
+                                                         @RequestParam(required = false) String sellerSku,
+                                                         @RequestParam(required = false) String storeId,
+                                                         @RequestParam(required = false) String marketplaceId,
+                                                         @RequestParam(required = false) String currency,
+                                                         @RequestParam(required = false) String alertStatus) {
+        return Result.ok(buildProfitReport("CHANNEL", channelCode, sellerSku, storeId, marketplaceId, currency, alertStatus));
+    }
+
+    @GetMapping("/profit/by-market")
+    public Result<ProfitReportResult> getProfitByMarket(@RequestParam String marketplaceId,
+                                                        @RequestParam(required = false) String sellerSku,
+                                                        @RequestParam(required = false) String storeId,
+                                                        @RequestParam(required = false) String currency,
+                                                        @RequestParam(required = false) String alertStatus) {
+        return Result.ok(buildProfitReport("MARKETPLACE", marketplaceId, sellerSku, storeId, marketplaceId, currency, alertStatus));
+    }
+
     @PostMapping("/forex-rates")
     public Result<ForexRate> saveForexRate(@Valid @RequestBody SaveForexRateRequest request) {
         return Result.ok(financeService.saveForexRate(currentTenant(), new SaveForexRateCommand(
@@ -376,6 +417,11 @@ public class FinanceController {
         return Result.ok(financeService.checkForexRisk(currentTenant(), fromCurrency, toCurrency));
     }
 
+    @GetMapping("/forex/risk-alert")
+    public Result<ForexRiskAlert> getForexRiskAlert(@RequestParam String fromCurrency, @RequestParam String toCurrency) {
+        return Result.ok(financeService.checkForexRisk(currentTenant(), fromCurrency, toCurrency));
+    }
+
     @PostMapping("/forex-transactions")
     public Result<ForexTransaction> createForexTransaction(@Valid @RequestBody CreateForexTransactionRequest request) {
         return Result.ok(financeService.createForexTransaction(currentTenant(), new CreateForexTransactionCommand(
@@ -391,6 +437,17 @@ public class FinanceController {
     @GetMapping("/forex-transactions/by-ref")
     public Result<List<ForexTransaction>> listForexTransactionsByRef(@NotBlank String refType, @NotBlank String refId) {
         return Result.ok(financeService.listForexTransactionsByRef(currentTenant(), refType, refId));
+    }
+
+    private ProfitReportResult buildProfitReport(String dimensionType,
+                                                 String dimensionId,
+                                                 String sellerSku,
+                                                 String storeId,
+                                                 String marketplaceId,
+                                                 String currency,
+                                                 String alertStatus) {
+        return fmsOutboundService.buildProfitReport(currentTenant(),
+                new ProfitReportQuery(dimensionType, dimensionId, sellerSku, storeId, marketplaceId, currency, alertStatus));
     }
 
     private String currentTenant() {
@@ -465,7 +522,8 @@ public class FinanceController {
                                                        BigDecimal forexRate) {}
 
     public record RecordCostEventRequest(@NotBlank String costType, String sourceType, String sourceId,
-                                         @NotBlank String sellerSku, String marketplaceId,
+                                         @NotBlank String sellerSku, String storeId, String channelCode,
+                                         String marketplaceId,
                                          @NotBlank String currency, @Positive BigDecimal amount,
                                          Instant occurredAt) {}
 

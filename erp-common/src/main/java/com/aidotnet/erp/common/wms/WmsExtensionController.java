@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/wms/api/v1")
+@RequestMapping("/platform/wms/api/v1")
 public class WmsExtensionController {
 
     private final WmsExtensionService wmsExtService;

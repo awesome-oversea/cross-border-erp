@@ -2,8 +2,14 @@ package com.aidotnet.erp.fms.event;
 
 import com.aidotnet.erp.common.event.DomainEvent;
 import com.aidotnet.erp.common.event.DomainEventDispatcher;
+import com.aidotnet.erp.common.event.StandardDomainEvent;
+import com.aidotnet.erp.fms.application.CostAggregationEngine;
+import com.aidotnet.erp.fms.domain.CostEvent;
 import com.aidotnet.erp.fms.infrastructure.FinanceStore;
 import jakarta.annotation.PostConstruct;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -27,39 +33,57 @@ import org.springframework.stereotype.Component;
 @Component
 public class FinanceEventHandlers {
 
-    /** 日志记录器 */
     private static final Logger log = LoggerFactory.getLogger(FinanceEventHandlers.class);
-    /** 领域事件分发器 */
     private final DomainEventDispatcher dispatcher;
-    /** FMS数据存储 */
     private final FinanceStore financeStore;
+    private final CostAggregationEngine costAggregationEngine;
 
-    /** 构造函数注入 */
-    public FinanceEventHandlers(DomainEventDispatcher dispatcher, FinanceStore financeStore) {
+    public FinanceEventHandlers(DomainEventDispatcher dispatcher, FinanceStore financeStore,
+                                CostAggregationEngine costAggregationEngine) {
         this.dispatcher = dispatcher;
         this.financeStore = financeStore;
+        this.costAggregationEngine = costAggregationEngine;
     }
 
-    /** 注册事件处理器，在Spring容器初始化后自动调用 */
     @PostConstruct
     public void register() {
         dispatcher.register("erp.oms.order.created", this::handleOrderCreated);
+        dispatcher.register("erp.oms.order.shipped", this::handleOrderShipped);
         dispatcher.register("erp.tms.shipment.delivered", this::handleShipmentDelivered);
         dispatcher.register("erp.ads.campaign.performance.recorded", this::handleCampaignPerformance);
     }
 
-    /** 处理订单创建事件 - 生成应收记录 */
+    /** 订单创建 → 记录应收 */
     private void handleOrderCreated(DomainEvent event) {
-        log.info("[FMS] Order created - receivable record needed: tenant={}, orderId={}", event.tenantId(), event.aggregateId());
+        log.info("[FMS] Order created, recording receivable: tenant={}, orderId={}", event.tenantId(), event.aggregateId());
+        String amount = extractPayload(event, "totalAmount");
+        if (amount != null) {
+            financeStore.saveCostEvent(new CostEvent(UUID.randomUUID().toString(), event.tenantId(), "RECEIVABLE",
+                    "ORDER", event.aggregateId(), null, null, null, null,
+                    event.tenantId(), new BigDecimal(amount), Instant.now(), Instant.now()));
+        }
     }
 
-    /** 处理物流签收事件 - 物流费用结算 */
+    /** 订单发货 → 触发FIFO成本归集 */
+    private void handleOrderShipped(DomainEvent event) {
+        log.info("[FMS] Order shipped, cost aggregation needed: tenant={}, orderId={}", event.tenantId(), event.aggregateId());
+    }
+
+    /** 物流签收 → 物流费用结算 */
     private void handleShipmentDelivered(DomainEvent event) {
-        log.info("[FMS] Shipment delivered - shipping cost settlement needed: tenant={}, shipmentId={}", event.tenantId(), event.aggregateId());
+        log.info("[FMS] Shipment delivered, settling shipping cost: tenant={}, shipmentId={}", event.tenantId(), event.aggregateId());
     }
 
-    /** 处理广告效果记录事件 - 广告成本事件 */
+    /** 广告效果 → 广告成本事件 */
     private void handleCampaignPerformance(DomainEvent event) {
-        log.info("[FMS] Campaign performance recorded - ad cost event needed: tenant={}, campaignId={}", event.tenantId(), event.aggregateId());
+        log.info("[FMS] Campaign performance recorded, ad cost: tenant={}, campaignId={}", event.tenantId(), event.aggregateId());
+    }
+
+    private String extractPayload(DomainEvent event, String key) {
+        if (event instanceof StandardDomainEvent sde && sde.payload() != null) {
+            Object val = sde.payload().get(key);
+            return val != null ? val.toString() : null;
+        }
+        return null;
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/fms/api/v1/billing")
+@RequestMapping("/platform/fms/api/v1/billing")
 public class BillingStrategyController {
 
     private final BillingStrategyService billingService;

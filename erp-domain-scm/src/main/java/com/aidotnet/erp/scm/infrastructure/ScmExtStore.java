@@ -77,8 +77,18 @@ public class ScmExtStore {
     }
 
     public PurchaseApproval saveApproval(PurchaseApproval approval) {
-        mapper.insertPurchaseApproval(toApprovalData(approval));
+        PurchaseApprovalDO data = toApprovalData(approval);
+        PurchaseApprovalDO existing = mapper.selectPurchaseApproval(approval.tenantId(), approval.approvalId());
+        if (existing == null) {
+            mapper.insertPurchaseApproval(data);
+        } else {
+            mapper.updatePurchaseApproval(data);
+        }
         return approval;
+    }
+
+    public Optional<PurchaseApproval> findApproval(String tenantId, String approvalId) {
+        return Optional.ofNullable(mapper.selectPurchaseApproval(tenantId, approvalId)).map(this::toApprovalDomain);
     }
 
     public List<PurchaseApproval> listApprovalsByPo(String tenantId, String poId) {
@@ -140,6 +150,7 @@ public class ScmExtStore {
         data.setApprovalId(a.approvalId());
         data.setTenantId(a.tenantId());
         data.setPoId(a.poId());
+        data.setApprovalLevel(a.approvalLevel());
         data.setStatus(a.status().name());
         data.setApproverId(a.approverId());
         data.setComment(a.comment());
@@ -149,8 +160,16 @@ public class ScmExtStore {
     }
 
     private PurchaseApproval toApprovalDomain(PurchaseApprovalDO d) {
-        return new PurchaseApproval(d.getApprovalId(), d.getTenantId(), d.getPoId(),
-                ApprovalStatus.valueOf(d.getStatus()), d.getApproverId(), d.getComment(), d.getApprovedAt(), d.getCreatedAt());
+        return new PurchaseApproval(
+                d.getApprovalId(),
+                d.getTenantId(),
+                d.getPoId(),
+                d.getApprovalLevel() != null ? d.getApprovalLevel() : 1,
+                ApprovalStatus.valueOf(d.getStatus()),
+                d.getApproverId(),
+                d.getComment(),
+                d.getApprovedAt(),
+                d.getCreatedAt());
     }
 
     public ProcessingOrder saveProcessingOrder(ProcessingOrder order) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Select } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store';
@@ -14,11 +14,11 @@ export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const onFinish = async (values: { username: string; password: string }) => {
+  const onFinish = async (values: { username: string; password: string; tenantId: string }) => {
     setLoading(true);
     try {
       const result = await login(values.username, values.password);
-      setAuth(result.token, result.user, result.user.tenantId);
+      setAuth(result.token, result.user, values.tenantId);
       message.success('登录成功');
       router.push('/dashboard');
     } catch {
@@ -36,12 +36,19 @@ export default function LoginPage() {
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #0c2340 0%, #1a4a7a 50%, #2d6aa0 100%)',
     }}>
-      <Card style={{ width: 400, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+      <Card style={{ width: 420, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={3} style={{ marginBottom: 4, color: '#0c2340' }}>跨境电商ERP</Title>
           <Text type="secondary">Cross-Border E-Commerce ERP</Text>
         </div>
-        <Form name="login" onFinish={onFinish} size="large" autoComplete="off">
+        <Form name="login" onFinish={onFinish} size="large" autoComplete="off" initialValues={{ tenantId: 'default' }}>
+          <Form.Item name="tenantId" label="租户" rules={[{ required: true, message: '请选择租户' }]}>
+            <Select options={[
+              { value: 'default', label: '默认租户' },
+              { value: 'tenant-001', label: '深圳运营中心' },
+              { value: 'tenant-002', label: '义乌商贸中心' },
+            ]} />
+          </Form.Item>
           <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
             <Input prefix={<UserOutlined />} placeholder="用户名" />
           </Form.Item>

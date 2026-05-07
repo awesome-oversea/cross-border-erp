@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/crm/api/v1")
+@RequestMapping("/platform/crm/api/v1")
 public class CrmExtensionController {
 
     private final CrmExtensionService crmExtService;

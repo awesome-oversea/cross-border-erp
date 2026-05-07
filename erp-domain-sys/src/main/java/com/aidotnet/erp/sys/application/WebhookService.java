@@ -90,7 +90,7 @@ public class WebhookService {
     @Transactional
     public void deleteEndpoint(String tenantId, String endpointId) {
         WebhookEndpoint endpoint = getEndpoint(tenantId, endpointId);
-        extStore.deleteWebhookEndpoint(endpoint.endpointId());
+        extStore.deleteWebhookEndpoint(tenantId, endpoint.endpointId());
     }
 
     public WebhookEndpoint getEndpoint(String tenantId, String endpointId) {

@@ -1,6 +1,7 @@
 package com.aidotnet.erp.crm.infrastructure.data;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.Instant;
@@ -28,8 +29,9 @@ public class CustomerTagDO {
     private String tagName;
     /** 标签值 */
     private String tagValue;
-    /** 创建时间 */
-    private Instant createdAt;
+    /** 打标时间 */
+    @TableField("created_at")
+    private Instant taggedAt;
 
     public CustomerTagDO() {}
 

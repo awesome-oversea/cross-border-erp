@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/scm/api/v1")
+@RequestMapping("/platform/scm/api/v1")
 public class ScmExtensionController {
 
     private final ScmExtensionService scmExtService;

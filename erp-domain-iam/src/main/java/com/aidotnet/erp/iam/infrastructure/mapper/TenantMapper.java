@@ -27,4 +27,7 @@ public interface TenantMapper {
 
     /** 更新租户 */
     void update(TenantDO tenant);
+
+    /** 删除租户 */
+    void deleteById(@Param("tenantId") String tenantId);
 }

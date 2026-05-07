@@ -88,6 +88,22 @@ public class InventoryController {
                 request.referenceType(), request.referenceId(), request.remark())));
     }
 
+    /**
+     * 退货入库 - 售后退回商品重新入库
+     * <p>
+     * 由CRM售后域调用，将客户退回的商品重新入库到指定仓库。
+     * 入库操作为可用库存增加，同时在库存事务中记录"RETURN_INBOUND"类型流水。
+     * 不指定仓库时使用默认退货仓。
+     * </p>
+     */
+    @PostMapping("/inventory/receive-return")
+    public Result<InventoryBalance> receiveReturn(@Valid @RequestBody ReturnReceiveRequest request) {
+        String warehouseId = request.warehouseId() != null ? request.warehouseId() : "DEFAULT_RETURN_WAREHOUSE";
+        return Result.ok(inventoryService.receive(currentTenant(), new StockCommand(
+                warehouseId, request.sellerSku(), request.quantity(),
+                "RETURN_INBOUND", request.returnId(), "退货入库")));
+    }
+
     @PostMapping("/inventory/reserve")
     public Result<InventoryBalance> reserve(@Valid @RequestBody StockRequest request) {
         return Result.ok(inventoryService.reserve(currentTenant(), new StockCommand(
@@ -136,8 +152,8 @@ public class InventoryController {
         return Result.ok(inventoryService.listStockChecks(currentTenant(), warehouseId));
     }
 
-    @PatchMapping("/stock-checks/{checkId}/adjust")
-    public Result<StockCheck> adjustStock(@PathVariable String checkId) {
+    @PatchMapping("/warehouses/{warehouseId}/stock-checks/{checkId}/adjust")
+    public Result<StockCheck> adjustStock(@PathVariable String warehouseId, @PathVariable String checkId) {
         return Result.ok(inventoryService.adjustStock(currentTenant(), checkId));
     }
 
@@ -171,4 +187,7 @@ public class InventoryController {
     public record StockCheckRequest(@NotBlank String sellerSku, @Positive int actualQuantity, @NotBlank String checkedBy) {}
 
     public record PredictRequest(@NotBlank String warehouseId, @NotBlank String sellerSku, @Positive double avgDailySales) {}
+
+    public record ReturnReceiveRequest(String warehouseId, @NotBlank String sellerSku,
+                                       @Positive int quantity, @NotBlank String returnId) {}
 }

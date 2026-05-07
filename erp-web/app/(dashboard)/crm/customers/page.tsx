@@ -1,92 +1,44 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Card, Typography, Badge } from 'antd';
-import { PlusOutlined, EditOutlined } from '@ant-design/icons';
-import { crmApi } from '@/lib/api';
-import type { Customer } from '@/types';
+import { useState } from 'react';
+import { Table, Card, Typography, Tag, Space, Input, Select, Badge } from 'antd';
+import { usePageApi } from '@/lib/hooks';
+import type { Customer, PageParams } from '@/types';
 
 const { Title } = Typography;
 
+const levelColors: Record<string, string> = { VIP: 'gold', NORMAL: 'blue', NEW: 'green' };
+
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Customer | null>(null);
-  const [form] = Form.useForm();
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await crmApi.listCustomers();
-      setCustomers(data || []);
-    } catch {
-      setCustomers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const handleCreate = () => {
-    setEditing(null);
-    form.resetFields();
-    setModalOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      await crmApi.createCustomer(values);
-      message.success('客户创建成功');
-      setModalOpen(false);
-      fetchData();
-    } catch {
-      message.error('操作失败');
-    }
-  };
+  const [params, setParams] = useState<PageParams & Record<string, unknown>>({ page: 1, size: 20 });
+  const { data } = usePageApi<Customer>('/crm/api/in/v1/customers', params);
 
   const columns = [
-    { title: '客户名称', dataIndex: 'name', key: 'name' },
+    { title: '客户名', dataIndex: 'name', key: 'name' },
     { title: '邮箱', dataIndex: 'email', key: 'email' },
-    { title: '电话', dataIndex: 'phone', key: 'phone' },
-    { title: '国家', dataIndex: 'countryCode', key: 'countryCode', render: (v: string) => <Tag>{v}</Tag> },
-    { title: '平台', dataIndex: 'platform', key: 'platform', render: (v: string) => <Tag color="blue">{v}</Tag> },
-    { title: '订单数', dataIndex: 'totalOrders', key: 'totalOrders' },
-    { title: '消费总额', dataIndex: 'totalSpent', key: 'totalSpent', render: (v: number) => `$${v?.toFixed(2)}` },
-    { title: '标签', dataIndex: 'tags', key: 'tags', render: (tags: Customer['tags']) => tags?.map((t) => <Tag key={t.tagId} color="purple">{t.tagName}:{t.tagValue}</Tag>) },
+    { title: '等级', dataIndex: 'level', key: 'level', render: (v: string) => <Tag color={levelColors[v] || 'default'}>{v}</Tag> },
+    { title: '累计消费', dataIndex: 'totalSpent', key: 'totalSpent', render: (v: number) => v?.toFixed(2) },
+    { title: '订单数', dataIndex: 'orderCount', key: 'orderCount' },
+    { title: '最近下单', dataIndex: 'lastOrderDate', key: 'lastOrderDate', render: (v: string) => v ? new Date(v).toLocaleDateString() : '-' },
+    { title: '工单', key: 'tickets', render: (_: unknown, r: Customer) => <a href={`/crm/tickets?customerId=${r.customerId}`}>查看</a> },
   ];
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>客户管理</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建客户</Button>
+        <Space>
+          <Input placeholder="搜索客户" allowClear style={{ width: 200 }}
+            onChange={(e) => setParams({ ...params, keyword: e.target.value || undefined })} />
+          <Select placeholder="等级" allowClear style={{ width: 120 }}
+            options={[{ value: 'VIP', label: 'VIP' }, { value: 'NORMAL', label: '普通' }, { value: 'NEW', label: '新客' }]}
+            onChange={(v) => setParams({ ...params, level: v })} />
+        </Space>
       </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="customerId" columns={columns} dataSource={customers} loading={loading} size="middle"
-          pagination={{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }} />
+        <Table rowKey="customerId" columns={columns} dataSource={data?.list || []} size="middle"
+          pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
-      <Modal title="新建客户" open={modalOpen} onOk={handleSubmit} onCancel={() => setModalOpen(false)} width={520}>
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="客户名称" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="email" label="邮箱">
-            <Input />
-          </Form.Item>
-          <Form.Item name="phone" label="电话">
-            <Input />
-          </Form.Item>
-          <Form.Item name="countryCode" label="国家">
-            <Select options={[{ value: 'US', label: '美国' }, { value: 'UK', label: '英国' }, { value: 'DE', label: '德国' }, { value: 'JP', label: '日本' }]} />
-          </Form.Item>
-          <Form.Item name="platform" label="来源平台">
-            <Select options={[{ value: 'Amazon', label: 'Amazon' }, { value: 'Shopify', label: 'Shopify' }, { value: 'eBay', label: 'eBay' }]} />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 }

@@ -74,6 +74,49 @@
         FROM wms_outbound_order_line WHERE order_id = #{orderId}
     </select>
 
+    <insert id="insertOutboundPackage" parameterType="com.aidotnet.erp.wms.infrastructure.data.OutboundPackageDO">
+        INSERT INTO wms_outbound_package (package_id, tenant_id, order_id, warehouse_id, carrier_code, tracking_no,
+                                          weight_kg, status, remark, packed_at, shipped_at, created_at, updated_at)
+        VALUES (#{packageId}, #{tenantId}, #{orderId}, #{warehouseId}, #{carrierCode}, #{trackingNo},
+                #{weightKg}, #{status}, #{remark}, #{packedAt}, #{shippedAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateOutboundPackage" parameterType="com.aidotnet.erp.wms.infrastructure.data.OutboundPackageDO">
+        UPDATE wms_outbound_package
+        SET carrier_code = #{carrierCode},
+            tracking_no = #{trackingNo},
+            weight_kg = #{weightKg},
+            status = #{status},
+            remark = #{remark},
+            packed_at = #{packedAt},
+            shipped_at = #{shippedAt},
+            updated_at = #{updatedAt}
+        WHERE package_id = #{packageId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectOutboundPackage" resultType="com.aidotnet.erp.wms.infrastructure.data.OutboundPackageDO">
+        SELECT package_id, tenant_id, order_id, warehouse_id, carrier_code, tracking_no,
+               weight_kg, status, remark, packed_at, shipped_at, created_at, updated_at
+        FROM wms_outbound_package WHERE tenant_id = #{tenantId} AND package_id = #{packageId}
+    </select>
+
+    <select id="selectOutboundPackagesByOrder" resultType="com.aidotnet.erp.wms.infrastructure.data.OutboundPackageDO">
+        SELECT package_id, tenant_id, order_id, warehouse_id, carrier_code, tracking_no,
+               weight_kg, status, remark, packed_at, shipped_at, created_at, updated_at
+        FROM wms_outbound_package WHERE tenant_id = #{tenantId} AND order_id = #{orderId}
+        ORDER BY created_at ASC
+    </select>
+
+    <insert id="insertOutboundPackageLine" parameterType="com.aidotnet.erp.wms.infrastructure.data.OutboundPackageLineDO">
+        INSERT INTO wms_outbound_package_line (package_line_id, package_id, order_line_id, seller_sku, quantity, batch_no)
+        VALUES (#{packageLineId}, #{packageId}, #{orderLineId}, #{sellerSku}, #{quantity}, #{batchNo})
+    </insert>
+
+    <select id="selectOutboundPackageLines" resultType="com.aidotnet.erp.wms.infrastructure.data.OutboundPackageLineDO">
+        SELECT package_line_id, package_id, order_line_id, seller_sku, quantity, batch_no
+        FROM wms_outbound_package_line WHERE package_id = #{packageId}
+    </select>
+
     <insert id="insertMovement" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryMovementDO">
         INSERT INTO wms_inventory_movement (movement_id, tenant_id, warehouse_id, seller_sku, from_location_id, to_location_id, quantity, type, reference_type, reference_id, moved_at)
         VALUES (#{movementId}, #{tenantId}, #{warehouseId}, #{sellerSku}, #{fromLocationId}, #{toLocationId}, #{quantity}, #{type}, #{referenceType}, #{referenceId}, #{movedAt})
@@ -105,6 +148,93 @@
         SELECT check_id, tenant_id, warehouse_id, inbound_order_id, seller_sku, sample_quantity, pass_quantity, fail_quantity, result, inspector, remark, checked_at, created_at
         FROM wms_quality_check WHERE tenant_id = #{tenantId} AND inbound_order_id = #{inboundOrderId}
         ORDER BY checked_at DESC
+    </select>
+
+    <insert id="insertDefectiveReturn" parameterType="com.aidotnet.erp.wms.infrastructure.data.DefectiveReturnDO">
+        INSERT INTO wms_defective_return (return_id, warehouse_id, po_id, supplier_id, seller_sku, quantity, reason,
+                                          supplier_reply, status, processed_by, remark, processed_at, created_at, updated_at)
+        VALUES (#{returnId}, #{warehouseId}, #{poId}, #{supplierId}, #{sellerSku}, #{quantity}, #{reason},
+                #{supplierReply}, #{status}, #{processedBy}, #{remark}, #{processedAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateDefectiveReturn" parameterType="com.aidotnet.erp.wms.infrastructure.data.DefectiveReturnDO">
+        UPDATE wms_defective_return
+        SET warehouse_id = #{warehouseId},
+            po_id = #{poId},
+            supplier_id = #{supplierId},
+            seller_sku = #{sellerSku},
+            quantity = #{quantity},
+            reason = #{reason},
+            supplier_reply = #{supplierReply},
+            status = #{status},
+            processed_by = #{processedBy},
+            remark = #{remark},
+            processed_at = #{processedAt},
+            updated_at = #{updatedAt}
+        WHERE return_id = #{returnId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectDefectiveReturn" resultType="com.aidotnet.erp.wms.infrastructure.data.DefectiveReturnDO">
+        SELECT return_id, tenant_id, warehouse_id, po_id, supplier_id, seller_sku, quantity, reason,
+               supplier_reply, status, processed_by, remark, processed_at, created_at, updated_at
+        FROM wms_defective_return WHERE tenant_id = #{tenantId} AND return_id = #{returnId}
+    </select>
+
+    <select id="selectDefectiveReturns" resultType="com.aidotnet.erp.wms.infrastructure.data.DefectiveReturnDO">
+        SELECT return_id, tenant_id, warehouse_id, po_id, supplier_id, seller_sku, quantity, reason,
+               supplier_reply, status, processed_by, remark, processed_at, created_at, updated_at
+        FROM wms_defective_return WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectPendingDefectiveReturnsBySku" resultType="com.aidotnet.erp.wms.infrastructure.data.DefectiveReturnDO">
+        SELECT return_id, tenant_id, warehouse_id, po_id, supplier_id, seller_sku, quantity, reason,
+               supplier_reply, status, processed_by, remark, processed_at, created_at, updated_at
+        FROM wms_defective_return
+        WHERE tenant_id = #{tenantId}
+          AND warehouse_id = #{warehouseId}
+          AND seller_sku = #{sellerSku}
+          AND status = 'PENDING'
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertProductRepair" parameterType="com.aidotnet.erp.wms.infrastructure.data.ProductRepairDO">
+        INSERT INTO wms_product_repair (repair_id, warehouse_id, supplier_id, seller_sku, outbound_quantity,
+                                        inbound_quantity, reason, status, qc_result, processed_by, remark,
+                                        completed_at, created_at, updated_at)
+        VALUES (#{repairId}, #{warehouseId}, #{supplierId}, #{sellerSku}, #{outboundQuantity},
+                #{inboundQuantity}, #{reason}, #{status}, #{qcResult}, #{processedBy}, #{remark},
+                #{completedAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateProductRepair" parameterType="com.aidotnet.erp.wms.infrastructure.data.ProductRepairDO">
+        UPDATE wms_product_repair
+        SET warehouse_id = #{warehouseId},
+            supplier_id = #{supplierId},
+            seller_sku = #{sellerSku},
+            outbound_quantity = #{outboundQuantity},
+            inbound_quantity = #{inboundQuantity},
+            reason = #{reason},
+            status = #{status},
+            qc_result = #{qcResult},
+            processed_by = #{processedBy},
+            remark = #{remark},
+            completed_at = #{completedAt},
+            updated_at = #{updatedAt}
+        WHERE repair_id = #{repairId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectProductRepair" resultType="com.aidotnet.erp.wms.infrastructure.data.ProductRepairDO">
+        SELECT repair_id, tenant_id, warehouse_id, supplier_id, seller_sku, outbound_quantity, inbound_quantity,
+               reason, status, qc_result, processed_by, remark, completed_at, created_at, updated_at
+        FROM wms_product_repair WHERE tenant_id = #{tenantId} AND repair_id = #{repairId}
+    </select>
+
+    <select id="selectProductRepairs" resultType="com.aidotnet.erp.wms.infrastructure.data.ProductRepairDO">
+        SELECT repair_id, tenant_id, warehouse_id, supplier_id, seller_sku, outbound_quantity, inbound_quantity,
+               reason, status, qc_result, processed_by, remark, completed_at, created_at, updated_at
+        FROM wms_product_repair WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
+        ORDER BY created_at DESC
     </select>
 
 </mapper>

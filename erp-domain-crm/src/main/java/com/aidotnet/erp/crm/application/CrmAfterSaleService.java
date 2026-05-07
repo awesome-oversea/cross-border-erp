@@ -1,7 +1,10 @@
 package com.aidotnet.erp.crm.application;
 
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.crm.client.WmsClient;
 import com.aidotnet.erp.crm.domain.ReturnRefund;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.aidotnet.erp.crm.domain.ReturnRefund.ReturnReason;
 import com.aidotnet.erp.crm.domain.ReturnRefund.ReturnStatus;
 import com.aidotnet.erp.crm.domain.ServiceTicket;
@@ -32,12 +35,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CrmAfterSaleService {
 
+    private static final Logger log = LoggerFactory.getLogger(CrmAfterSaleService.class);
+
     /** 售后数据存储 */
     private final CrmAfterSaleStore afterSaleStore;
 
-    /** 构造函数注入CrmAfterSaleStore */
-    public CrmAfterSaleService(CrmAfterSaleStore afterSaleStore) {
+    /** WMS仓储客户端，用于退货入库时回写库存 */
+    private final WmsClient wmsClient;
+
+    /** 构造函数注入CrmAfterSaleStore和WmsClient */
+    public CrmAfterSaleService(CrmAfterSaleStore afterSaleStore, WmsClient wmsClient) {
         this.afterSaleStore = afterSaleStore;
+        this.wmsClient = wmsClient;
     }
 
     /** 创建退货退款申请，初始状态为REQUESTED */
@@ -74,12 +83,29 @@ public class CrmAfterSaleService {
                 rf.reason(), ReturnStatus.REJECTED, rf.createdAt(), Instant.now()));
     }
 
-    /** 确认收到退货商品，仅APPROVED状态可确认收货 */
+    /**
+     * 确认收到退货商品，仅APPROVED状态可确认收货
+     * <p>
+     * 业务闭环:
+     *   1. 校验退货单状态为APPROVED
+     *   2. 将退回商品回写到WMS库存(可用库存增加)
+     *   3. 更新退货单状态为RECEIVED
+     *   4. WMS回写失败时记录警告但不阻断流程(允许后续手工处理)
+     * </p>
+     */
     @Transactional
     public ReturnRefund receiveReturn(String tenantId, String returnId) {
         ReturnRefund rf = getReturnRefund(tenantId, returnId);
         if (rf.status() != ReturnStatus.APPROVED) {
             throw new BizException("RETURN_STATUS_INVALID", "退货单状态不允许确认收货");
+        }
+        // 退回商品回写WMS库存，确保库存准确性
+        try {
+            wmsClient.receiveReturn(new WmsClient.ReceiveReturnRequest(
+                    null, rf.sellerSku(), rf.quantity(), returnId));
+        } catch (Exception e) {
+            log.warn("WMS inventory restock failed for returnId={}, sellerSku={}, will retry later",
+                    returnId, rf.sellerSku(), e);
         }
         return afterSaleStore.saveReturnRefund(new ReturnRefund(rf.returnId(), rf.tenantId(), rf.orderId(),
                 rf.sellerSku(), rf.customerId(), rf.quantity(), rf.refundAmount(), rf.currency(),

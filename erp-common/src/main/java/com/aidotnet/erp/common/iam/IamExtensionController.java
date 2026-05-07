@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/iam/api/v1")
+@RequestMapping("/platform/iam/api/v1")
 public class IamExtensionController {
 
     private final IamExtensionService iamExtService;

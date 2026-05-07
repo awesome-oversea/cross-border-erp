@@ -6,6 +6,7 @@ import java.util.Map;
 public record ExternalFinanceVoucher(
         String voucherId,
         String tenantId,
+        String erpVoucherId,
         String financeSystem,
         String voucherType,
         String voucherNumber,

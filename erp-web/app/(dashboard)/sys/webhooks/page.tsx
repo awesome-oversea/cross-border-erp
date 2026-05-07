@@ -1,32 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Card, Typography, Badge } from 'antd';
-import { PlusOutlined, EditOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { PlusOutlined, SendOutlined } from '@ant-design/icons';
+import { usePageApi } from '@/lib/hooks';
 import { sysApi } from '@/lib/api';
-import type { WebhookEndpoint } from '@/types';
+import type { WebhookEndpoint, PageParams } from '@/types';
 
 const { Title } = Typography;
 
 export default function WebhooksPage() {
-  const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [params, setParams] = useState<PageParams>({ page: 1, size: 20 });
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await sysApi.listWebhookEndpoints();
-      setWebhooks(data || []);
-    } catch {
-      setWebhooks([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, mutate } = usePageApi<WebhookEndpoint>('/sys/api/in/v1/webhooks', params);
 
   const handleCreate = async () => {
     try {
@@ -34,10 +21,12 @@ export default function WebhooksPage() {
       await sysApi.createWebhookEndpoint(values);
       message.success('Webhook创建成功');
       setModalOpen(false);
-      fetchData();
-    } catch {
-      message.error('操作失败');
-    }
+      mutate();
+    } catch { message.error('操作失败'); }
+  };
+
+  const handleTest = async (id: string) => {
+    try { await sysApi.testWebhookEndpoint(id); message.success('测试请求已发送'); } catch { message.error('测试失败'); }
   };
 
   const columns = [
@@ -47,6 +36,12 @@ export default function WebhooksPage() {
     { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => <Badge color={v === 'ACTIVE' ? 'green' : 'default'} text={v} /> },
     { title: '重试次数', dataIndex: 'retryCount', key: 'retryCount' },
     { title: '超时(秒)', dataIndex: 'timeoutSeconds', key: 'timeoutSeconds' },
+    { title: '操作', key: 'action', render: (_: unknown, r: WebhookEndpoint) => (
+      <Space>
+        <Button type="link" size="small" icon={<SendOutlined />} onClick={() => handleTest(r.endpointId)}>测试</Button>
+        <Button type="link" size="small" danger onClick={async () => { await sysApi.deleteWebhookEndpoint(r.endpointId); mutate(); }}>删除</Button>
+      </Space>
+    )},
   ];
 
   return (
@@ -56,23 +51,17 @@ export default function WebhooksPage() {
         <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>新建Webhook</Button>
       </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="endpointId" columns={columns} dataSource={webhooks} loading={loading} size="middle" />
+        <Table rowKey="endpointId" columns={columns} dataSource={data?.list || []} size="middle"
+          pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
       <Modal title="新建Webhook" open={modalOpen} onOk={handleCreate} onCancel={() => setModalOpen(false)} width={560}>
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="名称" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="url" label="回调URL" rules={[{ required: true }, { type: 'url', message: '请输入有效URL' }]}>
-            <Input placeholder="https://your-server.com/webhook" />
-          </Form.Item>
+          <Form.Item name="name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="url" label="回调URL" rules={[{ required: true }, { type: 'url', message: '请输入有效URL' }]}><Input placeholder="https://your-server.com/webhook" /></Form.Item>
           <Form.Item name="eventType" label="事件类型" rules={[{ required: true }]}>
             <Select mode="multiple" options={[
-              { value: 'ORDER_CREATED', label: '订单创建' },
-              { value: 'ORDER_SHIPPED', label: '订单发货' },
-              { value: 'INVENTORY_LOW', label: '库存预警' },
-              { value: 'SHIPMENT_RECEIVED', label: '货件接收' },
-              { value: 'PAYMENT_RECEIVED', label: '收款通知' },
+              { value: 'ORDER_CREATED', label: '订单创建' }, { value: 'ORDER_SHIPPED', label: '订单发货' },
+              { value: 'INVENTORY_LOW', label: '库存预警' }, { value: 'PAYMENT_RECEIVED', label: '收款通知' },
             ]} />
           </Form.Item>
           <Form.Item name="retryCount" label="重试次数" initialValue={3}>

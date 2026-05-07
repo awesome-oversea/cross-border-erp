@@ -7,6 +7,8 @@ import com.aidotnet.erp.tms.domain.CarrierRecommendation;
 import com.aidotnet.erp.tms.domain.Shipment;
 import com.aidotnet.erp.tms.domain.ShipmentStatus;
 import com.aidotnet.erp.tms.domain.ShippingCost;
+import com.aidotnet.erp.tms.domain.ShippingMethod;
+import com.aidotnet.erp.tms.domain.ShippingRate;
 import com.aidotnet.erp.tms.domain.TrackingEvent;
 import com.aidotnet.erp.tms.infrastructure.ShipmentStore;
 import java.math.BigDecimal;
@@ -20,32 +22,30 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 物流发货管理应用服务
+ * 鐗╂祦鍙戣揣绠＄悊搴旂敤鏈嶅姟
  * <p>
- * 描述: 物流域核心服务，负责物流商管理、发货单管理、物流轨迹追踪、
- *       运费成本记录、物流商智能推荐等业务逻辑。
- *       是连接订单域(OMS)、仓储域(WMS)、财务域(FMS)的物流调度中心。
+ * 鎻忚堪: 鐗╂祦鍩熸牳蹇冩湇鍔★紝璐熻矗鐗╂祦鍟嗙鐞嗐€佸彂璐у崟绠＄悊銆佺墿娴佽建杩硅拷韪€? *       杩愯垂鎴愭湰璁板綍銆佺墿娴佸晢鏅鸿兘鎺ㄨ崘绛変笟鍔￠€昏緫銆? *       鏄繛鎺ヨ鍗曞煙(OMS)銆佷粨鍌ㄥ煙(WMS)銆佽储鍔″煙(FMS)鐨勭墿娴佽皟搴︿腑蹇冦€? * </p>
+ * <p>
+ * 鏍稿績鑳藉姏:
+ *   1. 鐗╂祦鍟嗙鐞?- 鍒涘缓鐗╂祦鍟嗭紝缁存姢鑱旂郴鏂瑰紡鍜孉PI鍚敤鐘舵€?
+ *   2. 鍙戣揣鍗曠鐞?- 鍒涘缓鍙戣揣鍗曪紝鍏宠仈璁㈠崟/浠撳簱/鐗╂祦鍟?杩愯緭鏂瑰紡
+ *   3. 鐗╂祦杞ㄨ抗 - 娣诲姞鐗╂祦杞ㄨ抗浜嬩欢锛岃嚜鍔ㄦ洿鏂板彂璐у崟鐘舵€?
+ *   4. 杩愯垂鎴愭湰 - 璁板綍杩愯垂/鐕冩补闄勫姞璐?鍏朵粬璐圭敤锛岃嚜鍔ㄥ悓姝MS
+ *   5. 鐗╂祦鍟嗘帹鑽?- 鏍规嵁鐩殑鍦?閲嶉噺/閲戦鏅鸿兘鎺ㄨ崘鏈€浼樼墿娴佸晢
  * </p>
  * <p>
- * 核心能力:
- *   1. 物流商管理 - 创建物流商，维护联系方式和API启用状态
- *   2. 发货单管理 - 创建发货单，关联订单/仓库/物流商/运输方式
- *   3. 物流轨迹 - 添加物流轨迹事件，自动更新发货单状态
- *   4. 运费成本 - 记录运费/燃油附加费/其他费用，自动同步FMS
- *   5. 物流商推荐 - 根据目的地/重量/金额智能推荐最优物流商
- * </p>
- * <p>
- * 业务规则:
- *   1. 物流跟踪号唯一性校验
- *   2. 已签收/已取消发货单不可添加轨迹
- *   3. DELIVERED状态轨迹自动将发货单标记为已签收
- *   4. 运费成本自动记录到FMS成本事件
- *   5. 物流商推荐根据快递/标准/经济三档分类，综合评分排序
+ * 涓氬姟瑙勫垯:
+ *   1. 鐗╂祦璺熻釜鍙峰敮涓€鎬ф牎楠?
+ *   2. 宸茬鏀?宸插彇娑堝彂璐у崟涓嶅彲娣诲姞杞ㄨ抗
+ *   3. DELIVERED鐘舵€佽建杩硅嚜鍔ㄥ皢鍙戣揣鍗曟爣璁颁负宸茬鏀?
+ *   4. 杩愯垂鎴愭湰鑷姩璁板綍鍒癋MS鎴愭湰浜嬩欢
+ *   5. 鐗╂祦鍟嗘帹鑽愭牴鎹揩閫?鏍囧噯/缁忔祹涓夋。鍒嗙被锛岀患鍚堣瘎鍒嗘帓搴?
  * </p>
  *
- * @author ERP系统
+ * @author ERP绯荤粺
  * @see Shipment
  * @see Carrier
  * @see ShipmentStore
@@ -57,40 +57,227 @@ public class ShipmentService {
 
     private final ShipmentStore shipmentStore;
     private final FmsClient fmsClient;
+    private final LogisticsStrategyService logisticsStrategyService;
 
-    public ShipmentService(ShipmentStore shipmentStore, FmsClient fmsClient) {
+    public ShipmentService(ShipmentStore shipmentStore,
+                           FmsClient fmsClient,
+                           LogisticsStrategyService logisticsStrategyService) {
         this.shipmentStore = shipmentStore;
         this.fmsClient = fmsClient;
+        this.logisticsStrategyService = logisticsStrategyService;
     }
 
+    @Transactional
     public Carrier createCarrier(String tenantId, CreateCarrierCommand command) {
+        String code = normalizeCode(command.code());
+        ensureCarrierCodeAvailable(tenantId, code, null);
         Instant now = Instant.now();
+        String authorizationStatus = upperOrDefault(command.authorizationStatus(), Carrier.AuthorizationStatus.PENDING.name());
+        Instant lastAuthorizedAt = command.lastAuthorizedAt();
+        if (Carrier.AuthorizationStatus.AUTHORIZED.name().equals(authorizationStatus) && lastAuthorizedAt == null) {
+            lastAuthorizedAt = now;
+        }
         return shipmentStore.saveCarrier(new Carrier(
                 UUID.randomUUID().toString(),
                 tenantId,
-                command.code(),
+                code,
                 command.name(),
-                command.countryCode(),
-                command.type(),
-                Carrier.CarrierStatus.ACTIVE.name(),
+                upperOrNull(command.countryCode()),
+                upperOrDefault(command.type(), Carrier.CarrierType.STANDARD.name()),
+                upperOrDefault(command.status(), Carrier.CarrierStatus.ACTIVE.name()),
                 command.contactPerson(),
                 command.phone(),
                 command.apiEnabled(),
+                command.featured(),
+                authorizationStatus,
+                command.authorizationValidUntil(),
+                lastAuthorizedAt,
                 now,
                 now));
+    }
+
+    @Transactional
+    public Carrier updateCarrier(String tenantId, String carrierId, UpdateCarrierCommand command) {
+        Carrier existing = getCarrier(tenantId, carrierId);
+        String nextCode = normalizeCode(command.code() != null ? command.code() : existing.code());
+        ensureCarrierCodeAvailable(tenantId, nextCode, carrierId);
+        Instant now = Instant.now();
+        String authorizationStatus = command.authorizationStatus() != null
+                ? upperOrDefault(command.authorizationStatus(), Carrier.AuthorizationStatus.PENDING.name())
+                : existing.authorizationStatus();
+        Instant lastAuthorizedAt = command.lastAuthorizedAt() != null ? command.lastAuthorizedAt() : existing.lastAuthorizedAt();
+        if (Carrier.AuthorizationStatus.AUTHORIZED.name().equals(authorizationStatus) && lastAuthorizedAt == null) {
+            lastAuthorizedAt = now;
+        }
+        return shipmentStore.saveCarrier(new Carrier(
+                existing.carrierId(),
+                existing.tenantId(),
+                nextCode,
+                chooseText(command.name(), existing.name()),
+                upperOrFallback(command.countryCode(), existing.countryCode()),
+                upperOrFallback(command.type(), existing.type()),
+                upperOrFallback(command.status(), existing.status()),
+                chooseText(command.contactPerson(), existing.contactPerson()),
+                chooseText(command.phone(), existing.phone()),
+                command.apiEnabled() != null ? command.apiEnabled() : existing.apiEnabled(),
+                command.featured() != null ? command.featured() : existing.featured(),
+                authorizationStatus,
+                command.authorizationValidUntil() != null ? command.authorizationValidUntil() : existing.authorizationValidUntil(),
+                lastAuthorizedAt,
+                existing.createdAt(),
+                now));
+    }
+
+    public Carrier getCarrier(String tenantId, String carrierId) {
+        return shipmentStore.findCarrier(tenantId, carrierId)
+                .orElseThrow(() -> new BizException("CARRIER_NOT_FOUND", "Carrier does not exist"));
     }
 
     public List<Carrier> listCarriers(String tenantId) {
         return shipmentStore.listCarriers(tenantId);
     }
 
+    public List<ShippingMethod> listShippingMethods(String tenantId) {
+        return shipmentStore.listShippingMethods(tenantId);
+    }
+
+    @Transactional
+    public ShippingMethod createShippingMethod(String tenantId, String carrierId, CreateShippingMethodCommand command) {
+        getCarrier(tenantId, carrierId);
+        String methodCode = normalizeCode(command.methodCode());
+        ensureShippingMethodCodeAvailable(tenantId, carrierId, methodCode);
+        validateEstimatedDays(command.estimatedDaysMin(), command.estimatedDaysMax());
+        Instant now = Instant.now();
+        return shipmentStore.saveShippingMethod(new ShippingMethod(
+                UUID.randomUUID().toString(),
+                tenantId,
+                carrierId,
+                methodCode,
+                command.methodName(),
+                upperOrDefault(command.transportMode(), ShippingMethod.TransportMode.AIR.name()),
+                upperOrDefault(command.rateType(), ShippingMethod.RateType.WEIGHT_BASED.name()),
+                command.enabled(),
+                command.estimatedDaysMin(),
+                command.estimatedDaysMax(),
+                now,
+                now));
+    }
+
+    public List<ShippingMethod> listShippingMethodsByCarrier(String tenantId, String carrierId) {
+        getCarrier(tenantId, carrierId);
+        return shipmentStore.listShippingMethodsByCarrier(tenantId, carrierId);
+    }
+
+    @Transactional
+    public ShippingRate createChannelRule(String tenantId, String carrierId, String methodId, CreateChannelRuleCommand command) {
+        ShippingMethod shippingMethod = getShippingMethod(tenantId, methodId);
+        if (!carrierId.equals(shippingMethod.carrierId())) {
+            throw new BizException("CARRIER_METHOD_MISMATCH", "Shipping method does not belong to carrier");
+        }
+        validateChannelRule(command);
+        Instant now = Instant.now();
+        return shipmentStore.saveShippingRate(new ShippingRate(
+                UUID.randomUUID().toString(),
+                tenantId,
+                methodId,
+                upperOrNull(command.originCountry()),
+                upperOrNull(command.destinationCountry()),
+                upperOrNull(command.zoneCode()),
+                command.weightMinKg(),
+                command.weightMaxKg(),
+                nonNullAmount(command.baseCost()),
+                nonNullAmount(command.costPerKg()),
+                upperOrDefault(command.currency(), "CNY"),
+                command.effectiveFrom(),
+                command.effectiveTo(),
+                now,
+                now));
+    }
+
+    public List<ShippingRate> listChannelRules(String tenantId, String carrierId, String methodId) {
+        ShippingMethod shippingMethod = getShippingMethod(tenantId, methodId);
+        if (!carrierId.equals(shippingMethod.carrierId())) {
+            throw new BizException("CARRIER_METHOD_MISMATCH", "Shipping method does not belong to carrier");
+        }
+        return shipmentStore.listShippingRatesByMethod(tenantId, methodId);
+    }
+
+    /**
+     * 跨域读取物流方式和费率时，统一由 TMS 领域主控接口返回，避免调用方直接依赖中台内部表语义。
+     */
+    public List<ShippingRate> listShippingRates(String tenantId,
+                                                String carrierId,
+                                                String shippingMethodId,
+                                                String originCountry,
+                                                String destinationCountry) {
+        List<ShippingRate> rates;
+        if (shippingMethodId != null && !shippingMethodId.isBlank()) {
+            ShippingMethod shippingMethod = getShippingMethod(tenantId, shippingMethodId);
+            if (carrierId != null && !carrierId.isBlank()
+                    && !carrierId.equals(shippingMethod.carrierId())) {
+                throw new BizException("CARRIER_METHOD_MISMATCH", "Shipping method does not belong to carrier");
+            }
+            rates = shipmentStore.listShippingRatesByMethod(tenantId, shippingMethodId);
+        } else if ((originCountry != null && !originCountry.isBlank())
+                || (destinationCountry != null && !destinationCountry.isBlank())) {
+            rates = shipmentStore.listShippingRatesByRoute(
+                    tenantId,
+                    upperOrNull(originCountry),
+                    upperOrNull(destinationCountry));
+        } else {
+            rates = shipmentStore.listShippingRates(tenantId);
+        }
+
+        if (carrierId == null || carrierId.isBlank()) {
+            return rates;
+        }
+        List<String> carrierMethodIds = shipmentStore.listShippingMethodsByCarrier(tenantId, carrierId).stream()
+                .map(ShippingMethod::methodId)
+                .toList();
+        return rates.stream()
+                .filter(rate -> carrierMethodIds.contains(rate.methodId()))
+                .toList();
+    }
+
+    public FreightEstimate estimateShippingRate(String tenantId, EstimateShippingRateCommand command) {
+        validateEstimateCommand(tenantId, command);
+        LogisticsStrategyService.FreightQuote quote = logisticsStrategyService.estimateFreightQuote(
+                tenantId,
+                new LogisticsStrategyService.FreightEstimateCommand(
+                        command.carrierId(),
+                        command.shippingMethodId(),
+                        upperOrNull(command.originCountry()),
+                        upperOrNull(command.destinationCountry()),
+                        command.weight(),
+                        command.volume()));
+        if (quote == null) {
+            throw new BizException("SHIPPING_RATE_NOT_FOUND", "No matching shipping rate found");
+        }
+        return toFreightEstimate(quote);
+    }
+
+    @Transactional
     public Shipment createShipment(String tenantId, CreateShipmentCommand command) {
         shipmentStore.findCarrier(tenantId, command.carrierId())
                 .orElseThrow(() -> new BizException("CARRIER_NOT_FOUND", "Carrier does not exist"));
+        if (command.shippingMethodId() != null && !command.shippingMethodId().isBlank()) {
+            ShippingMethod shippingMethod = getShippingMethod(tenantId, command.shippingMethodId());
+            if (!command.carrierId().equals(shippingMethod.carrierId())) {
+                throw new BizException("CARRIER_METHOD_MISMATCH", "Shipping method does not belong to carrier");
+            }
+        }
         shipmentStore.findByTrackingNo(tenantId, command.trackingNo()).ifPresent(existing -> {
             throw new BizException("TRACKING_NO_DUPLICATED", "Tracking number already exists");
         });
         Instant now = Instant.now();
+        FreightEstimate freightEstimate = tryEstimateShipmentFreight(
+                tenantId,
+                command.carrierId(),
+                command.shippingMethodId(),
+                null,
+                command.destinationCountry(),
+                command.weight(),
+                resolveVolume(command.length(), command.width(), command.height()));
         return shipmentStore.saveShipment(new Shipment(
                 UUID.randomUUID().toString(),
                 tenantId,
@@ -106,12 +293,17 @@ public class ShipmentService {
                 command.height(),
                 command.estimatedDelivery(),
                 null,
+                freightEstimate != null ? freightEstimate.estimatedFreight() : null,
+                freightEstimate != null ? freightEstimate.currency() : null,
+                freightEstimate != null ? freightEstimate.chargeableWeight() : null,
+                freightEstimate != null ? now : null,
                 ShipmentStatus.CREATED,
                 List.of(),
                 now,
                 now));
     }
 
+    @Transactional
     public Shipment addTracking(String tenantId, String shipmentId, AddTrackingCommand command) {
         Shipment shipment = getShipment(tenantId, shipmentId);
         if (shipment.status() == ShipmentStatus.CANCELLED || shipment.status() == ShipmentStatus.DELIVERED) {
@@ -130,6 +322,7 @@ public class ShipmentService {
         return update(shipment, status, events);
     }
 
+    @Transactional
     public Shipment cancel(String tenantId, String shipmentId) {
         Shipment shipment = getShipment(tenantId, shipmentId);
         if (shipment.status() == ShipmentStatus.DELIVERED) {
@@ -142,8 +335,17 @@ public class ShipmentService {
         return shipmentStore.listShipments(tenantId);
     }
 
+    @Transactional
     public ShippingCost recordShippingCost(String tenantId, RecordShippingCostCommand command) {
         Shipment shipment = getShipment(tenantId, command.shipmentId());
+        if (!shipment.carrierId().equals(command.carrierId())) {
+            throw new BizException("CARRIER_SHIPMENT_MISMATCH", "Shipping cost carrier does not match shipment");
+        }
+        if (shipment.estimatedFreightCurrency() != null
+                && command.currency() != null
+                && !shipment.estimatedFreightCurrency().equalsIgnoreCase(command.currency())) {
+            throw new BizException("FREIGHT_CURRENCY_MISMATCH", "Actual freight currency must match estimated freight currency");
+        }
         BigDecimal freightCost = nonNullAmount(command.freightCost());
         BigDecimal fuelSurcharge = nonNullAmount(command.fuelSurcharge());
         BigDecimal otherFees = nonNullAmount(command.otherFees());
@@ -171,6 +373,36 @@ public class ShipmentService {
         return shipmentStore.listShippingCostsByCarrier(tenantId, carrierId);
     }
 
+    public FreightDifference getFreightDifference(String tenantId, String shipmentId) {
+        Shipment shipment = getShipment(tenantId, shipmentId);
+        ShippingCost latestShippingCost = shipmentStore.findLatestShippingCostByShipment(tenantId, shipmentId).orElse(null);
+        BigDecimal actualFreight = latestShippingCost != null ? latestShippingCost.totalCost() : null;
+        BigDecimal freightDifference = shipment.estimatedFreight() != null && actualFreight != null
+                ? actualFreight.subtract(shipment.estimatedFreight()).setScale(2, RoundingMode.HALF_UP)
+                : null;
+        String currency = latestShippingCost != null ? latestShippingCost.currency() : shipment.estimatedFreightCurrency();
+        return new FreightDifference(
+                shipment.shipmentId(),
+                shipment.carrierId(),
+                shipment.shippingMethodId(),
+                shipment.status().name(),
+                shipment.estimatedFreight(),
+                actualFreight,
+                freightDifference,
+                currency,
+                shipment.estimatedFreightCurrency(),
+                latestShippingCost != null ? latestShippingCost.currency() : null,
+                shipment.estimatedChargeableWeight(),
+                shipment.estimatedAt());
+    }
+
+    public List<FreightDifference> listFreightDifferences(String tenantId, List<String> shipmentIds) {
+        return shipmentIds.stream()
+                .distinct()
+                .map(shipmentId -> getFreightDifference(tenantId, shipmentId))
+                .toList();
+    }
+
     public Shipment getShipment(String tenantId, String shipmentId) {
         return shipmentStore.findShipment(tenantId, shipmentId)
                 .orElseThrow(() -> new BizException("SHIPMENT_NOT_FOUND", "Shipment does not exist"));
@@ -184,9 +416,120 @@ public class ShipmentService {
             throw new BizException("WAREHOUSE_COUNTRY_REQUIRED", "Warehouse country is required");
         }
         return shipmentStore.listCarriers(tenantId).stream()
+                .filter(Carrier::isActive)
                 .map(carrier -> toRecommendation(carrier, command))
                 .sorted(recommendationComparator(command))
                 .toList();
+    }
+
+    private ShippingMethod getShippingMethod(String tenantId, String methodId) {
+        return shipmentStore.findShippingMethod(tenantId, methodId)
+                .orElseThrow(() -> new BizException("SHIPPING_METHOD_NOT_FOUND", "Shipping method does not exist"));
+    }
+
+    private void validateEstimateCommand(String tenantId, EstimateShippingRateCommand command) {
+        if (command.destinationCountry() == null || command.destinationCountry().isBlank()) {
+            throw new BizException("DESTINATION_COUNTRY_REQUIRED", "Destination country is required");
+        }
+        if (command.shippingMethodId() != null && !command.shippingMethodId().isBlank()) {
+            ShippingMethod method = getShippingMethod(tenantId, command.shippingMethodId());
+            if (command.carrierId() != null && !command.carrierId().isBlank()
+                    && !command.carrierId().equals(method.carrierId())) {
+                throw new BizException("CARRIER_METHOD_MISMATCH", "Shipping method does not belong to carrier");
+            }
+        } else if (command.carrierId() != null && !command.carrierId().isBlank()) {
+            getCarrier(tenantId, command.carrierId());
+        }
+    }
+
+    /**
+     * 运单创建时固化一次估算结果，后续即使费率表调整，差异分析仍以发货当时口径为准。
+     */
+    private FreightEstimate tryEstimateShipmentFreight(String tenantId,
+                                                       String carrierId,
+                                                       String shippingMethodId,
+                                                       String originCountry,
+                                                       String destinationCountry,
+                                                       BigDecimal weight,
+                                                       BigDecimal volume) {
+        LogisticsStrategyService.FreightQuote quote = logisticsStrategyService.estimateFreightQuote(
+                tenantId,
+                new LogisticsStrategyService.FreightEstimateCommand(
+                        carrierId,
+                        shippingMethodId,
+                        upperOrNull(originCountry),
+                        upperOrNull(destinationCountry),
+                        weight,
+                        volume));
+        return quote != null ? toFreightEstimate(quote) : null;
+    }
+
+    private FreightEstimate toFreightEstimate(LogisticsStrategyService.FreightQuote quote) {
+        return new FreightEstimate(
+                quote.carrierId(),
+                quote.shippingMethodId(),
+                quote.zoneCode(),
+                quote.chargeableWeight(),
+                quote.estimatedFreight(),
+                quote.currency(),
+                quote.estimatedDaysMin(),
+                quote.estimatedDaysMax());
+    }
+
+    /**
+     * 授权状态只保留业务可见元数据，不在此处存储敏感秘钥，避免把连接器密钥散落到领域表。
+     */
+    private void ensureCarrierCodeAvailable(String tenantId, String code, String currentCarrierId) {
+        shipmentStore.findCarrierByCode(tenantId, code).ifPresent(existing -> {
+            if (currentCarrierId == null || !existing.carrierId().equals(currentCarrierId)) {
+                throw new BizException("CARRIER_CODE_DUPLICATED", "Carrier code already exists");
+            }
+        });
+    }
+
+    private void ensureShippingMethodCodeAvailable(String tenantId, String carrierId, String methodCode) {
+        shipmentStore.findShippingMethodByCode(tenantId, carrierId, methodCode).ifPresent(existing -> {
+            throw new BizException("SHIPPING_METHOD_CODE_DUPLICATED", "Shipping method code already exists");
+        });
+    }
+
+    private void validateEstimatedDays(Integer estimatedDaysMin, Integer estimatedDaysMax) {
+        if (estimatedDaysMin != null && estimatedDaysMin < 0) {
+            throw new BizException("ESTIMATED_DAYS_INVALID", "Estimated minimum days must be greater than or equal to zero");
+        }
+        if (estimatedDaysMax != null && estimatedDaysMax < 0) {
+            throw new BizException("ESTIMATED_DAYS_INVALID", "Estimated maximum days must be greater than or equal to zero");
+        }
+        if (estimatedDaysMin != null && estimatedDaysMax != null && estimatedDaysMin > estimatedDaysMax) {
+            throw new BizException("ESTIMATED_DAYS_INVALID", "Estimated minimum days cannot exceed maximum days");
+        }
+    }
+
+    /**
+     * 渠道规则必须满足重量区间、有效期区间和费率非负，避免脏规则进入报价链路。
+     */
+    private void validateChannelRule(CreateChannelRuleCommand command) {
+        if (command.weightMinKg() != null && command.weightMinKg().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BizException("CHANNEL_RULE_INVALID", "Weight minimum must be greater than or equal to zero");
+        }
+        if (command.weightMaxKg() != null && command.weightMaxKg().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BizException("CHANNEL_RULE_INVALID", "Weight maximum must be greater than or equal to zero");
+        }
+        if (command.weightMinKg() != null && command.weightMaxKg() != null
+                && command.weightMinKg().compareTo(command.weightMaxKg()) > 0) {
+            throw new BizException("CHANNEL_RULE_INVALID", "Weight minimum cannot exceed maximum");
+        }
+        if (command.effectiveFrom() != null && command.effectiveTo() != null
+                && command.effectiveFrom().isAfter(command.effectiveTo())) {
+            throw new BizException("CHANNEL_RULE_INVALID", "Effective from cannot be after effective to");
+        }
+    }
+
+    private BigDecimal resolveVolume(BigDecimal length, BigDecimal width, BigDecimal height) {
+        if (length == null || width == null || height == null) {
+            return null;
+        }
+        return length.multiply(width).multiply(height);
     }
 
     private Shipment update(Shipment shipment, ShipmentStatus status, List<TrackingEvent> events) {
@@ -205,6 +548,10 @@ public class ShipmentService {
                 shipment.height(),
                 shipment.estimatedDelivery(),
                 shipment.actualDelivery(),
+                shipment.estimatedFreight(),
+                shipment.estimatedFreightCurrency(),
+                shipment.estimatedChargeableWeight(),
+                shipment.estimatedAt(),
                 status,
                 events,
                 shipment.createdAt(),
@@ -314,18 +661,77 @@ public class ShipmentService {
         }
     }
 
+    private String normalizeCode(String code) {
+        if (code == null || code.isBlank()) {
+            return code;
+        }
+        return code.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String upperOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String upperOrDefault(String value, String defaultValue) {
+        return value == null || value.isBlank()
+                ? defaultValue
+                : value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String upperOrFallback(String value, String fallback) {
+        return value == null || value.isBlank()
+                ? fallback
+                : value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String chooseText(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
     public record CreateCarrierCommand(String code, String name, String countryCode, String type,
-                                       String contactPerson, String phone, boolean apiEnabled) {}
+                                       String contactPerson, String phone, String status,
+                                       boolean apiEnabled, boolean featured, String authorizationStatus,
+                                       Instant authorizationValidUntil, Instant lastAuthorizedAt) {}
+
+    public record UpdateCarrierCommand(String code, String name, String countryCode, String type,
+                                       String status, String contactPerson, String phone,
+                                       Boolean apiEnabled, Boolean featured, String authorizationStatus,
+                                       Instant authorizationValidUntil, Instant lastAuthorizedAt) {}
+
+    public record CreateShippingMethodCommand(String methodCode, String methodName, String transportMode,
+                                              String rateType, boolean enabled, Integer estimatedDaysMin,
+                                              Integer estimatedDaysMax) {}
+
+    public record CreateChannelRuleCommand(String originCountry, String destinationCountry, String zoneCode,
+                                           BigDecimal weightMinKg, BigDecimal weightMaxKg,
+                                           BigDecimal baseCost, BigDecimal costPerKg, String currency,
+                                           Instant effectiveFrom, Instant effectiveTo) {}
 
     public record CreateShipmentCommand(String orderId, String warehouseId, String carrierId, String shippingMethodId,
                                         String trackingNo, String destinationCountry,
                                         BigDecimal weight, BigDecimal length, BigDecimal width, BigDecimal height,
                                         Instant estimatedDelivery) {}
 
+    public record EstimateShippingRateCommand(String carrierId, String shippingMethodId, String originCountry,
+                                              String destinationCountry, BigDecimal weight, BigDecimal volume) {}
+
     public record AddTrackingCommand(String status, String location, String description) {}
 
     public record RecordShippingCostCommand(String shipmentId, String carrierId, BigDecimal freightCost,
                                             BigDecimal fuelSurcharge, BigDecimal otherFees, String currency) {}
+
+    public record FreightEstimate(String carrierId, String shippingMethodId, String zoneCode,
+                                  BigDecimal chargeableWeight, BigDecimal estimatedFreight, String currency,
+                                  Integer estimatedDaysMin, Integer estimatedDaysMax) {}
+
+    public record FreightDifference(String shipmentId, String carrierId, String shippingMethodId, String status,
+                                    BigDecimal estimatedFreight, BigDecimal actualFreight,
+                                    BigDecimal freightDifference, String currency,
+                                    String estimatedFreightCurrency, String actualFreightCurrency,
+                                    BigDecimal estimatedChargeableWeight, Instant estimatedAt) {}
 
     public record RecommendCarrierCommand(String destinationCountry, String warehouseCountry,
                                           int packageQuantity, BigDecimal packageAmount, boolean splitShipment) {}

@@ -24,6 +24,10 @@ public class ShipmentDO {
     private BigDecimal height;
     private Instant estimatedDelivery;
     private Instant actualDelivery;
+    private BigDecimal estimatedFreight;
+    private String estimatedFreightCurrency;
+    private BigDecimal estimatedChargeableWeight;
+    private Instant estimatedAt;
     private String status;
     private Instant createdAt;
     private Instant updatedAt;
@@ -58,6 +62,14 @@ public class ShipmentDO {
     public void setEstimatedDelivery(Instant estimatedDelivery) { this.estimatedDelivery = estimatedDelivery; }
     public Instant getActualDelivery() { return actualDelivery; }
     public void setActualDelivery(Instant actualDelivery) { this.actualDelivery = actualDelivery; }
+    public BigDecimal getEstimatedFreight() { return estimatedFreight; }
+    public void setEstimatedFreight(BigDecimal estimatedFreight) { this.estimatedFreight = estimatedFreight; }
+    public String getEstimatedFreightCurrency() { return estimatedFreightCurrency; }
+    public void setEstimatedFreightCurrency(String estimatedFreightCurrency) { this.estimatedFreightCurrency = estimatedFreightCurrency; }
+    public BigDecimal getEstimatedChargeableWeight() { return estimatedChargeableWeight; }
+    public void setEstimatedChargeableWeight(BigDecimal estimatedChargeableWeight) { this.estimatedChargeableWeight = estimatedChargeableWeight; }
+    public Instant getEstimatedAt() { return estimatedAt; }
+    public void setEstimatedAt(Instant estimatedAt) { this.estimatedAt = estimatedAt; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public Instant getCreatedAt() { return createdAt; }

@@ -59,6 +59,8 @@ public interface FinanceMapper {
     PaymentRequestDO selectPaymentRequest(@Param("tenantId") String tenantId, @Param("requestId") String requestId);
     /** 按租户查询付款请求列表 */
     List<PaymentRequestDO> selectPaymentRequests(@Param("tenantId") String tenantId);
+    /** 按租户和采购单查询付款请求列表 */
+    List<PaymentRequestDO> selectPaymentRequestsByPo(@Param("tenantId") String tenantId, @Param("poId") String poId);
 
     /** 新增核销 */
     void insertWriteOff(WriteOffDO writeOff);

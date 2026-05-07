@@ -5,6 +5,7 @@ import com.aidotnet.erp.bi.domain.MetricCaliberValue;
 import com.aidotnet.erp.bi.infrastructure.BiExtStore;
 import com.aidotnet.erp.common.exception.BizException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -22,12 +23,12 @@ public class MetricCaliberService {
 
     @Transactional
     public MetricCaliber createCaliber(String tenantId, String metricCode, String metricName,
-                                        String category, String caliberType, String formula,
-                                        String formulaDescription, String numeratorMetric,
-                                        String denominatorMetric, String unit, String dataSource,
-                                        String calculationScope, List<String> dimensions,
-                                        List<String> excludeConditions, String permissionCode,
-                                        String dataLevel, String description) {
+                                       String category, String caliberType, String formula,
+                                       String formulaDescription, String numeratorMetric,
+                                       String denominatorMetric, String unit, String dataSource,
+                                       String calculationScope, List<String> dimensions,
+                                       List<String> excludeConditions, String permissionCode,
+                                       String dataLevel, String description) {
         validateCaliberType(caliberType);
         validateFormula(caliberType, formula, numeratorMetric, denominatorMetric);
         extStore.findMetricCaliberByCode(tenantId, metricCode).ifPresent(existing -> {
@@ -45,21 +46,25 @@ public class MetricCaliberService {
 
     @Transactional
     public MetricCaliber updateCaliber(String tenantId, String caliberId, String formula,
-                                        String formulaDescription, String numeratorMetric,
-                                        String denominatorMetric, String unit, String dataSource,
-                                        String calculationScope, List<String> dimensions,
-                                        List<String> excludeConditions, String description) {
+                                       String formulaDescription, String numeratorMetric,
+                                       String denominatorMetric, String unit, String dataSource,
+                                       String calculationScope, List<String> dimensions,
+                                       List<String> excludeConditions, String description) {
         MetricCaliber existing = extStore.findMetricCaliber(tenantId, caliberId)
                 .orElseThrow(() -> new BizException("CALIBER_NOT_FOUND", "指标口径不存在"));
+        String resolvedFormula = formula != null ? formula : existing.formula();
+        String resolvedNumeratorMetric = numeratorMetric != null ? numeratorMetric : existing.numeratorMetric();
+        String resolvedDenominatorMetric = denominatorMetric != null ? denominatorMetric : existing.denominatorMetric();
+        validateFormula(existing.caliberType(), resolvedFormula, resolvedNumeratorMetric, resolvedDenominatorMetric);
         int newVersion = Integer.parseInt(existing.version()) + 1;
         Instant now = Instant.now();
         MetricCaliber updated = new MetricCaliber(
                 existing.caliberId(), existing.tenantId(), existing.metricCode(),
                 existing.metricName(), existing.category(), existing.caliberType(),
-                formula != null ? formula : existing.formula(),
+                resolvedFormula,
                 formulaDescription != null ? formulaDescription : existing.formulaDescription(),
-                numeratorMetric != null ? numeratorMetric : existing.numeratorMetric(),
-                denominatorMetric != null ? denominatorMetric : existing.denominatorMetric(),
+                resolvedNumeratorMetric,
+                resolvedDenominatorMetric,
                 unit != null ? unit : existing.unit(),
                 dataSource != null ? dataSource : existing.dataSource(),
                 calculationScope != null ? calculationScope : existing.calculationScope(),
@@ -89,11 +94,15 @@ public class MetricCaliberService {
         return updated;
     }
 
-    public MetricCaliberValue calculateMetric(String tenantId, String metricCode,
-                                               String dimensionKey, String dimensionValue,
-                                               BigDecimal numeratorValue, BigDecimal denominatorValue) {
-        MetricCaliber caliber = extStore.findMetricCaliberByCode(tenantId, metricCode)
+    public MetricCaliber getCaliberByCode(String tenantId, String metricCode) {
+        return extStore.findMetricCaliberByCode(tenantId, metricCode)
                 .orElseThrow(() -> new BizException("CALIBER_NOT_FOUND", "指标口径不存在: " + metricCode));
+    }
+
+    public MetricCaliberValue calculateMetric(String tenantId, String metricCode,
+                                              String dimensionKey, String dimensionValue,
+                                              BigDecimal numeratorValue, BigDecimal denominatorValue) {
+        MetricCaliber caliber = getCaliberByCode(tenantId, metricCode);
         if (!caliber.enabled()) {
             throw new BizException("CALIBER_DISABLED", "指标口径已禁用");
         }
@@ -101,9 +110,9 @@ public class MetricCaliberService {
             case "DIRECT" -> numeratorValue;
             case "RATIO" -> {
                 if (denominatorValue == null || denominatorValue.compareTo(BigDecimal.ZERO) == 0) {
-                    throw new BizException("DENOMINATOR_ZERO", "分母不能为零");
+                    throw new BizException("DENOMINATOR_ZERO", "分母不能为空或为0");
                 }
-                yield numeratorValue.divide(denominatorValue, 4, BigDecimal.ROUND_HALF_UP)
+                yield numeratorValue.divide(denominatorValue, 4, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100));
             }
             case "FORMULA" -> evaluateFormula(caliber.formula(), numeratorValue, denominatorValue);
@@ -131,28 +140,26 @@ public class MetricCaliberService {
     }
 
     private void validateFormula(String caliberType, String formula,
-                                  String numeratorMetric, String denominatorMetric) {
+                                 String numeratorMetric, String denominatorMetric) {
         if ("RATIO".equals(caliberType)) {
             if (numeratorMetric == null || numeratorMetric.isBlank()) {
-                throw new BizException("NUMERATOR_REQUIRED", "比率类型必须指定分子指标");
+                throw new BizException("NUMERATOR_REQUIRED", "比率口径必须指定分子指标");
             }
             if (denominatorMetric == null || denominatorMetric.isBlank()) {
-                throw new BizException("DENOMINATOR_REQUIRED", "比率类型必须指定分母指标");
+                throw new BizException("DENOMINATOR_REQUIRED", "比率口径必须指定分母指标");
             }
         }
         if ("FORMULA".equals(caliberType) && (formula == null || formula.isBlank())) {
-            throw new BizException("FORMULA_REQUIRED", "公式类型必须指定计算公式");
+            throw new BizException("FORMULA_REQUIRED", "公式口径必须指定计算公式");
         }
     }
 
     private BigDecimal evaluateFormula(String formula, BigDecimal numerator, BigDecimal denominator) {
-        if (formula.contains("{numerator}") && formula.contains("{denominator}")) {
-            String expr = formula.replace("{numerator}", numerator.toPlainString())
-                    .replace("{denominator}", denominator.toPlainString());
+        if (formula != null && formula.contains("{numerator}") && formula.contains("{denominator}")) {
             try {
-                return new BigDecimal(expr).setScale(4, BigDecimal.ROUND_HALF_UP);
-            } catch (Exception e) {
-                return numerator.divide(denominator, 4, BigDecimal.ROUND_HALF_UP);
+                return numerator.divide(denominator, 4, RoundingMode.HALF_UP);
+            } catch (Exception ignored) {
+                return numerator;
             }
         }
         return numerator;

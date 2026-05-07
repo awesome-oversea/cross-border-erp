@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/ads/api/v1")
+@RequestMapping("/platform/ads/api/v1")
 public class AdsExtensionController {
 
     private final AdsExtensionService adsExtService;

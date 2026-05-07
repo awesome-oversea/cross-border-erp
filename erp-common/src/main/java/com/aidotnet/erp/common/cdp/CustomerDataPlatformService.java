@@ -2,13 +2,26 @@ package com.aidotnet.erp.common.cdp;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+/**
+ * 客户数据平台(CDP)
+ * <p>
+ * 描述: 业务中台(10.7) - 多平台客户数据统一、RFM分析、客户标签、行为分析、客户分群。
+ *     支持自动客户分群和自定义分群。
+ * </p>
+ *
+ * @author ERP系统
+ */
 @Component
 public class CustomerDataPlatformService {
 
@@ -52,11 +65,55 @@ public class CustomerDataPlatformService {
         return new ArrayList<>(segments.values());
     }
 
+    /**
+     * 为客户添加标签
+     * <p>
+     * 标签用于客户分群和精准营销，支持自动标签和手动标签。
+     * 例: "VIP客户"、"高退货率"、"新品偏好"、"德国站买家"
+     * </p>
+     */
+    public CustomerProfile addTag(String customerId, String tag) {
+        CustomerProfile profile = profiles.get(customerId);
+        if (profile == null) return null;
+        Set<String> newTags = new HashSet<>(profile.tags());
+        newTags.add(tag);
+        CustomerProfile updated = new CustomerProfile(profile.customerId(), profile.name(),
+                profile.email(), profile.platform(), profile.attributes(), profile.rfmScore(),
+                List.copyOf(newTags), Instant.now());
+        profiles.put(customerId, updated);
+        return updated;
+    }
+
+    /**
+     * 按标签筛选客户
+     */
+    public List<CustomerProfile> getProfilesByTag(String tag) {
+        return profiles.values().stream()
+                .filter(p -> p.tags().contains(tag))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 记录客户行为事件
+     * <p>
+     * 用于行为分析和客户画像完善。
+     * 事件类型: PAGE_VIEW/ADD_TO_CART/PURCHASE/REFUND/REVIEW
+     * </p>
+     */
+    public void recordBehavior(String customerId, String eventType, Map<String, Object> eventData) {
+        log.debug("Customer behavior: id={}, event={}, data={}", customerId, eventType, eventData);
+    }
+
     public record CustomerProfile(String customerId, String name, String email, String platform,
                                    Map<String, Object> attributes, RfmScore rfmScore,
                                    List<String> tags, Instant updatedAt) {}
     public record RfmScore(int recency, int frequency, int monetary) {
         public int total() { return recency + frequency + monetary; }
+        /** RFM总分[3-15]，>=12优质/>=9潜力/<9待激活 */
+        public String tier() {
+            int t = total();
+            return t >= 12 ? "PREMIUM" : t >= 9 ? "POTENTIAL" : "ACTIVATE";
+        }
     }
     public record CustomerSegment(String id, String name, String description,
                                    Map<String, Object> criteria, int customerCount) {}

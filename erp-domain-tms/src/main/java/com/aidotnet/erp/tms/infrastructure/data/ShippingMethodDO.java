@@ -12,10 +12,13 @@ public class ShippingMethodDO {
     private String methodId;
     private String tenantId;
     private String carrierId;
-    private String name;
-    private String type;
+    private String methodCode;
+    private String methodName;
+    private String transportMode;
     private String rateType;
     private Boolean enabled;
+    private Integer estimatedDaysMin;
+    private Integer estimatedDaysMax;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -27,14 +30,20 @@ public class ShippingMethodDO {
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getCarrierId() { return carrierId; }
     public void setCarrierId(String carrierId) { this.carrierId = carrierId; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public String getMethodCode() { return methodCode; }
+    public void setMethodCode(String methodCode) { this.methodCode = methodCode; }
+    public String getMethodName() { return methodName; }
+    public void setMethodName(String methodName) { this.methodName = methodName; }
+    public String getTransportMode() { return transportMode; }
+    public void setTransportMode(String transportMode) { this.transportMode = transportMode; }
     public String getRateType() { return rateType; }
     public void setRateType(String rateType) { this.rateType = rateType; }
     public Boolean getEnabled() { return enabled; }
     public void setEnabled(Boolean enabled) { this.enabled = enabled; }
+    public Integer getEstimatedDaysMin() { return estimatedDaysMin; }
+    public void setEstimatedDaysMin(Integer estimatedDaysMin) { this.estimatedDaysMin = estimatedDaysMin; }
+    public Integer getEstimatedDaysMax() { return estimatedDaysMax; }
+    public void setEstimatedDaysMax(Integer estimatedDaysMax) { this.estimatedDaysMax = estimatedDaysMax; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

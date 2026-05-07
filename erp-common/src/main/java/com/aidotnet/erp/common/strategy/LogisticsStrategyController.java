@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/tms/api/v1/strategy")
+@RequestMapping("/platform/tms/api/v1/strategy")
 public class LogisticsStrategyController {
 
     private final LogisticsStrategyService logisticsStrategyService;

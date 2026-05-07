@@ -136,14 +136,20 @@ public class TmsExtStore {
 
     private Carrier toCarrierDomain(CarrierDO d) {
         return new Carrier(d.getCarrierId(), d.getTenantId(), d.getCode(), d.getName(),
-                d.getCountryCode(), d.getType(), "ACTIVE", null, null, true,
+                d.getCountryCode(), d.getType(), d.getStatus(), d.getContactPerson(), d.getPhone(),
+                d.getApiEnabled() != null && d.getApiEnabled(),
+                d.getFeatured() != null && d.getFeatured(),
+                d.getAuthorizationStatus(), d.getAuthorizationValidUntil(), d.getLastAuthorizedAt(),
                 d.getCreatedAt(), d.getUpdatedAt());
     }
 
     private ShippingRate toShippingRateDomain(ShippingRateDO d) {
         return new ShippingRate(d.getRateId(), d.getTenantId(), d.getMethodId(),
-                d.getOrigin(), d.getDestination(),
-                BigDecimal.ZERO, BigDecimal.valueOf(99999), d.getRate(), "USD",
+                d.getOriginCountry(), d.getDestinationCountry(), d.getZoneCode(),
+                d.getWeightMinKg() != null ? d.getWeightMinKg() : BigDecimal.ZERO,
+                d.getWeightMaxKg() != null ? d.getWeightMaxKg() : BigDecimal.valueOf(99999),
+                d.getBaseCost(), d.getCostPerKg(), d.getCurrency(),
+                d.getEffectiveFrom(), d.getEffectiveTo(),
                 d.getCreatedAt(), d.getUpdatedAt());
     }
 }

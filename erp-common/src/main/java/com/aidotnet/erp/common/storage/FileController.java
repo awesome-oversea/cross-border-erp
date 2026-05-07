@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/sys/api/in/v1/files")
+@RequestMapping("/platform/sys/api/in/v1/files")
 public class FileController {
 
     private static final Logger log = LoggerFactory.getLogger(FileController.class);

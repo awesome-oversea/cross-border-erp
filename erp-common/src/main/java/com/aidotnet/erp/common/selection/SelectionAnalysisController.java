@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/pdm/api/v1/selection")
+@RequestMapping("/platform/pdm/api/v1/selection")
 public class SelectionAnalysisController {
 
     private final SelectionAnalysisService selectionService;

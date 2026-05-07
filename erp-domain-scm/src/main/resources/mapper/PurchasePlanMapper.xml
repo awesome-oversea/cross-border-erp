@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.PurchasePlanMapper">
+
+    <insert id="insertPlan" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchasePlanDO">
+        INSERT INTO scm_purchase_plan (plan_id, tenant_id, plan_number, status, created_at, updated_at)
+        VALUES (#{planId}, #{tenantId}, #{planNumber}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updatePlan" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchasePlanDO">
+        UPDATE scm_purchase_plan
+        SET plan_number = #{planNumber},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE plan_id = #{planId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectPlan" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchasePlanDO">
+        SELECT plan_id, tenant_id, plan_number, status, created_at, updated_at
+        FROM scm_purchase_plan
+        WHERE tenant_id = #{tenantId} AND plan_id = #{planId}
+    </select>
+
+    <select id="selectPlans" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchasePlanDO">
+        SELECT plan_id, tenant_id, plan_number, status, created_at, updated_at
+        FROM scm_purchase_plan
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertLine" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchasePlanLineDO">
+        INSERT INTO scm_purchase_plan_line (
+            plan_id,
+            tenant_id,
+            line_id,
+            seller_sku,
+            order_demand_quantity,
+            replenishment_demand_quantity,
+            available_inventory_quantity,
+            in_purchasing_quantity,
+            suggested_purchase_quantity,
+            order_source_refs,
+            suggestion_source_refs,
+            line_status,
+            linked_po_id,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            #{planId},
+            #{tenantId},
+            #{lineId},
+            #{sellerSku},
+            #{orderDemandQuantity},
+            #{replenishmentDemandQuantity},
+            #{availableInventoryQuantity},
+            #{inPurchasingQuantity},
+            #{suggestedPurchaseQuantity},
+            #{orderSourceRefs},
+            #{suggestionSourceRefs},
+            #{lineStatus},
+            #{linkedPoId},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <select id="selectLines" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchasePlanLineDO">
+        SELECT plan_id,
+               tenant_id,
+               line_id,
+               seller_sku,
+               order_demand_quantity,
+               replenishment_demand_quantity,
+               available_inventory_quantity,
+               in_purchasing_quantity,
+               suggested_purchase_quantity,
+               order_source_refs,
+               suggestion_source_refs,
+               line_status,
+               linked_po_id,
+               created_at,
+               updated_at
+        FROM scm_purchase_plan_line
+        WHERE plan_id = #{planId}
+        ORDER BY seller_sku, line_id
+    </select>
+
+    <delete id="deleteLines">
+        DELETE FROM scm_purchase_plan_line WHERE plan_id = #{planId}
+    </delete>
+
+</mapper>

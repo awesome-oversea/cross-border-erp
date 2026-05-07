@@ -44,7 +44,14 @@ const menuItems = [
       { key: '/pdm/listings', label: 'Listing管理' },
     ],
   },
-  { key: '/som', icon: <ShopOutlined />, label: '销售运营', domain: 'som' },
+  { key: '/som', icon: <ShopOutlined />, label: '销售运营', domain: 'som',
+    children: [
+      { key: '/som/stores', label: '店铺管理' },
+      { key: '/som/listings', label: 'Listing管理' },
+      { key: '/som/price-rules', label: '价格规则' },
+      { key: '/som/monitors', label: 'Listing监控' },
+    ],
+  },
   { key: '/oms', icon: <ShoppingOutlined />, label: '订单管理', domain: 'oms',
     children: [
       { key: '/oms/orders', label: '订单列表' },
@@ -90,7 +97,12 @@ const menuItems = [
       { key: '/fms/profit', label: '利润报表' },
     ],
   },
-  { key: '/ads', icon: <ThunderboltOutlined />, label: '广告管理', domain: 'ads' },
+  { key: '/ads', icon: <ThunderboltOutlined />, label: '广告管理', domain: 'ads',
+    children: [
+      { key: '/ads/campaigns', label: '广告活动' },
+      { key: '/ads/strategies', label: '广告策略' },
+    ],
+  },
   { key: '/bi', icon: <BarChartOutlined />, label: '商业智能', domain: 'bi',
     children: [
       { key: '/bi/cockpit', label: '经营驾驶舱' },

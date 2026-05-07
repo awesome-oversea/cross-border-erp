@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/dashboard/api/v1")
+@RequestMapping("/platform/dashboard/api/v1")
 public class DashboardExtensionController {
 
     private final DashboardExtensionService dashboardExtService;

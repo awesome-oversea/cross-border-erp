@@ -21,31 +21,31 @@
     </select>
 
     <insert id="insertBalance" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
-        INSERT INTO wms_inventory_balance (tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at)
-        VALUES (#{tenantId}, #{warehouseId}, #{sellerSku}, #{onHand}, #{reserved}, #{updatedAt})
+        INSERT INTO wms_inventory_balance (tenant_id, warehouse_id, seller_sku, on_hand, reserved, in_transit, frozen, updated_at)
+        VALUES (#{tenantId}, #{warehouseId}, #{sellerSku}, #{onHand}, #{reserved}, #{inTransit}, #{frozen}, #{updatedAt})
     </insert>
 
     <update id="updateBalance" parameterType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
         UPDATE wms_inventory_balance
-        SET on_hand = #{onHand}, reserved = #{reserved}, updated_at = #{updatedAt}
+        SET on_hand = #{onHand}, reserved = #{reserved}, in_transit = #{inTransit}, frozen = #{frozen}, updated_at = #{updatedAt}
         WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId} AND seller_sku = #{sellerSku}
     </update>
 
     <select id="selectBalance" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
-        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at
+        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, in_transit, frozen, updated_at
         FROM wms_inventory_balance
         WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId} AND seller_sku = #{sellerSku}
     </select>
 
     <select id="selectBalances" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
-        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at
+        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, in_transit, frozen, updated_at
         FROM wms_inventory_balance
         WHERE tenant_id = #{tenantId} AND warehouse_id = #{warehouseId}
         ORDER BY seller_sku
     </select>
 
     <select id="selectBalancesBySku" resultType="com.aidotnet.erp.wms.infrastructure.data.InventoryBalanceDO">
-        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, updated_at
+        SELECT tenant_id, warehouse_id, seller_sku, on_hand, reserved, in_transit, frozen, updated_at
         FROM wms_inventory_balance
         WHERE tenant_id = #{tenantId} AND seller_sku = #{sellerSku}
         ORDER BY warehouse_id

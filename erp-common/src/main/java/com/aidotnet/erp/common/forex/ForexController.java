@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/fms/api/v1/forex")
+@RequestMapping("/platform/fms/api/v1/forex")
 public class ForexController {
 
     private final ForexService forexService;

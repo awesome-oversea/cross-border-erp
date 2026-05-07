@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -65,16 +66,21 @@ public class ExternalFinanceSyncService {
             }
         }
         Instant now = Instant.now();
-        FinanceSyncConfig config = new FinanceSyncConfig(
-                UUID.randomUUID().toString(), tenantId, financeSystem, apiUrl, apiKey,
-                apiSecret, accountSet, enabled, mappingRules, null, now, now);
+        FinanceSyncConfig existing = extStore.findFinanceSyncConfigBySystem(tenantId, financeSystem).orElse(null);
+        FinanceSyncConfig config = existing == null
+                ? new FinanceSyncConfig(
+                        UUID.randomUUID().toString(), tenantId, financeSystem, apiUrl, apiKey,
+                        apiSecret, accountSet, enabled, mappingRules, null, now, now)
+                : new FinanceSyncConfig(
+                        existing.configId(), existing.tenantId(), existing.financeSystem(), apiUrl, apiKey,
+                        apiSecret, accountSet, enabled, mappingRules, existing.lastSyncAt(), existing.createdAt(), now);
         extStore.saveFinanceSyncConfig(config);
         log.info("Finance sync config created: tenant={} system={}", tenantId, financeSystem);
         return config;
     }
 
-    @Transactional
-    public ExternalFinanceVoucher pushVoucher(String tenantId, String configId, String voucherType,
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public ExternalFinanceVoucher pushVoucher(String tenantId, String configId, String erpVoucherId, String voucherType,
                                                String voucherNumber, String erpReferenceType,
                                                String erpReferenceId, Map<String, Object> voucherData) {
         FinanceSyncConfig config = extStore.findFinanceSyncConfig(tenantId, configId)
@@ -85,7 +91,7 @@ public class ExternalFinanceSyncService {
         ExternalFinanceConnector connector = getConnector(config.financeSystem());
         Instant now = Instant.now();
         ExternalFinanceVoucher voucher = new ExternalFinanceVoucher(
-                UUID.randomUUID().toString(), tenantId, config.financeSystem(), voucherType,
+                UUID.randomUUID().toString(), tenantId, erpVoucherId, config.financeSystem(), voucherType,
                 voucherNumber, erpReferenceType, erpReferenceId, voucherData,
                 "PENDING", null, null, now, now);
         try {
@@ -93,14 +99,18 @@ public class ExternalFinanceSyncService {
                     config.apiUrl(), config.apiKey(), config.apiSecret(),
                     config.accountSet(), voucher);
             voucher = new ExternalFinanceVoucher(
-                    voucher.voucherId(), voucher.tenantId(), voucher.financeSystem(),
+                    voucher.voucherId(), voucher.tenantId(), voucher.erpVoucherId(), voucher.financeSystem(),
                     voucher.voucherType(), resultNumber, voucher.erpReferenceType(),
                     voucher.erpReferenceId(), voucher.voucherData(), "SYNCED", null, now, now, now);
+            extStore.saveFinanceSyncConfig(new FinanceSyncConfig(
+                    config.configId(), config.tenantId(), config.financeSystem(), config.apiUrl(), config.apiKey(),
+                    config.apiSecret(), config.accountSet(), config.enabled(), config.mappingRules(),
+                    now, config.createdAt(), now));
             log.info("Voucher pushed successfully: tenant={} system={} number={}",
                     tenantId, config.financeSystem(), resultNumber);
         } catch (Exception e) {
             voucher = new ExternalFinanceVoucher(
-                    voucher.voucherId(), voucher.tenantId(), voucher.financeSystem(),
+                    voucher.voucherId(), voucher.tenantId(), voucher.erpVoucherId(), voucher.financeSystem(),
                     voucher.voucherType(), voucher.voucherNumber(), voucher.erpReferenceType(),
                     voucher.erpReferenceId(), voucher.voucherData(), "FAILED",
                     e.getMessage(), null, now, now);
@@ -110,7 +120,7 @@ public class ExternalFinanceSyncService {
         return voucher;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ExternalFinanceVoucher retryVoucher(String tenantId, String voucherId) {
         ExternalFinanceVoucher voucher = extStore.findExternalFinanceVoucher(tenantId, voucherId)
                 .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "凭证不存在"));
@@ -126,13 +136,17 @@ public class ExternalFinanceSyncService {
                     config.accountSet(), voucher);
             Instant now = Instant.now();
             voucher = new ExternalFinanceVoucher(
-                    voucher.voucherId(), voucher.tenantId(), voucher.financeSystem(),
+                    voucher.voucherId(), voucher.tenantId(), voucher.erpVoucherId(), voucher.financeSystem(),
                     voucher.voucherType(), resultNumber, voucher.erpReferenceType(),
                     voucher.erpReferenceId(), voucher.voucherData(), "SYNCED", null, now, now, now);
+            extStore.saveFinanceSyncConfig(new FinanceSyncConfig(
+                    config.configId(), config.tenantId(), config.financeSystem(), config.apiUrl(), config.apiKey(),
+                    config.apiSecret(), config.accountSet(), config.enabled(), config.mappingRules(),
+                    now, config.createdAt(), now));
         } catch (Exception e) {
             Instant now = Instant.now();
             voucher = new ExternalFinanceVoucher(
-                    voucher.voucherId(), voucher.tenantId(), voucher.financeSystem(),
+                    voucher.voucherId(), voucher.tenantId(), voucher.erpVoucherId(), voucher.financeSystem(),
                     voucher.voucherType(), voucher.voucherNumber(), voucher.erpReferenceType(),
                     voucher.erpReferenceId(), voucher.voucherData(), "FAILED",
                     e.getMessage(), null, now, now);
@@ -145,8 +159,17 @@ public class ExternalFinanceSyncService {
         return extStore.listExternalFinanceVouchers(tenantId, syncStatus);
     }
 
+    public ExternalFinanceVoucher findVoucher(String tenantId, String voucherId) {
+        return extStore.findExternalFinanceVoucher(tenantId, voucherId)
+                .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "External finance voucher not found"));
+    }
+
     public List<FinanceSyncConfig> listSyncConfigs(String tenantId) {
         return extStore.listFinanceSyncConfigs(tenantId);
+    }
+
+    public java.util.Optional<FinanceSyncConfig> findSyncConfigBySystem(String tenantId, String financeSystem) {
+        return extStore.findFinanceSyncConfigBySystem(tenantId, financeSystem);
     }
 
     public boolean testConnection(String tenantId, String configId) {

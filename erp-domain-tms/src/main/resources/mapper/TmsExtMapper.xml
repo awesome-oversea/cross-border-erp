@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.tms.infrastructure.mapper.TmsExtMapper">
+
+    <insert id="insertShippingBatch" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        INSERT INTO tms_shipping_batch (batch_id, tenant_id, carrier_id, shipment_ids, status, created_at, updated_at)
+        VALUES (#{batchId}, #{tenantId}, #{carrierId}, #{shipmentIds}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateShippingBatch" parameterType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        UPDATE tms_shipping_batch
+        SET carrier_id = #{carrierId},
+            shipment_ids = #{shipmentIds},
+            status = #{status},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND batch_id = #{batchId}
+    </update>
+
+    <select id="selectShippingBatch" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        SELECT batch_id, tenant_id, carrier_id, shipment_ids, status, created_at, updated_at
+        FROM tms_shipping_batch
+        WHERE tenant_id = #{tenantId}
+          AND batch_id = #{batchId}
+    </select>
+
+    <select id="selectShippingBatches" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingBatchDO">
+        SELECT batch_id, tenant_id, carrier_id, shipment_ids, status, created_at, updated_at
+        FROM tms_shipping_batch
+        WHERE tenant_id = #{tenantId}
+        <if test="carrierId != null and carrierId != ''">
+            AND carrier_id = #{carrierId}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertLogisticsStrategy" parameterType="com.aidotnet.erp.tms.infrastructure.data.LogisticsStrategyDO">
+        INSERT INTO tms_logistics_strategy (
+            strategy_id, tenant_id, strategy_name, strategy_type, origin_country, destination_country,
+            preferred_carrier, rules, enabled, priority, created_at, updated_at
+        )
+        VALUES (
+            #{strategyId}, #{tenantId}, #{strategyName}, #{strategyType}, #{originCountry}, #{destinationCountry},
+            #{preferredCarrier}, #{rules}, #{enabled}, #{priority}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateLogisticsStrategy" parameterType="com.aidotnet.erp.tms.infrastructure.data.LogisticsStrategyDO">
+        UPDATE tms_logistics_strategy
+        SET strategy_name = #{strategyName},
+            strategy_type = #{strategyType},
+            origin_country = #{originCountry},
+            destination_country = #{destinationCountry},
+            preferred_carrier = #{preferredCarrier},
+            rules = #{rules},
+            enabled = #{enabled},
+            priority = #{priority},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND strategy_id = #{strategyId}
+    </update>
+
+    <select id="selectLogisticsStrategy" resultType="com.aidotnet.erp.tms.infrastructure.data.LogisticsStrategyDO">
+        SELECT strategy_id, tenant_id, strategy_name, strategy_type, origin_country, destination_country,
+               preferred_carrier, rules, enabled, priority, created_at, updated_at
+        FROM tms_logistics_strategy
+        WHERE tenant_id = #{tenantId}
+          AND strategy_id = #{strategyId}
+    </select>
+
+    <select id="selectLogisticsStrategies" resultType="com.aidotnet.erp.tms.infrastructure.data.LogisticsStrategyDO">
+        SELECT strategy_id, tenant_id, strategy_name, strategy_type, origin_country, destination_country,
+               preferred_carrier, rules, enabled, priority, created_at, updated_at
+        FROM tms_logistics_strategy
+        WHERE tenant_id = #{tenantId}
+        <if test="strategyType != null and strategyType != ''">
+            AND strategy_type = #{strategyType}
+        </if>
+        ORDER BY priority DESC, created_at DESC
+    </select>
+
+    <select id="selectCarriers" resultType="com.aidotnet.erp.tms.infrastructure.data.CarrierDO">
+        SELECT carrier_id, tenant_id, code, name, country_code, type, status, contact_person, phone,
+               api_enabled, featured, authorization_status, authorization_valid_until, last_authorized_at,
+               created_at, updated_at
+        FROM tms_carrier
+        WHERE tenant_id = #{tenantId}
+        ORDER BY featured DESC, code ASC
+    </select>
+
+    <select id="selectShippingRatesByRoute" resultType="com.aidotnet.erp.tms.infrastructure.data.ShippingRateDO">
+        SELECT rate_id, tenant_id, method_id, origin_country, destination_country, zone_code,
+               weight_min_kg, weight_max_kg, base_cost, cost_per_kg, currency,
+               effective_from, effective_to, created_at, updated_at
+        FROM tms_shipping_rate
+        WHERE tenant_id = #{tenantId}
+        <if test="originCountry != null and originCountry != ''">
+            AND (origin_country IS NULL OR origin_country = #{originCountry})
+        </if>
+        <if test="destinationCountry != null and destinationCountry != ''">
+            AND (destination_country IS NULL OR destination_country = #{destinationCountry})
+        </if>
+        ORDER BY base_cost ASC, cost_per_kg ASC
+    </select>
+
+</mapper>

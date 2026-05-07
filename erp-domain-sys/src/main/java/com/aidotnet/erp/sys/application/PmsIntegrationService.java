@@ -1,6 +1,7 @@
 package com.aidotnet.erp.sys.application;
 
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.common.exception.ErrorCode;
 import com.aidotnet.erp.sys.domain.AIFeatureToggle;
 import com.aidotnet.erp.sys.domain.DataTrustLevel;
 import com.aidotnet.erp.sys.domain.PmsDataTrustRule;
@@ -72,18 +73,18 @@ public class PmsIntegrationService {
         for (String required : REQUIRED_HEADERS) {
             String value = findHeader(headers, required);
             if (value == null || value.isBlank()) {
-                throw new BizException("PMS_HEADER_MISSING", "缺少必需请求头: " + required);
+                throw new BizException(ErrorCode.PMS_HEADER_MISSING, "缺少必需请求头: " + required);
             }
         }
         String sourceSystem = findHeader(headers, "source_system");
         if (!"PMS".equalsIgnoreCase(sourceSystem)) {
-            throw new BizException("PMS_SOURCE_INVALID", "source_system必须为PMS");
+            throw new BizException(ErrorCode.PMS_SOURCE_INVALID, "source_system必须为PMS");
         }
         String actorType = findHeader(headers, "actor_type");
         if ("agent".equalsIgnoreCase(actorType)) {
             String agentId = findHeader(headers, "agent_id");
             if (agentId == null || agentId.isBlank()) {
-                throw new BizException("PMS_AGENT_ID_MISSING", "actor_type为agent时agent_id不能为空");
+                throw new BizException(ErrorCode.PMS_AGENT_ID_MISSING, "actor_type为agent时agent_id不能为空");
             }
         }
     }
@@ -118,14 +119,14 @@ public class PmsIntegrationService {
 
     public void validateWriteWhitelist(PmsWriteObjectType objectType) {
         if (objectType == null || !WRITE_WHITELIST.contains(objectType)) {
-            throw new BizException("PMS_WRITE_FORBIDDEN",
+            throw new BizException(ErrorCode.PMS_OBJECT_TYPE_FORBIDDEN,
                     "PMS只能写入Recommendation/Draft/PendingAction/RiskAlert/InsightCard");
         }
     }
 
     public void validateDomain(String domain) {
         if (domain == null || !SUPPORTED_DOMAINS.contains(domain.toUpperCase())) {
-            throw new BizException("PMS_DOMAIN_UNSUPPORTED", "不支持的ERP域: " + domain);
+            throw new BizException(ErrorCode.PMS_DOMAIN_UNSUPPORTED, "不支持的ERP域: " + domain);
         }
     }
 
@@ -152,7 +153,7 @@ public class PmsIntegrationService {
                                            String scope, String purpose, String traceId) {
         PmsRecommendation recommendation = recommendationService.get(tenantId, erpReferenceId);
         if (recommendation.status() != PmsRecommendationStatus.APPROVED) {
-            throw new BizException("PMS_DRAFT_NOT_APPROVED", "建议未审批通过，不能生成草稿");
+            throw new BizException(ErrorCode.PMS_OBJECT_TYPE_FORBIDDEN, "建议未审批通过，不能生成草稿");
         }
         Instant now = Instant.now();
         PmsDraftDocument draft = new PmsDraftDocument(
@@ -167,7 +168,7 @@ public class PmsIntegrationService {
         PmsDraftDocument draft = extStore.findPmsDraftDocument(tenantId, draftId)
                 .orElseThrow(() -> new BizException("PMS_DRAFT_NOT_FOUND", "草稿单据不存在"));
         if (!"PENDING".equals(draft.approvalStatus())) {
-            throw new BizException("PMS_DRAFT_ALREADY_PROCESSED", "草稿已处理");
+            throw new BizException(ErrorCode.INVALID_STATUS, "草稿已处理");
         }
         Instant now = Instant.now();
         PmsDraftDocument approved = new PmsDraftDocument(
@@ -184,7 +185,7 @@ public class PmsIntegrationService {
         PmsDraftDocument draft = extStore.findPmsDraftDocument(tenantId, draftId)
                 .orElseThrow(() -> new BizException("PMS_DRAFT_NOT_FOUND", "草稿单据不存在"));
         if (!"APPROVED".equals(draft.approvalStatus())) {
-            throw new BizException("PMS_DRAFT_NOT_APPROVED", "草稿未审批，不能执行");
+            throw new BizException(ErrorCode.PMS_OBJECT_TYPE_FORBIDDEN, "草稿未审批，不能执行");
         }
         Instant now = Instant.now();
         PmsDraftDocument executed = new PmsDraftDocument(

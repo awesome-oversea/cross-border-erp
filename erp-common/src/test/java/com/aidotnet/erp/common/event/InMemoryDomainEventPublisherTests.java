@@ -25,6 +25,19 @@ class InMemoryDomainEventPublisherTests {
         assertThat(event.occurredAt()).isNotNull();
     }
 
+    @Test
+    void publishAlsoDispatchesToSharedDispatcherWhenPresent() {
+        DomainEventDispatcher dispatcher = new DomainEventDispatcher();
+        InMemoryDomainEventPublisher publisher = new InMemoryDomainEventPublisher(dispatcher);
+        ArrayList<DomainEvent> received = new ArrayList<>();
+        dispatcher.register("iam.user.created", received::add);
+
+        DomainEvent event = new SimpleDomainEvent("evt-2", "tenant-demo", "trace-demo", "iam.user.created", "u-2", Instant.now());
+        publisher.publish(event);
+
+        assertThat(received).containsExactly(event);
+    }
+
     record SimpleDomainEvent(String eventId, String tenantId, String traceId, String eventType, String aggregateId,
                              Instant occurredAt) implements DomainEvent {
     }

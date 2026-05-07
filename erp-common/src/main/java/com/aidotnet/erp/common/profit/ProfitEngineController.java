@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/fms/api/v1/profit-engine")
+@RequestMapping("/platform/fms/api/v1/profit-engine")
 public class ProfitEngineController {
 
     private final ProfitEngineService profitEngineService;

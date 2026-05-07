@@ -109,6 +109,10 @@ public class ProfitCalculationEngine {
         return extStore.listProfitResultsBySku(tenantId, sellerSku);
     }
 
+    public List<ProfitResult> listProfitResultsByDimension(String tenantId, String dimensionType) {
+        return extStore.listProfitResultsByDimension(tenantId, dimensionType);
+    }
+
     @Transactional
     public List<ProfitDeviationAlert> detectDeviations(String tenantId, BigDecimal threshold) {
         BigDecimal alertThreshold = threshold != null ? threshold : DEFAULT_MARGIN_THRESHOLD;
@@ -164,8 +168,8 @@ public class ProfitCalculationEngine {
         return Severity.LOW;
     }
 
-    public Map<String, BigDecimal> getProfitSummaryByDimension(String tenantId, String dimensionType) {
-        List<ProfitResult> results = extStore.listProfitResultsByDimension(tenantId, dimensionType);
+    public ProfitSummary getProfitSummaryByDimension(String tenantId, String dimensionType) {
+        List<ProfitResult> results = listProfitResultsByDimension(tenantId, dimensionType);
         Map<String, BigDecimal> summary = new LinkedHashMap<>();
         BigDecimal totalRevenue = BigDecimal.ZERO;
         BigDecimal totalProfit = BigDecimal.ZERO;
@@ -173,16 +177,25 @@ public class ProfitCalculationEngine {
             totalRevenue = totalRevenue.add(r.revenue());
             totalProfit = totalProfit.add(r.grossProfit());
         }
-        summary.put("totalRevenue", totalRevenue);
-        summary.put("totalProfit", totalProfit);
         summary.put("avgMargin", totalRevenue.compareTo(BigDecimal.ZERO) > 0
                 ? totalProfit.divide(totalRevenue, 4, RoundingMode.HALF_UP) : BigDecimal.ZERO);
-        summary.put("count", BigDecimal.valueOf(results.size()));
-        return summary;
+        return new ProfitSummary(
+                dimensionType,
+                totalRevenue,
+                totalProfit,
+                summary.get("avgMargin"),
+                results.size());
     }
 
     public record CalculateProfitCommand(
             String dimensionType, String dimensionId, String sellerSku,
             String orderId, String storeId, String marketplaceId,
             BigDecimal revenue, String currency) {}
+
+    public record ProfitSummary(
+            String dimensionType,
+            BigDecimal totalRevenue,
+            BigDecimal totalProfit,
+            BigDecimal avgMargin,
+            int resultCount) {}
 }

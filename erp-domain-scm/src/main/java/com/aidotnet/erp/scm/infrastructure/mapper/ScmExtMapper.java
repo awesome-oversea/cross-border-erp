@@ -48,6 +48,10 @@ public interface ScmExtMapper {
 
     /** 新增采购审批记录 */
     void insertPurchaseApproval(PurchaseApprovalDO approval);
+    /** 更新采购审批记录 */
+    void updatePurchaseApproval(PurchaseApprovalDO approval);
+    /** 按审批ID查询采购审批记录 */
+    PurchaseApprovalDO selectPurchaseApproval(@Param("tenantId") String tenantId, @Param("approvalId") String approvalId);
     /** 按采购单ID查询审批列表 */
     List<PurchaseApprovalDO> selectApprovalsByPo(@Param("tenantId") String tenantId, @Param("poId") String poId);
     /** 按审批人查询待审批列表 */

@@ -4,6 +4,7 @@ import com.aidotnet.erp.common.exception.BizException;
 import com.aidotnet.erp.fms.domain.ExternalFinanceConnector;
 import com.aidotnet.erp.fms.domain.ExternalFinanceVoucher;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,7 +31,9 @@ public class KingdeeFinanceConnector implements ExternalFinanceConnector {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper()
+                .findAndRegisterModules()
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     @Override
@@ -115,7 +118,7 @@ public class KingdeeFinanceConnector implements ExternalFinanceConnector {
             @SuppressWarnings("unchecked")
             Map<String, Object> result = objectMapper.readValue(response.body(), Map.class);
             return new ExternalFinanceVoucher(
-                    UUID.randomUUID().toString(), "", FINANCE_SYSTEM, "GL_VOUCHER",
+                    UUID.randomUUID().toString(), "", null, FINANCE_SYSTEM, "GL_VOUCHER",
                     voucherNumber, "", "", result, "SYNCED", null, Instant.now(), Instant.now(), Instant.now());
         } catch (Exception e) {
             throw new BizException("KINGDEE_QUERY_ERROR", "金蝶查询凭证异常: " + e.getMessage());

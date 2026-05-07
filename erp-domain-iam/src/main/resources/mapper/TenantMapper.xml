@@ -3,26 +3,30 @@
 <mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.TenantMapper">
 
     <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.TenantDO">
-        INSERT INTO iam_tenant (tenant_id, name, status, created_at, updated_at)
-        VALUES (#{tenantId}, #{name}, #{status}, #{createdAt}, #{updatedAt})
+        INSERT INTO iam_tenant (tenant_id, name, code, status, plan, expire_at, created_at, updated_at)
+        VALUES (#{tenantId}, #{name}, #{code}, #{status}, #{plan}, #{expireAt}, #{createdAt}, #{updatedAt})
     </insert>
 
     <select id="selectById" resultType="com.aidotnet.erp.iam.infrastructure.data.TenantDO">
-        SELECT tenant_id, name, status, created_at, updated_at
+        SELECT tenant_id, name, code, status, plan, expire_at, created_at, updated_at
         FROM iam_tenant
         WHERE tenant_id = #{tenantId}
     </select>
 
     <select id="selectAll" resultType="com.aidotnet.erp.iam.infrastructure.data.TenantDO">
-        SELECT tenant_id, name, status, created_at, updated_at
+        SELECT tenant_id, name, code, status, plan, expire_at, created_at, updated_at
         FROM iam_tenant
         ORDER BY created_at
     </select>
 
     <update id="update" parameterType="com.aidotnet.erp.iam.infrastructure.data.TenantDO">
         UPDATE iam_tenant
-        SET name = #{name}, status = #{status}, updated_at = #{updatedAt}
+        SET name = #{name}, code = #{code}, status = #{status}, plan = #{plan}, expire_at = #{expireAt}, updated_at = #{updatedAt}
         WHERE tenant_id = #{tenantId}
     </update>
+
+    <delete id="deleteById">
+        DELETE FROM iam_tenant WHERE tenant_id = #{tenantId}
+    </delete>
 
 </mapper>

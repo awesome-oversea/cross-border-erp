@@ -4,10 +4,14 @@ import com.aidotnet.erp.tms.domain.Carrier;
 import com.aidotnet.erp.tms.domain.Shipment;
 import com.aidotnet.erp.tms.domain.ShipmentStatus;
 import com.aidotnet.erp.tms.domain.ShippingCost;
+import com.aidotnet.erp.tms.domain.ShippingMethod;
+import com.aidotnet.erp.tms.domain.ShippingRate;
 import com.aidotnet.erp.tms.domain.TrackingEvent;
 import com.aidotnet.erp.tms.infrastructure.data.CarrierDO;
 import com.aidotnet.erp.tms.infrastructure.data.ShipmentDO;
 import com.aidotnet.erp.tms.infrastructure.data.ShippingCostDO;
+import com.aidotnet.erp.tms.infrastructure.data.ShippingMethodDO;
+import com.aidotnet.erp.tms.infrastructure.data.ShippingRateDO;
 import com.aidotnet.erp.tms.infrastructure.data.TrackingEventDO;
 import com.aidotnet.erp.tms.infrastructure.mapper.ShipmentMapper;
 import java.time.Instant;
@@ -18,24 +22,20 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 /**
- * TMS域发货数据存储
- * <p>
- * 描述: 物流域核心数据存储层，负责发货单、承运商、运费成本、物流轨迹等实体的CRUD操作。
- * </p>
+ * TMS鍩熷彂璐ф暟鎹瓨鍌? * <p>
+ * 鎻忚堪: 鐗╂祦鍩熸牳蹇冩暟鎹瓨鍌ㄥ眰锛岃礋璐ｅ彂璐у崟銆佹壙杩愬晢銆佽繍璐规垚鏈€佺墿娴佽建杩圭瓑瀹炰綋鐨凜RUD鎿嶄綔銆? * </p>
  *
- * @author ERP系统
+ * @author ERP绯荤粺
  */
 @Repository
 public class ShipmentStore {
 
-    /** 发货数据MyBatis映射器 */
+    /** 鍙戣揣鏁版嵁MyBatis鏄犲皠鍣?*/
     private final ShipmentMapper mapper;
 
     /**
-     * 构造函数 - 依赖注入映射器
-     *
-     * @param mapper 发货MyBatis映射器
-     */
+     * 鏋勯€犲嚱鏁?- 渚濊禆娉ㄥ叆鏄犲皠鍣?     *
+     * @param mapper 鍙戣揣MyBatis鏄犲皠鍣?     */
     public ShipmentStore(ShipmentMapper mapper) {
         this.mapper = mapper;
     }
@@ -56,9 +56,82 @@ public class ShipmentStore {
                 .map(this::toCarrierDomain);
     }
 
+    public Optional<Carrier> findCarrierByCode(String tenantId, String code) {
+        return Optional.ofNullable(mapper.selectCarrierByCode(tenantId, code))
+                .map(this::toCarrierDomain);
+    }
+
     public List<Carrier> listCarriers(String tenantId) {
         return mapper.selectCarriers(tenantId).stream()
-                .map(this::toCarrierDomain).collect(Collectors.toList());
+                .map(this::toCarrierDomain)
+                .collect(Collectors.toList());
+    }
+
+    public List<ShippingMethod> listShippingMethods(String tenantId) {
+        return mapper.selectShippingMethods(tenantId).stream()
+                .map(this::toShippingMethodDomain)
+                .collect(Collectors.toList());
+    }
+
+    public ShippingMethod saveShippingMethod(ShippingMethod method) {
+        ShippingMethodDO existing = mapper.selectShippingMethod(method.tenantId(), method.methodId());
+        ShippingMethodDO data = toShippingMethodData(method);
+        if (existing == null) {
+            mapper.insertShippingMethod(data);
+        } else {
+            mapper.updateShippingMethod(data);
+        }
+        return method;
+    }
+
+    public Optional<ShippingMethod> findShippingMethod(String tenantId, String methodId) {
+        return Optional.ofNullable(mapper.selectShippingMethod(tenantId, methodId))
+                .map(this::toShippingMethodDomain);
+    }
+
+    public Optional<ShippingMethod> findShippingMethodByCode(String tenantId, String carrierId, String methodCode) {
+        return Optional.ofNullable(mapper.selectShippingMethodByCode(tenantId, carrierId, methodCode))
+                .map(this::toShippingMethodDomain);
+    }
+
+    public List<ShippingMethod> listShippingMethodsByCarrier(String tenantId, String carrierId) {
+        return mapper.selectShippingMethodsByCarrier(tenantId, carrierId).stream()
+                .map(this::toShippingMethodDomain)
+                .collect(Collectors.toList());
+    }
+
+    public ShippingRate saveShippingRate(ShippingRate rate) {
+        ShippingRateDO existing = mapper.selectShippingRate(rate.tenantId(), rate.rateId());
+        ShippingRateDO data = toShippingRateData(rate);
+        if (existing == null) {
+            mapper.insertShippingRate(data);
+        } else {
+            mapper.updateShippingRate(data);
+        }
+        return rate;
+    }
+
+    public Optional<ShippingRate> findShippingRate(String tenantId, String rateId) {
+        return Optional.ofNullable(mapper.selectShippingRate(tenantId, rateId))
+                .map(this::toShippingRateDomain);
+    }
+
+    public List<ShippingRate> listShippingRatesByMethod(String tenantId, String methodId) {
+        return mapper.selectShippingRatesByMethod(tenantId, methodId).stream()
+                .map(this::toShippingRateDomain)
+                .collect(Collectors.toList());
+    }
+
+    public List<ShippingRate> listShippingRates(String tenantId) {
+        return mapper.selectShippingRates(tenantId).stream()
+                .map(this::toShippingRateDomain)
+                .collect(Collectors.toList());
+    }
+
+    public List<ShippingRate> listShippingRatesByRoute(String tenantId, String originCountry, String destinationCountry) {
+        return mapper.selectShippingRatesByRoute(tenantId, originCountry, destinationCountry).stream()
+                .map(this::toShippingRateDomain)
+                .collect(Collectors.toList());
     }
 
     public Shipment saveShipment(Shipment shipment) {
@@ -74,22 +147,26 @@ public class ShipmentStore {
     }
 
     public Optional<Shipment> findShipment(String tenantId, String shipmentId) {
-        ShipmentDO d = mapper.selectShipment(tenantId, shipmentId);
-        if (d == null) return Optional.empty();
-        List<TrackingEvent> events = loadTrackingEvents(d.getTenantId(), d.getShipmentId());
-        return Optional.of(toShipmentDomain(d, events));
+        ShipmentDO data = mapper.selectShipment(tenantId, shipmentId);
+        if (data == null) {
+            return Optional.empty();
+        }
+        List<TrackingEvent> events = loadTrackingEvents(data.getTenantId(), data.getShipmentId());
+        return Optional.of(toShipmentDomain(data, events));
     }
 
     public Optional<Shipment> findByTrackingNo(String tenantId, String trackingNo) {
-        ShipmentDO d = mapper.selectShipmentByTrackingNo(tenantId, trackingNo);
-        if (d == null) return Optional.empty();
-        List<TrackingEvent> events = loadTrackingEvents(d.getTenantId(), d.getShipmentId());
-        return Optional.of(toShipmentDomain(d, events));
+        ShipmentDO data = mapper.selectShipmentByTrackingNo(tenantId, trackingNo);
+        if (data == null) {
+            return Optional.empty();
+        }
+        List<TrackingEvent> events = loadTrackingEvents(data.getTenantId(), data.getShipmentId());
+        return Optional.of(toShipmentDomain(data, events));
     }
 
     public List<Shipment> listShipments(String tenantId) {
         return mapper.selectShipments(tenantId).stream()
-                .map(d -> toShipmentDomain(d, loadTrackingEvents(d.getTenantId(), d.getShipmentId())))
+                .map(data -> toShipmentDomain(data, loadTrackingEvents(data.getTenantId(), data.getShipmentId())))
                 .collect(Collectors.toList());
     }
 
@@ -111,19 +188,33 @@ public class ShipmentStore {
 
     public List<ShippingCost> listShippingCosts(String tenantId) {
         return mapper.selectShippingCosts(tenantId).stream()
-                .map(this::toCostDomain).collect(Collectors.toList());
+                .map(this::toCostDomain)
+                .collect(Collectors.toList());
     }
 
     public List<ShippingCost> listShippingCostsByCarrier(String tenantId, String carrierId) {
         return mapper.selectShippingCostsByCarrier(tenantId, carrierId).stream()
-                .map(this::toCostDomain).collect(Collectors.toList());
+                .map(this::toCostDomain)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<ShippingCost> findLatestShippingCostByShipment(String tenantId, String shipmentId) {
+        return Optional.ofNullable(mapper.selectLatestShippingCostByShipment(tenantId, shipmentId))
+                .map(this::toCostDomain);
     }
 
     private List<TrackingEvent> loadTrackingEvents(String tenantId, String shipmentId) {
         List<TrackingEventDO> eventDOs = mapper.selectTrackingEvents(tenantId, shipmentId);
-        if (eventDOs == null) return Collections.emptyList();
+        if (eventDOs == null) {
+            return Collections.emptyList();
+        }
         return eventDOs.stream()
-                .map(e -> new TrackingEvent(e.getEventId(), e.getStatus(), e.getLocation(), e.getDescription(), e.getOccurredAt()))
+                .map(event -> new TrackingEvent(
+                        event.getEventId(),
+                        event.getStatus(),
+                        event.getLocation(),
+                        event.getDescription(),
+                        event.getOccurredAt()))
                 .collect(Collectors.toList());
     }
 
@@ -151,61 +242,182 @@ public class ShipmentStore {
         return data;
     }
 
-    private ShipmentDO toShipmentData(Shipment s) {
+    private ShipmentDO toShipmentData(Shipment shipment) {
         ShipmentDO data = new ShipmentDO();
-        data.setShipmentId(s.shipmentId());
-        data.setTenantId(s.tenantId());
-        data.setOrderId(s.orderId());
-        data.setWarehouseId(s.warehouseId());
-        data.setCarrierId(s.carrierId());
-        data.setShippingMethodId(s.shippingMethodId());
-        data.setTrackingNo(s.trackingNo());
-        data.setDestinationCountry(s.destinationCountry());
-        data.setWeight(s.weight());
-        data.setLength(s.length());
-        data.setWidth(s.width());
-        data.setHeight(s.height());
-        data.setEstimatedDelivery(s.estimatedDelivery());
-        data.setActualDelivery(s.actualDelivery());
-        data.setStatus(s.status().name());
-        data.setCreatedAt(s.createdAt() != null ? s.createdAt() : Instant.now());
-        data.setUpdatedAt(Instant.now());
+        data.setShipmentId(shipment.shipmentId());
+        data.setTenantId(shipment.tenantId());
+        data.setOrderId(shipment.orderId());
+        data.setWarehouseId(shipment.warehouseId());
+        data.setCarrierId(shipment.carrierId());
+        data.setShippingMethodId(shipment.shippingMethodId());
+        data.setTrackingNo(shipment.trackingNo());
+        data.setDestinationCountry(shipment.destinationCountry());
+        data.setWeight(shipment.weight());
+        data.setLength(shipment.length());
+        data.setWidth(shipment.width());
+        data.setHeight(shipment.height());
+        data.setEstimatedDelivery(shipment.estimatedDelivery());
+        data.setActualDelivery(shipment.actualDelivery());
+        data.setEstimatedFreight(shipment.estimatedFreight());
+        data.setEstimatedFreightCurrency(shipment.estimatedFreightCurrency());
+        data.setEstimatedChargeableWeight(shipment.estimatedChargeableWeight());
+        data.setEstimatedAt(shipment.estimatedAt());
+        data.setStatus(shipment.status().name());
+        data.setCreatedAt(shipment.createdAt() != null ? shipment.createdAt() : Instant.now());
+        data.setUpdatedAt(shipment.updatedAt() != null ? shipment.updatedAt() : Instant.now());
         return data;
     }
 
-    private Shipment toShipmentDomain(ShipmentDO d, List<TrackingEvent> events) {
-        return new Shipment(d.getShipmentId(), d.getTenantId(), d.getOrderId(), d.getWarehouseId(),
-                d.getCarrierId(), d.getShippingMethodId(), d.getTrackingNo(), d.getDestinationCountry(),
-                d.getWeight(), d.getLength(), d.getWidth(), d.getHeight(),
-                d.getEstimatedDelivery(), d.getActualDelivery(),
-                ShipmentStatus.valueOf(d.getStatus()), events, d.getCreatedAt(), d.getUpdatedAt());
+    private Shipment toShipmentDomain(ShipmentDO data, List<TrackingEvent> events) {
+        return new Shipment(
+                data.getShipmentId(),
+                data.getTenantId(),
+                data.getOrderId(),
+                data.getWarehouseId(),
+                data.getCarrierId(),
+                data.getShippingMethodId(),
+                data.getTrackingNo(),
+                data.getDestinationCountry(),
+                data.getWeight(),
+                data.getLength(),
+                data.getWidth(),
+                data.getHeight(),
+                data.getEstimatedDelivery(),
+                data.getActualDelivery(),
+                data.getEstimatedFreight(),
+                data.getEstimatedFreightCurrency(),
+                data.getEstimatedChargeableWeight(),
+                data.getEstimatedAt(),
+                ShipmentStatus.valueOf(data.getStatus()),
+                events,
+                data.getCreatedAt(),
+                data.getUpdatedAt());
     }
 
-    private CarrierDO toCarrierData(Carrier c) {
+    private CarrierDO toCarrierData(Carrier carrier) {
         CarrierDO data = new CarrierDO();
-        data.setCarrierId(c.carrierId());
-        data.setTenantId(c.tenantId());
-        data.setCode(c.code());
-        data.setName(c.name());
-        data.setCountryCode(c.countryCode());
-        data.setType(c.type());
-        data.setStatus(c.status());
-        data.setContactPerson(c.contactPerson());
-        data.setPhone(c.phone());
-        data.setApiEnabled(c.apiEnabled());
-        data.setCreatedAt(c.createdAt() != null ? c.createdAt() : Instant.now());
-        data.setUpdatedAt(c.updatedAt() != null ? c.updatedAt() : Instant.now());
+        data.setCarrierId(carrier.carrierId());
+        data.setTenantId(carrier.tenantId());
+        data.setCode(carrier.code());
+        data.setName(carrier.name());
+        data.setCountryCode(carrier.countryCode());
+        data.setType(carrier.type());
+        data.setStatus(carrier.status());
+        data.setContactPerson(carrier.contactPerson());
+        data.setPhone(carrier.phone());
+        data.setApiEnabled(carrier.apiEnabled());
+        data.setFeatured(carrier.featured());
+        data.setAuthorizationStatus(carrier.authorizationStatus());
+        data.setAuthorizationValidUntil(carrier.authorizationValidUntil());
+        data.setLastAuthorizedAt(carrier.lastAuthorizedAt());
+        data.setCreatedAt(carrier.createdAt() != null ? carrier.createdAt() : Instant.now());
+        data.setUpdatedAt(carrier.updatedAt() != null ? carrier.updatedAt() : Instant.now());
         return data;
     }
 
-    private Carrier toCarrierDomain(CarrierDO d) {
-        return new Carrier(d.getCarrierId(), d.getTenantId(), d.getCode(), d.getName(), d.getCountryCode(),
-                d.getType(), d.getStatus(), d.getContactPerson(), d.getPhone(),
-                d.getApiEnabled() != null && d.getApiEnabled(), d.getCreatedAt(), d.getUpdatedAt());
+    private Carrier toCarrierDomain(CarrierDO data) {
+        return new Carrier(
+                data.getCarrierId(),
+                data.getTenantId(),
+                data.getCode(),
+                data.getName(),
+                data.getCountryCode(),
+                data.getType(),
+                data.getStatus(),
+                data.getContactPerson(),
+                data.getPhone(),
+                data.getApiEnabled() != null && data.getApiEnabled(),
+                data.getFeatured() != null && data.getFeatured(),
+                data.getAuthorizationStatus(),
+                data.getAuthorizationValidUntil(),
+                data.getLastAuthorizedAt(),
+                data.getCreatedAt(),
+                data.getUpdatedAt());
     }
 
-    private ShippingCost toCostDomain(ShippingCostDO d) {
-        return new ShippingCost(d.getCostId(), d.getTenantId(), d.getShipmentId(), d.getCarrierId(),
-                d.getFreightCost(), d.getFuelSurcharge(), d.getOtherFees(), d.getTotalCost(), d.getCurrency(), d.getCreatedAt());
+    private ShippingMethodDO toShippingMethodData(ShippingMethod method) {
+        ShippingMethodDO data = new ShippingMethodDO();
+        data.setMethodId(method.methodId());
+        data.setTenantId(method.tenantId());
+        data.setCarrierId(method.carrierId());
+        data.setMethodCode(method.methodCode());
+        data.setMethodName(method.methodName());
+        data.setTransportMode(method.transportMode());
+        data.setRateType(method.rateType());
+        data.setEnabled(method.enabled());
+        data.setEstimatedDaysMin(method.estimatedDaysMin());
+        data.setEstimatedDaysMax(method.estimatedDaysMax());
+        data.setCreatedAt(method.createdAt() != null ? method.createdAt() : Instant.now());
+        data.setUpdatedAt(method.updatedAt() != null ? method.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private ShippingMethod toShippingMethodDomain(ShippingMethodDO data) {
+        return new ShippingMethod(
+                data.getMethodId(),
+                data.getTenantId(),
+                data.getCarrierId(),
+                data.getMethodCode(),
+                data.getMethodName(),
+                data.getTransportMode(),
+                data.getRateType(),
+                data.getEnabled() != null && data.getEnabled(),
+                data.getEstimatedDaysMin(),
+                data.getEstimatedDaysMax(),
+                data.getCreatedAt(),
+                data.getUpdatedAt());
+    }
+
+    private ShippingRateDO toShippingRateData(ShippingRate rate) {
+        ShippingRateDO data = new ShippingRateDO();
+        data.setRateId(rate.rateId());
+        data.setTenantId(rate.tenantId());
+        data.setMethodId(rate.methodId());
+        data.setOriginCountry(rate.originCountry());
+        data.setDestinationCountry(rate.destinationCountry());
+        data.setZoneCode(rate.zoneCode());
+        data.setWeightMinKg(rate.weightMinKg());
+        data.setWeightMaxKg(rate.weightMaxKg());
+        data.setBaseCost(rate.baseCost());
+        data.setCostPerKg(rate.costPerKg());
+        data.setCurrency(rate.currency());
+        data.setEffectiveFrom(rate.effectiveFrom());
+        data.setEffectiveTo(rate.effectiveTo());
+        data.setCreatedAt(rate.createdAt() != null ? rate.createdAt() : Instant.now());
+        data.setUpdatedAt(rate.updatedAt() != null ? rate.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private ShippingRate toShippingRateDomain(ShippingRateDO data) {
+        return new ShippingRate(
+                data.getRateId(),
+                data.getTenantId(),
+                data.getMethodId(),
+                data.getOriginCountry(),
+                data.getDestinationCountry(),
+                data.getZoneCode(),
+                data.getWeightMinKg(),
+                data.getWeightMaxKg(),
+                data.getBaseCost(),
+                data.getCostPerKg(),
+                data.getCurrency(),
+                data.getEffectiveFrom(),
+                data.getEffectiveTo(),
+                data.getCreatedAt(),
+                data.getUpdatedAt());
+    }
+
+    private ShippingCost toCostDomain(ShippingCostDO data) {
+        return new ShippingCost(
+                data.getCostId(),
+                data.getTenantId(),
+                data.getShipmentId(),
+                data.getCarrierId(),
+                data.getFreightCost(),
+                data.getFuelSurcharge(),
+                data.getOtherFees(),
+                data.getTotalCost(),
+                data.getCurrency(),
+                data.getCreatedAt());
     }
 }

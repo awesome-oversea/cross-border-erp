@@ -142,4 +142,61 @@
         ORDER BY message_date DESC
     </select>
 
+    <insert id="insertCustomerProfile" parameterType="com.aidotnet.erp.crm.infrastructure.data.CustomerProfileDO">
+        INSERT INTO crm_customer_profile (profile_id, tenant_id, customer_id, segment, lifetime_value, avg_order_value,
+                                          total_orders, total_returns, return_rate, preferred_channel, preferred_language,
+                                          risk_level, attributes, first_order_at, last_order_at, created_at, updated_at)
+        VALUES (#{profileId}, #{tenantId}, #{customerId}, #{segment}, #{lifetimeValue}, #{avgOrderValue},
+                #{totalOrders}, #{totalReturns}, #{returnRate}, #{preferredChannel}, #{preferredLanguage},
+                #{riskLevel}, #{attributes}, #{firstOrderAt}, #{lastOrderAt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateCustomerProfile" parameterType="com.aidotnet.erp.crm.infrastructure.data.CustomerProfileDO">
+        UPDATE crm_customer_profile
+        SET segment = #{segment}, lifetime_value = #{lifetimeValue}, avg_order_value = #{avgOrderValue},
+            total_orders = #{totalOrders}, total_returns = #{totalReturns}, return_rate = #{returnRate},
+            preferred_channel = #{preferredChannel}, preferred_language = #{preferredLanguage},
+            risk_level = #{riskLevel}, attributes = #{attributes}, first_order_at = #{firstOrderAt},
+            last_order_at = #{lastOrderAt}, updated_at = #{updatedAt}
+        WHERE profile_id = #{profileId} AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectCustomerProfile" resultType="com.aidotnet.erp.crm.infrastructure.data.CustomerProfileDO">
+        SELECT profile_id, tenant_id, customer_id, segment, lifetime_value, avg_order_value,
+               total_orders, total_returns, return_rate, preferred_channel, preferred_language,
+               risk_level, attributes, first_order_at, last_order_at, created_at, updated_at
+        FROM crm_customer_profile WHERE tenant_id = #{tenantId} AND profile_id = #{profileId}
+    </select>
+
+    <select id="selectCustomerProfileByCustomerId" resultType="com.aidotnet.erp.crm.infrastructure.data.CustomerProfileDO">
+        SELECT profile_id, tenant_id, customer_id, segment, lifetime_value, avg_order_value,
+               total_orders, total_returns, return_rate, preferred_channel, preferred_language,
+               risk_level, attributes, first_order_at, last_order_at, created_at, updated_at
+        FROM crm_customer_profile WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+    </select>
+
+    <select id="selectCustomerProfiles" resultType="com.aidotnet.erp.crm.infrastructure.data.CustomerProfileDO">
+        SELECT profile_id, tenant_id, customer_id, segment, lifetime_value, avg_order_value,
+               total_orders, total_returns, return_rate, preferred_channel, preferred_language,
+               risk_level, attributes, first_order_at, last_order_at, created_at, updated_at
+        FROM crm_customer_profile WHERE tenant_id = #{tenantId}
+        <if test="segment != null">AND segment = #{segment}</if>
+        ORDER BY lifetime_value DESC
+    </select>
+
+    <insert id="insertCustomerBehavior" parameterType="com.aidotnet.erp.crm.infrastructure.data.CustomerBehaviorDO">
+        INSERT INTO crm_customer_behavior (behavior_id, tenant_id, customer_id, behavior_type, channel,
+                                           object_type, object_id, context, occurred_at, created_at)
+        VALUES (#{behaviorId}, #{tenantId}, #{customerId}, #{behaviorType}, #{channel},
+                #{objectType}, #{objectId}, #{context}, #{occurredAt}, #{createdAt})
+    </insert>
+
+    <select id="selectCustomerBehaviors" resultType="com.aidotnet.erp.crm.infrastructure.data.CustomerBehaviorDO">
+        SELECT behavior_id, tenant_id, customer_id, behavior_type, channel, object_type, object_id, context, occurred_at, created_at
+        FROM crm_customer_behavior WHERE tenant_id = #{tenantId}
+        <if test="customerId != null">AND customer_id = #{customerId}</if>
+        <if test="behaviorType != null">AND behavior_type = #{behaviorType}</if>
+        ORDER BY occurred_at DESC
+    </select>
+
 </mapper>

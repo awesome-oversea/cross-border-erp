@@ -49,6 +49,7 @@ public class CustomerDataService {
                 .orElse(null);
         Instant now = Instant.now();
         if (existing == null) {
+            // 首次建档时初始化客户画像基础指标，后续由行为与订单数据持续补充。
             CustomerProfile profile = new CustomerProfile(
                     UUID.randomUUID().toString(), tenantId, command.customerId(),
                     command.segment(), command.lifetimeValue(), command.avgOrderValue(),

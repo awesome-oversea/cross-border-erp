@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.SupplierScoreMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierScoreDO">
+        INSERT INTO scm_supplier_score (score_id, tenant_id, supplier_id, quality_score, delivery_score,
+                                        price_score, service_score, overall_score, evaluation_count, scored_at)
+        VALUES (#{scoreId}, #{tenantId}, #{supplierId}, #{qualityScore}, #{deliveryScore},
+                #{priceScore}, #{serviceScore}, #{overallScore}, #{evaluationCount}, #{scoredAt})
+    </insert>
+
+    <update id="update" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierScoreDO">
+        UPDATE scm_supplier_score
+        SET quality_score = #{qualityScore},
+            delivery_score = #{deliveryScore},
+            price_score = #{priceScore},
+            service_score = #{serviceScore},
+            overall_score = #{overallScore},
+            evaluation_count = #{evaluationCount},
+            scored_at = #{scoredAt}
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+    </update>
+
+    <select id="selectBySupplier" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierScoreDO">
+        SELECT score_id, tenant_id, supplier_id, quality_score, delivery_score, price_score,
+               service_score, overall_score, evaluation_count, scored_at
+        FROM scm_supplier_score
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+    </select>
+</mapper>

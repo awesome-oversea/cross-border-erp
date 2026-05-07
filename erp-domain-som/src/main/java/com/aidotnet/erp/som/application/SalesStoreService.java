@@ -1,7 +1,10 @@
 package com.aidotnet.erp.som.application;
 
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.som.domain.BuyboxMonitor;
+import com.aidotnet.erp.som.domain.HijackAlert;
 import com.aidotnet.erp.som.domain.SalesStore;
+import com.aidotnet.erp.som.domain.SalesTeam;
 import com.aidotnet.erp.som.domain.SalesTracking;
 import com.aidotnet.erp.som.domain.StoreMetrics;
 import com.aidotnet.erp.som.domain.StoreStatus;
@@ -9,8 +12,13 @@ import com.aidotnet.erp.som.infrastructure.SalesStoreRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
@@ -135,4 +143,134 @@ public class SalesStoreService {
     public record RecordMetricsCommand(String storeId, String marketplaceId, BigDecimal totalRevenue,
                                        BigDecimal totalOrders, BigDecimal returnRate, BigDecimal feedbackScore,
                                        Instant periodStart, Instant periodEnd) {}
+
+    // ========== Buybox监控管理(内存存储) ==========
+
+    private final Map<String, BuyboxMonitor> buyboxStore = new ConcurrentHashMap<>();
+    private final Map<String, HijackAlert> hijackStore = new ConcurrentHashMap<>();
+    private final Map<String, SalesTeam> salesTeamStore = new ConcurrentHashMap<>();
+
+    /**
+     * 记录Buybox采集信息
+     * <p>
+     * 用于追踪Listing的Buybox持有者和价格变化，
+     * 支持自动调价策略的数据基础。
+     * </p>
+     */
+    public BuyboxMonitor recordBuybox(String tenantId, RecordBuyboxCommand command) {
+        Instant now = Instant.now();
+        BuyboxMonitor monitor = new BuyboxMonitor(UUID.randomUUID().toString(), tenantId,
+                command.listingId(), command.platform(), command.marketplace(),
+                command.winnerName(), command.winnerPrice(), command.ourPrice(),
+                false, null, command.hijackerCount(), now, now);
+        buyboxStore.put(monitor.monitorId(), monitor);
+        return monitor;
+    }
+
+    public List<BuyboxMonitor> listBuyboxByListing(String tenantId, String listingId) {
+        return buyboxStore.values().stream()
+                .filter(b -> b.tenantId().equals(tenantId) && b.listingId().equals(listingId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 查询买盒监控信号
+     * <p>
+     * 运营监控、BI 聚合等场景需要按租户统一拉取买盒信号，支持按 Listing 维度过滤。
+     * 返回结果按采集时间倒序排列，优先消费最近一次有效快照。
+     * </p>
+     */
+    public List<BuyboxMonitor> listBuyboxMonitors(String tenantId, String listingId) {
+        return buyboxStore.values().stream()
+                .filter(item -> item.tenantId().equals(tenantId))
+                .filter(item -> listingId == null || listingId.isBlank() || item.listingId().equals(listingId))
+                .sorted(Comparator.comparing(BuyboxMonitor::collectedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(BuyboxMonitor::monitorId, Comparator.nullsLast(String::compareTo)))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 创建跟卖告警
+     * <p>
+     * 检测到新的跟卖者时自动创建告警记录，
+     * 运营人员确认后可标记为已处理。
+     * </p>
+     */
+    public HijackAlert createHijackAlert(String tenantId, CreateHijackAlertCommand command) {
+        Instant now = Instant.now();
+        HijackAlert alert = new HijackAlert(UUID.randomUUID().toString(), tenantId,
+                command.listingId(), command.platform(), command.marketplace(),
+                command.hijackerName(), command.hijackerPrice(), command.ourPrice(),
+                command.severity(), "OPEN", null, null, now, null, now, now);
+        hijackStore.put(alert.alertId(), alert);
+        return alert;
+    }
+
+    public List<HijackAlert> listHijackAlerts(String tenantId, String listingId) {
+        return hijackStore.values().stream()
+                .filter(h -> h.tenantId().equals(tenantId) && h.listingId().equals(listingId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 查询跟卖告警
+     * <p>
+     * 支持按 Listing 过滤，也支持租户级统一拉取，用于 BI 运营监控和人工处置队列。
+     * 返回结果按最近更新时间倒序排列，便于优先处理最新风险。
+     * </p>
+     */
+    public List<HijackAlert> listHijackAlerts(String tenantId, String listingId, boolean includeResolved) {
+        return hijackStore.values().stream()
+                .filter(item -> item.tenantId().equals(tenantId))
+                .filter(item -> listingId == null || listingId.isBlank() || item.listingId().equals(listingId))
+                .filter(item -> includeResolved || !"RESOLVED".equalsIgnoreCase(item.status()))
+                .sorted(Comparator.comparing(HijackAlert::updatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(HijackAlert::alertId, Comparator.nullsLast(String::compareTo)))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 确认跟卖告警已处理
+     */
+    public HijackAlert acknowledgeHijackAlert(String tenantId, String alertId, String handledBy, String note) {
+        HijackAlert alert = hijackStore.get(alertId);
+        if (alert == null || !alert.tenantId().equals(tenantId)) {
+            throw new BizException("ALERT_NOT_FOUND", "跟卖告警不存在");
+        }
+        HijackAlert updated = new HijackAlert(alert.alertId(), alert.tenantId(), alert.listingId(),
+                alert.platform(), alert.marketplace(), alert.hijackerName(), alert.hijackerPrice(),
+                alert.ourPrice(), alert.severity(), "RESOLVED", handledBy, note,
+                alert.detectedAt(), Instant.now(), alert.createdAt(), Instant.now());
+        hijackStore.put(alertId, updated);
+        return updated;
+    }
+
+    // ========== 销售小组管理(内存存储) ==========
+
+    /**
+     * 创建销售小组
+     */
+    public SalesTeam createSalesTeam(String tenantId, String teamName, String leaderId,
+                                      List<String> memberIds, List<String> storeIds) {
+        Instant now = Instant.now();
+        SalesTeam team = new SalesTeam(UUID.randomUUID().toString(), tenantId, teamName, leaderId,
+                memberIds != null ? memberIds : List.of(),
+                storeIds != null ? storeIds : List.of(), true, now, now);
+        salesTeamStore.put(team.teamId(), team);
+        return team;
+    }
+
+    public List<SalesTeam> listSalesTeams(String tenantId) {
+        return salesTeamStore.values().stream()
+                .filter(t -> t.tenantId().equals(tenantId))
+                .collect(Collectors.toList());
+    }
+
+    public record RecordBuyboxCommand(String listingId, String platform, String marketplace,
+                                       String winnerName, BigDecimal winnerPrice, BigDecimal ourPrice,
+                                       int hijackerCount) {}
+
+    public record CreateHijackAlertCommand(String listingId, String platform, String marketplace,
+                                            String hijackerName, BigDecimal hijackerPrice, BigDecimal ourPrice,
+                                            String severity) {}
 }

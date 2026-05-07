@@ -8,6 +8,7 @@ import com.aidotnet.erp.oms.domain.OrderRiskCheck;
 import com.aidotnet.erp.oms.domain.OrderStatus;
 import com.aidotnet.erp.oms.domain.OrderStrategy;
 import com.aidotnet.erp.oms.domain.OrderSyncLog;
+import com.aidotnet.erp.oms.domain.PmsRiskAlertReviewLog;
 import com.aidotnet.erp.oms.domain.PmsRiskAlert;
 import com.aidotnet.erp.oms.domain.Promotion;
 import com.aidotnet.erp.oms.domain.SalesOrder;
@@ -20,6 +21,7 @@ import com.aidotnet.erp.oms.infrastructure.data.OrderRiskCheckDO;
 import com.aidotnet.erp.oms.infrastructure.data.OrderStrategyDO;
 import com.aidotnet.erp.oms.infrastructure.data.OrderSyncLogDO;
 import com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertDO;
+import com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertReviewLogDO;
 import com.aidotnet.erp.oms.infrastructure.data.PromotionDO;
 import com.aidotnet.erp.oms.infrastructure.mapper.OrderMapper;
 import java.time.Instant;
@@ -175,6 +177,17 @@ public class OrderStore {
 
     public void updatePmsRiskAlertStatus(String alertId, String status) {
         orderMapper.updatePmsRiskAlertStatus(alertId, status);
+    }
+
+    public PmsRiskAlertReviewLog savePmsRiskAlertReviewLog(PmsRiskAlertReviewLog reviewLog) {
+        orderMapper.insertPmsRiskAlertReviewLog(toPmsRiskAlertReviewLogData(reviewLog));
+        return reviewLog;
+    }
+
+    public List<PmsRiskAlertReviewLog> listPmsRiskAlertReviewLogs(String tenantId, String alertId) {
+        return orderMapper.selectPmsRiskAlertReviewLogs(tenantId, alertId).stream()
+                .map(this::toPmsRiskAlertReviewLogDomain)
+                .toList();
     }
 
     public OrderSyncLog saveOrderSyncLog(OrderSyncLog syncLog) {
@@ -382,6 +395,31 @@ public class OrderStore {
         return new PmsRiskAlert(data.getAlertId(), data.getTenantId(), data.getOrderId(), data.getRiskType(),
                 data.getRiskScore(), data.getRiskLevel(), data.getDescription(), data.getSuggestedAction(),
                 data.getTraceId(), data.getIdempotencyKey(), data.getStatus(), data.getCreatedAt());
+    }
+
+    private PmsRiskAlertReviewLogDO toPmsRiskAlertReviewLogData(PmsRiskAlertReviewLog reviewLog) {
+        PmsRiskAlertReviewLogDO data = new PmsRiskAlertReviewLogDO();
+        data.setLogId(reviewLog.logId());
+        data.setTenantId(reviewLog.tenantId());
+        data.setAlertId(reviewLog.alertId());
+        data.setOrderId(reviewLog.orderId());
+        data.setAction(reviewLog.action());
+        data.setReviewerNote(reviewLog.reviewerNote());
+        data.setRiskLevel(reviewLog.riskLevel());
+        data.setCreatedAt(reviewLog.createdAt());
+        return data;
+    }
+
+    private PmsRiskAlertReviewLog toPmsRiskAlertReviewLogDomain(PmsRiskAlertReviewLogDO data) {
+        return new PmsRiskAlertReviewLog(
+                data.getLogId(),
+                data.getTenantId(),
+                data.getAlertId(),
+                data.getOrderId(),
+                data.getAction(),
+                data.getReviewerNote(),
+                data.getRiskLevel(),
+                data.getCreatedAt());
     }
 
     private OrderSyncLogDO toOrderSyncLogData(OrderSyncLog syncLog) {

@@ -31,11 +31,16 @@
 
     <insert id="insertAIFeatureToggle" parameterType="com.aidotnet.erp.sys.infrastructure.data.AIFeatureToggleDO">
         INSERT INTO sys_ai_feature_toggle (toggle_id, tenant_id, feature_code, feature_name, domain, enabled, description, config_json, created_at, updated_at)
-        VALUES (#{toggleId}, #{tenantId}, #{featureCode}, #{featureName}, #{domain}, #{enabled}, #{description}, #{configJson}, #{createdAt}, #{updatedAt})
+        VALUES (#{toggleId}, #{tenantId}, #{featureCode}, #{featureName}, #{domain}, #{enabled}, #{description},
+                CAST(COALESCE(NULLIF(#{configJson, jdbcType=VARCHAR}, ''), '{}') AS JSONB), #{createdAt}, #{updatedAt})
     </insert>
 
     <update id="updateAIFeatureToggle" parameterType="com.aidotnet.erp.sys.infrastructure.data.AIFeatureToggleDO">
-        UPDATE sys_ai_feature_toggle SET enabled = #{enabled}, description = #{description}, config_json = #{configJson}, updated_at = #{updatedAt}
+        UPDATE sys_ai_feature_toggle
+        SET enabled = #{enabled},
+            description = #{description},
+            config_json = CAST(COALESCE(NULLIF(#{configJson, jdbcType=VARCHAR}, ''), '{}') AS JSONB),
+            updated_at = #{updatedAt}
         WHERE toggle_id = #{toggleId} AND tenant_id = #{tenantId}
     </update>
 

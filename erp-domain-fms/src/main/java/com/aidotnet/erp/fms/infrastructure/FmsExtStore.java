@@ -1,6 +1,7 @@
 package com.aidotnet.erp.fms.infrastructure;
 
 import com.aidotnet.erp.fms.domain.CostAggregationRule;
+import com.aidotnet.erp.fms.domain.CostAnomaly;
 import com.aidotnet.erp.fms.domain.CostAllocationResult;
 import com.aidotnet.erp.fms.domain.CostBreakdown;
 import com.aidotnet.erp.fms.domain.FraudDetectionResult;
@@ -24,14 +25,19 @@ import com.aidotnet.erp.fms.domain.PlatformComplianceResult;
 import com.aidotnet.erp.fms.domain.TradeComplianceResult;
 import com.aidotnet.erp.fms.domain.ExternalFinanceVoucher;
 import com.aidotnet.erp.fms.domain.FinanceSyncConfig;
+import com.aidotnet.erp.fms.domain.InvoiceSetting;
 import com.aidotnet.erp.fms.infrastructure.data.BillingRuleDO;
 import com.aidotnet.erp.fms.infrastructure.data.CostAggregationRuleDO;
+import com.aidotnet.erp.fms.infrastructure.data.CostAnomalyDO;
 import com.aidotnet.erp.fms.infrastructure.data.CostAllocationResultDO;
 import com.aidotnet.erp.fms.infrastructure.data.CostBreakdownDO;
 import com.aidotnet.erp.fms.infrastructure.data.CurrencyRateDO;
 import com.aidotnet.erp.fms.infrastructure.data.CurrencyRateSyncLogDO;
 import com.aidotnet.erp.fms.infrastructure.data.FraudDetectionResultDO;
+import com.aidotnet.erp.fms.infrastructure.data.ExternalFinanceVoucherDO;
+import com.aidotnet.erp.fms.infrastructure.data.FinanceSyncConfigDO;
 import com.aidotnet.erp.fms.infrastructure.data.InvoiceDO;
+import com.aidotnet.erp.fms.infrastructure.data.InvoiceSettingDO;
 import com.aidotnet.erp.fms.infrastructure.data.JournalEntryDO;
 import com.aidotnet.erp.fms.infrastructure.data.ProfitDeviationAlertDO;
 import com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO;
@@ -46,11 +52,14 @@ import com.aidotnet.erp.fms.infrastructure.mapper.FmsExtMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.aidotnet.erp.fms.application.CostAggregationEngine.CostLayer;
+import com.aidotnet.erp.fms.application.CostAggregationEngine.FifoConsumption;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
@@ -231,6 +240,30 @@ public class FmsExtStore {
         return mapper.selectVouchersByReference(tenantId, referenceType, referenceId).stream().map(this::toVoucherDomain).collect(Collectors.toList());
     }
 
+    public InvoiceSetting saveInvoiceSetting(InvoiceSetting setting) {
+        InvoiceSettingDO existing = mapper.selectInvoiceSetting(setting.tenantId(), setting.settingId());
+        InvoiceSettingDO data = toInvoiceSettingData(setting);
+        if (existing == null) {
+            mapper.insertInvoiceSetting(data);
+        } else {
+            mapper.updateInvoiceSetting(data);
+        }
+        return setting;
+    }
+
+    public Optional<InvoiceSetting> findInvoiceSetting(String tenantId, String settingId) {
+        return Optional.ofNullable(mapper.selectInvoiceSetting(tenantId, settingId)).map(this::toInvoiceSettingDomain);
+    }
+
+    public Optional<InvoiceSetting> findInvoiceSettingByScope(String tenantId, String storeId, String marketplaceId) {
+        return Optional.ofNullable(mapper.selectInvoiceSettingByScope(tenantId, storeId, marketplaceId))
+                .map(this::toInvoiceSettingDomain);
+    }
+
+    public List<InvoiceSetting> listInvoiceSettings(String tenantId) {
+        return mapper.selectInvoiceSettings(tenantId).stream().map(this::toInvoiceSettingDomain).collect(Collectors.toList());
+    }
+
     private InvoiceDO toInvoiceData(Invoice i) {
         InvoiceDO data = new InvoiceDO();
         data.setInvoiceId(i.invoiceId());
@@ -302,6 +335,32 @@ public class FmsExtStore {
                 d.getExportBatchId(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
+    private InvoiceSettingDO toInvoiceSettingData(InvoiceSetting s) {
+        InvoiceSettingDO data = new InvoiceSettingDO();
+        data.setSettingId(s.settingId());
+        data.setTenantId(s.tenantId());
+        data.setStoreId(s.storeId());
+        data.setMarketplaceId(s.marketplaceId());
+        data.setTemplateId(s.templateId());
+        data.setInvoiceTitle(s.invoiceTitle());
+        data.setTaxRegistrationNo(s.taxRegistrationNo());
+        data.setShowUnitPrice(s.showUnitPrice());
+        data.setShowTaxRate(s.showTaxRate());
+        data.setShowDiscount(s.showDiscount());
+        data.setRemark(s.remark());
+        data.setEnabled(s.enabled());
+        data.setCreatedAt(s.createdAt() != null ? s.createdAt() : Instant.now());
+        data.setUpdatedAt(s.updatedAt() != null ? s.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private InvoiceSetting toInvoiceSettingDomain(InvoiceSettingDO d) {
+        return new InvoiceSetting(
+                d.getSettingId(), d.getTenantId(), d.getStoreId(), d.getMarketplaceId(), d.getTemplateId(),
+                d.getInvoiceTitle(), d.getTaxRegistrationNo(), d.isShowUnitPrice(), d.isShowTaxRate(),
+                d.isShowDiscount(), d.getRemark(), d.isEnabled(), d.getCreatedAt(), d.getUpdatedAt());
+    }
+
     public CostAggregationRule saveCostAggregationRule(CostAggregationRule rule) {
         CostAggregationRuleDO existing = mapper.selectCostAggregationRule(rule.tenantId(), rule.ruleId());
         CostAggregationRuleDO data = toCostAggregationRuleData(rule);
@@ -336,6 +395,31 @@ public class FmsExtStore {
 
     public List<CostAllocationResult> listCostAllocationResultsByTarget(String tenantId, String dimensionType, String dimensionId) {
         return mapper.selectCostAllocationResultsByTarget(tenantId, dimensionType, dimensionId).stream().map(this::toCostAllocationResultDomain).collect(Collectors.toList());
+    }
+
+    public CostAnomaly saveCostAnomaly(CostAnomaly anomaly) {
+        CostAnomalyDO existing = mapper.selectCostAnomaly(anomaly.tenantId(), anomaly.anomalyId());
+        CostAnomalyDO data = toCostAnomalyData(anomaly);
+        if (existing == null) {
+            mapper.insertCostAnomaly(data);
+        } else {
+            mapper.updateCostAnomaly(data);
+        }
+        return anomaly;
+    }
+
+    public Optional<CostAnomaly> findCostAnomaly(String tenantId, String anomalyId) {
+        return Optional.ofNullable(mapper.selectCostAnomaly(tenantId, anomalyId)).map(this::toCostAnomalyDomain);
+    }
+
+    public Optional<CostAnomaly> findCostAnomalyByIdempotencyKey(String tenantId, String idempotencyKey) {
+        return Optional.ofNullable(mapper.selectCostAnomalyByIdempotencyKey(tenantId, idempotencyKey))
+                .map(this::toCostAnomalyDomain);
+    }
+
+    public List<CostAnomaly> listCostAnomalies(String tenantId, String status, String sellerSku, String storeId) {
+        return mapper.selectCostAnomalies(tenantId, status, sellerSku, storeId).stream()
+                .map(this::toCostAnomalyDomain).collect(Collectors.toList());
     }
 
     public ProfitResult saveProfitResult(ProfitResult result) {
@@ -436,6 +520,76 @@ public class FmsExtStore {
         return new CostAllocationResult(d.getResultId(), d.getTenantId(), d.getRuleId(), d.getCostEventId(),
                 d.getTargetDimension(), d.getTargetId(), d.getAllocatedAmount(), d.getCurrency(),
                 d.getExchangeRate(), d.getAmountInBaseCurrency(), dimensions, d.getAllocatedAt());
+    }
+
+    private CostAnomalyDO toCostAnomalyData(CostAnomaly anomaly) {
+        CostAnomalyDO data = new CostAnomalyDO();
+        data.setAnomalyId(anomaly.anomalyId());
+        data.setTenantId(anomaly.tenantId());
+        data.setErpReferenceId(anomaly.erpReferenceId());
+        data.setIdempotencyKey(anomaly.idempotencyKey());
+        data.setAnomalyType(anomaly.anomalyType());
+        data.setSourceType(anomaly.sourceType());
+        data.setSourceId(anomaly.sourceId());
+        data.setDimensionType(anomaly.dimensionType());
+        data.setDimensionId(anomaly.dimensionId());
+        data.setSellerSku(anomaly.sellerSku());
+        data.setStoreId(anomaly.storeId());
+        data.setChannelCode(anomaly.channelCode());
+        data.setMarketplaceId(anomaly.marketplaceId());
+        data.setCostType(anomaly.costType());
+        data.setSuggestedAmount(anomaly.suggestedAmount());
+        data.setCurrency(anomaly.currency());
+        data.setAutoAggregate(anomaly.autoAggregate());
+        data.setReason(anomaly.reason());
+        try {
+            data.setEvidenceJson(anomaly.evidence() != null ? objectMapper.writeValueAsString(anomaly.evidence()) : "{}");
+        } catch (JsonProcessingException e) {
+            data.setEvidenceJson("{}");
+        }
+        data.setStatus(anomaly.status());
+        data.setSubmittedBy(anomaly.submittedBy());
+        data.setSubmittedActorType(anomaly.submittedActorType());
+        data.setApprovedBy(anomaly.approvedBy());
+        data.setApprovedAt(anomaly.approvedAt());
+        data.setEffectiveCostEventId(anomaly.effectiveCostEventId());
+        try {
+            data.setAllocationResultIdsJson(anomaly.allocationResultIds() != null
+                    ? objectMapper.writeValueAsString(anomaly.allocationResultIds()) : "[]");
+        } catch (JsonProcessingException e) {
+            data.setAllocationResultIdsJson("[]");
+        }
+        data.setTraceId(anomaly.traceId());
+        data.setPurpose(anomaly.purpose());
+        data.setRawScope(anomaly.rawScope());
+        data.setCreatedAt(anomaly.createdAt() != null ? anomaly.createdAt() : Instant.now());
+        data.setUpdatedAt(anomaly.updatedAt() != null ? anomaly.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private CostAnomaly toCostAnomalyDomain(CostAnomalyDO d) {
+        Map<String, Object> evidence;
+        try {
+            evidence = objectMapper.readValue(d.getEvidenceJson() != null ? d.getEvidenceJson() : "{}", new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            evidence = Map.of();
+        }
+        List<String> allocationResultIds;
+        try {
+            allocationResultIds = objectMapper.readValue(
+                    d.getAllocationResultIdsJson() != null ? d.getAllocationResultIdsJson() : "[]",
+                    new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            allocationResultIds = List.of();
+        }
+        return new CostAnomaly(
+                d.getAnomalyId(), d.getTenantId(), d.getErpReferenceId(), d.getIdempotencyKey(),
+                d.getAnomalyType(), d.getSourceType(), d.getSourceId(), d.getDimensionType(), d.getDimensionId(),
+                d.getSellerSku(), d.getStoreId(), d.getChannelCode(), d.getMarketplaceId(), d.getCostType(),
+                d.getSuggestedAmount(), d.getCurrency(), Boolean.TRUE.equals(d.getAutoAggregate()), d.getReason(),
+                evidence, d.getStatus(), d.getSubmittedBy(), d.getSubmittedActorType(), d.getApprovedBy(),
+                d.getApprovedAt(), d.getEffectiveCostEventId(), allocationResultIds, d.getTraceId(), d.getPurpose(),
+                d.getRawScope(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
     private ProfitResultDO toProfitResultData(ProfitResult r) {
@@ -838,45 +992,163 @@ public class FmsExtStore {
                 d.getSellerSku(), d.getStatus(), violations, warnings, details, d.getCheckedAt());
     }
 
-    private final Map<String, ExternalFinanceVoucher> extFinanceVoucherStore = new java.util.concurrent.ConcurrentHashMap<>();
-    private final Map<String, FinanceSyncConfig> financeSyncConfigStore = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * FIFO成本层内存存储
+     * <p>
+     * Key: {tenantId}:{sellerSku}, Value: 成本层列表(按入库时间升序)
+     * 生产环境下应替换为数据库持久化存储。
+     * </p>
+     */
+    private final Map<String, List<CostLayer>> costLayerStore = new ConcurrentHashMap<>();
+
+    /**
+     * 查询SKU的FIFO成本层
+     * <p>
+     * 从数据库或内存存储中获取该SKU的所有FIFO成本层，
+     * 按入库时间升序排列以确保先进先出顺序正确。
+     * </p>
+     */
+    public List<CostLayer> listCostLayers(String tenantId, String sellerSku) {
+        return costLayerStore.getOrDefault(tenantId + ":" + sellerSku, List.of());
+    }
+
+    /**
+     * 保存更新后的FIFO成本层
+     * <p>
+     * 出库消耗后，更新该SKU的剩余成本层。
+     * 完全消耗的层会被移除，部分消耗的层更新availableQuantity。
+     * </p>
+     */
+    public void saveCostLayers(String tenantId, String sellerSku, List<CostLayer> layers) {
+        String key = tenantId + ":" + sellerSku;
+        if (layers == null || layers.isEmpty()) {
+            costLayerStore.remove(key);
+        } else {
+            costLayerStore.put(key, layers);
+        }
+    }
 
     public void saveExternalFinanceVoucher(ExternalFinanceVoucher voucher) {
-        extFinanceVoucherStore.put(voucher.voucherId(), voucher);
+        ExternalFinanceVoucherDO existing = mapper.selectExternalFinanceVoucher(voucher.tenantId(), voucher.voucherId());
+        ExternalFinanceVoucherDO data = toExternalFinanceVoucherData(voucher);
+        if (existing == null) {
+            mapper.insertExternalFinanceVoucher(data);
+        } else {
+            mapper.updateExternalFinanceVoucher(data);
+        }
     }
 
     public Optional<ExternalFinanceVoucher> findExternalFinanceVoucher(String tenantId, String voucherId) {
-        return extFinanceVoucherStore.values().stream()
-                .filter(v -> v.tenantId().equals(tenantId) && v.voucherId().equals(voucherId))
-                .findFirst();
+        return Optional.ofNullable(mapper.selectExternalFinanceVoucher(tenantId, voucherId))
+                .map(this::toExternalFinanceVoucherDomain);
     }
 
     public List<ExternalFinanceVoucher> listExternalFinanceVouchers(String tenantId, String syncStatus) {
-        return extFinanceVoucherStore.values().stream()
-                .filter(v -> v.tenantId().equals(tenantId))
-                .filter(v -> syncStatus == null || v.syncStatus().equals(syncStatus))
+        return mapper.selectExternalFinanceVouchers(tenantId, syncStatus).stream()
+                .map(this::toExternalFinanceVoucherDomain)
                 .collect(Collectors.toList());
     }
 
     public void saveFinanceSyncConfig(FinanceSyncConfig config) {
-        financeSyncConfigStore.put(config.configId(), config);
+        FinanceSyncConfigDO existing = mapper.selectFinanceSyncConfig(config.tenantId(), config.configId());
+        FinanceSyncConfigDO data = toFinanceSyncConfigData(config);
+        if (existing == null) {
+            mapper.insertFinanceSyncConfig(data);
+        } else {
+            mapper.updateFinanceSyncConfig(data);
+        }
     }
 
     public Optional<FinanceSyncConfig> findFinanceSyncConfig(String tenantId, String configId) {
-        return financeSyncConfigStore.values().stream()
-                .filter(c -> c.tenantId().equals(tenantId) && c.configId().equals(configId))
-                .findFirst();
+        return Optional.ofNullable(mapper.selectFinanceSyncConfig(tenantId, configId))
+                .map(this::toFinanceSyncConfigDomain);
     }
 
     public Optional<FinanceSyncConfig> findFinanceSyncConfigBySystem(String tenantId, String financeSystem) {
-        return financeSyncConfigStore.values().stream()
-                .filter(c -> c.tenantId().equals(tenantId) && c.financeSystem().equals(financeSystem))
-                .findFirst();
+        return Optional.ofNullable(mapper.selectFinanceSyncConfigBySystem(tenantId, financeSystem))
+                .map(this::toFinanceSyncConfigDomain);
     }
 
     public List<FinanceSyncConfig> listFinanceSyncConfigs(String tenantId) {
-        return financeSyncConfigStore.values().stream()
-                .filter(c -> c.tenantId().equals(tenantId))
+        return mapper.selectFinanceSyncConfigs(tenantId).stream()
+                .map(this::toFinanceSyncConfigDomain)
                 .collect(Collectors.toList());
+    }
+
+    private ExternalFinanceVoucherDO toExternalFinanceVoucherData(ExternalFinanceVoucher voucher) {
+        ExternalFinanceVoucherDO data = new ExternalFinanceVoucherDO();
+        data.setVoucherId(voucher.voucherId());
+        data.setTenantId(voucher.tenantId());
+        data.setErpVoucherId(voucher.erpVoucherId());
+        data.setFinanceSystem(voucher.financeSystem());
+        data.setVoucherType(voucher.voucherType());
+        data.setVoucherNumber(voucher.voucherNumber());
+        data.setErpReferenceType(voucher.erpReferenceType());
+        data.setErpReferenceId(voucher.erpReferenceId());
+        try {
+            data.setVoucherDataJson(objectMapper.writeValueAsString(
+                    voucher.voucherData() != null ? voucher.voucherData() : Map.of()));
+        } catch (JsonProcessingException e) {
+            data.setVoucherDataJson("{}");
+        }
+        data.setSyncStatus(voucher.syncStatus());
+        data.setSyncError(voucher.syncError());
+        data.setSyncedAt(voucher.syncedAt());
+        data.setCreatedAt(voucher.createdAt() != null ? voucher.createdAt() : Instant.now());
+        data.setUpdatedAt(voucher.updatedAt() != null ? voucher.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private ExternalFinanceVoucher toExternalFinanceVoucherDomain(ExternalFinanceVoucherDO data) {
+        Map<String, Object> voucherData;
+        try {
+            voucherData = objectMapper.readValue(
+                    data.getVoucherDataJson() != null ? data.getVoucherDataJson() : "{}",
+                    new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            voucherData = Map.of();
+        }
+        return new ExternalFinanceVoucher(
+                data.getVoucherId(), data.getTenantId(), data.getErpVoucherId(),
+                data.getFinanceSystem(), data.getVoucherType(),
+                data.getVoucherNumber(), data.getErpReferenceType(), data.getErpReferenceId(), voucherData,
+                data.getSyncStatus(), data.getSyncError(), data.getSyncedAt(), data.getCreatedAt(), data.getUpdatedAt());
+    }
+
+    private FinanceSyncConfigDO toFinanceSyncConfigData(FinanceSyncConfig config) {
+        FinanceSyncConfigDO data = new FinanceSyncConfigDO();
+        data.setConfigId(config.configId());
+        data.setTenantId(config.tenantId());
+        data.setFinanceSystem(config.financeSystem());
+        data.setApiUrl(config.apiUrl());
+        data.setApiKey(config.apiKey());
+        data.setApiSecret(config.apiSecret());
+        data.setAccountSet(config.accountSet());
+        data.setEnabled(config.enabled());
+        try {
+            data.setMappingRulesJson(objectMapper.writeValueAsString(
+                    config.mappingRules() != null ? config.mappingRules() : Map.of()));
+        } catch (JsonProcessingException e) {
+            data.setMappingRulesJson("{}");
+        }
+        data.setLastSyncAt(config.lastSyncAt());
+        data.setCreatedAt(config.createdAt() != null ? config.createdAt() : Instant.now());
+        data.setUpdatedAt(config.updatedAt() != null ? config.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private FinanceSyncConfig toFinanceSyncConfigDomain(FinanceSyncConfigDO data) {
+        Map<String, String> mappingRules;
+        try {
+            mappingRules = objectMapper.readValue(
+                    data.getMappingRulesJson() != null ? data.getMappingRulesJson() : "{}",
+                    new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            mappingRules = Map.of();
+        }
+        return new FinanceSyncConfig(
+                data.getConfigId(), data.getTenantId(), data.getFinanceSystem(), data.getApiUrl(), data.getApiKey(),
+                data.getApiSecret(), data.getAccountSet(), data.isEnabled(), mappingRules,
+                data.getLastSyncAt(), data.getCreatedAt(), data.getUpdatedAt());
     }
 }

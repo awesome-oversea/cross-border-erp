@@ -36,6 +36,10 @@ public record CostEvent(
         String sourceId,
         /** 卖家SKU */
         String sellerSku,
+        /** 店铺ID */
+        String storeId,
+        /** 渠道编码 */
+        String channelCode,
         /** 市场ID */
         String marketplaceId,
         /** 币种 */

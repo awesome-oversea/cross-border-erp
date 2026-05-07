@@ -21,6 +21,10 @@ public record Carrier(
         String contactPerson,
         String phone,
         boolean apiEnabled,
+        boolean featured,
+        String authorizationStatus,
+        Instant authorizationValidUntil,
+        Instant lastAuthorizedAt,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -49,5 +53,17 @@ public record Carrier(
     /** 是否活跃承运商 */
     public boolean isActive() {
         return CarrierStatus.ACTIVE.name().equalsIgnoreCase(status);
+    }
+
+    public enum AuthorizationStatus {
+        PENDING,
+        AUTHORIZED,
+        EXPIRED,
+        REVOKED
+    }
+
+    public boolean isAuthorized() {
+        return AuthorizationStatus.AUTHORIZED.name().equalsIgnoreCase(authorizationStatus)
+                && (authorizationValidUntil == null || !authorizationValidUntil.isBefore(Instant.now()));
     }
 }

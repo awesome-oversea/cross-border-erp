@@ -2,13 +2,16 @@ package com.aidotnet.erp.pdm.application;
 
 import com.aidotnet.erp.common.exception.BizException;
 import com.aidotnet.erp.pdm.domain.CollectionStatus;
+import com.aidotnet.erp.pdm.domain.ImageLibrary;
 import com.aidotnet.erp.pdm.domain.IntellectualProperty;
 import com.aidotnet.erp.pdm.domain.IpStatus;
 import com.aidotnet.erp.pdm.domain.IpType;
+import com.aidotnet.erp.pdm.domain.PlatformPriceLimit;
 import com.aidotnet.erp.pdm.domain.ProductCollection;
 import com.aidotnet.erp.pdm.domain.ProductStatus;
 import com.aidotnet.erp.pdm.domain.ProductVariant;
 import com.aidotnet.erp.pdm.domain.QualityStandard;
+import com.aidotnet.erp.pdm.domain.TitleLibrary;
 import com.aidotnet.erp.pdm.infrastructure.PdmExtStore;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -216,4 +219,116 @@ public class PdmExtService {
     public record CreateCollectionCommand(String sourcePlatform, String sourceUrl, String productName,
                                           String description, String images, String price, String currency,
                                           String categoryId, String collectedBy) {}
+
+    // ========== 标题库管理 ==========
+
+    /**
+     * 添加产品标题到标题库
+     * <p>
+     * 运营可为产品维护多个标题模板，刊登时系统自动随机调用，减少关联风险。
+     * </p>
+     */
+    @Transactional
+    public TitleLibrary addTitle(String tenantId, String spuId, String title, String language) {
+        Instant now = Instant.now();
+        return extStore.saveTitle(new TitleLibrary(UUID.randomUUID().toString(), tenantId, spuId,
+                title, language, true, now, now));
+    }
+
+    /** 查询SPU的标题库列表 */
+    public List<TitleLibrary> listTitles(String tenantId, String spuId) {
+        return extStore.listTitles(tenantId, spuId);
+    }
+
+    /** 禁用标题(标题仍保留在库中，但自动调用时不再匹配) */
+    @Transactional
+    public TitleLibrary disableTitle(String tenantId, String titleId) {
+        TitleLibrary title = extStore.findTitle(tenantId, titleId)
+                .orElseThrow(() -> new BizException("TITLE_NOT_FOUND", "标题不存在"));
+        TitleLibrary disabled = new TitleLibrary(title.titleId(), title.tenantId(), title.spuId(),
+                title.title(), title.language(), false, title.createdAt(), Instant.now());
+        return extStore.saveTitle(disabled);
+    }
+
+    // ========== 图片库管理 ==========
+
+    /**
+     * 添加产品图片到图片库
+     * <p>
+     * 运营可维护多张图片(主图/附图/详情图)，刊登时系统自动随机匹配。
+     * </p>
+     */
+    @Transactional
+    public ImageLibrary addImage(String tenantId, String spuId, String imageUrl, String imageType, int sortOrder) {
+        Instant now = Instant.now();
+        return extStore.saveImage(new ImageLibrary(UUID.randomUUID().toString(), tenantId, spuId,
+                imageUrl, imageType, sortOrder, true, now, now));
+    }
+
+    /** 查询SPU的图片库列表 */
+    public List<ImageLibrary> listImages(String tenantId, String spuId) {
+        return extStore.listImages(tenantId, spuId);
+    }
+
+    /** 按类型查询图片列表 */
+    public List<ImageLibrary> listImagesByType(String tenantId, String spuId, String imageType) {
+        return extStore.listImagesByType(tenantId, spuId, imageType);
+    }
+
+    // ========== 平台产品限价管理 ==========
+
+    /**
+     * 设置平台产品限价
+     * <p>
+     * 防止多店铺同站点内部价格战，刊登或调价时自动校验限价范围。
+     * </p>
+     */
+    @Transactional
+    public PlatformPriceLimit setPriceLimit(String tenantId, String spuId, String platform,
+                                            String marketplace, BigDecimal minPrice, BigDecimal maxPrice, String currency) {
+        Instant now = Instant.now();
+        PlatformPriceLimit limit = new PlatformPriceLimit(UUID.randomUUID().toString(), tenantId, spuId,
+                platform, marketplace, minPrice, maxPrice, currency, true, now, now);
+        return extStore.savePriceLimit(limit);
+    }
+
+    /** 查询SPU在各平台的限价配置 */
+    public List<PlatformPriceLimit> listPriceLimits(String tenantId, String spuId) {
+        return extStore.listPriceLimits(tenantId, spuId);
+    }
+
+    /**
+     * 校验价格是否在限价范围内
+     * <p>
+     * 刊登或调价时调用，返回校验结果和限价信息。
+     * 超出限价时SDK建议运营人员调整价格。
+     * </p>
+     */
+    public PriceLimitCheckResult checkPriceLimit(String tenantId, String spuId, String platform,
+                                                  String marketplace, BigDecimal price) {
+        List<PlatformPriceLimit> limits = extStore.listPriceLimits(tenantId, spuId);
+        for (PlatformPriceLimit limit : limits) {
+            if (limit.platform().equals(platform) && (limit.marketplace() == null || limit.marketplace().equals(marketplace))) {
+                boolean withinRange = true;
+                String message = "价格在限价范围内";
+                if (limit.minPrice() != null && price.compareTo(limit.minPrice()) < 0) {
+                    withinRange = false;
+                    message = "价格低于最低限价: " + limit.minPrice();
+                }
+                if (limit.maxPrice() != null && price.compareTo(limit.maxPrice()) > 0) {
+                    withinRange = false;
+                    message = "价格高于最高限价: " + limit.maxPrice();
+                }
+                return new PriceLimitCheckResult(withinRange, message, limit.minPrice(), limit.maxPrice());
+            }
+        }
+        return new PriceLimitCheckResult(true, "无限价配置", null, null);
+    }
+
+    public record PriceLimitCheckResult(boolean withinRange, String message, BigDecimal minPrice, BigDecimal maxPrice) {}
+
+    public record CreateTitleCommand(String spuId, String title, String language) {}
+    public record CreateImageCommand(String spuId, String imageUrl, String imageType, int sortOrder) {}
+    public record CreatePriceLimitCommand(String spuId, String platform, String marketplace,
+                                          BigDecimal minPrice, BigDecimal maxPrice, String currency) {}
 }

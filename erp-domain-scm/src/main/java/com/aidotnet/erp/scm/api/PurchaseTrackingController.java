@@ -10,6 +10,7 @@ import com.aidotnet.erp.scm.domain.PurchaseExceptionType;
 import com.aidotnet.erp.scm.domain.PurchaseTracking;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.List;
@@ -109,9 +110,9 @@ public class PurchaseTrackingController {
     public record RecordDamageRequest(@Positive int damagedQuantity, @NotBlank String reason) {}
     public record RecordReturnRequest(@Positive int returnedQuantity, @NotBlank String reason) {}
     public record CreateExceptionRequest(String lineId, @NotBlank String sellerSku,
-                                         @NotBlank PurchaseExceptionType exceptionType,
+                                         @NotNull PurchaseExceptionType exceptionType,
                                          BigDecimal expectedValue, BigDecimal actualValue,
                                          @NotBlank String description) {}
     public record HandleExceptionRequest(@NotBlank String handlerId, String handlerNote,
-                                         @NotBlank PurchaseExceptionStatus resolution) {}
+                                         @NotNull PurchaseExceptionStatus resolution) {}
 }

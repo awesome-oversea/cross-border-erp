@@ -162,6 +162,12 @@ public class InventoryStore {
     public void addInventory(String sellerSku, String warehouseId, java.math.BigDecimal quantity,
                              String referenceId, InventoryTransactionType type) {
         String tenantId = com.aidotnet.erp.common.tenant.TenantContext.getTenantId();
+        addInventory(tenantId, sellerSku, warehouseId, quantity, type.name(), referenceId, null, type);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void addInventory(String tenantId, String sellerSku, String warehouseId, java.math.BigDecimal quantity,
+                             String referenceType, String referenceId, String remark, InventoryTransactionType type) {
         InventoryBalance balance = findBalance(tenantId, warehouseId, sellerSku)
                 .orElse(new InventoryBalance(tenantId, warehouseId, sellerSku, 0, 0, 0, 0, Instant.now()));
         int beforeOnHand = balance.onHand();
@@ -170,7 +176,7 @@ public class InventoryStore {
                 balance.inTransit(), balance.frozen(), Instant.now()));
         InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
                 sellerSku, toTransactionType(type), quantity.intValue(), beforeOnHand, balance.reserved(),
-                afterOnHand, balance.reserved(), type.name(), referenceId, null, Instant.now());
+                afterOnHand, balance.reserved(), referenceType, referenceId, remark, Instant.now());
         saveTransaction(txn);
     }
 
@@ -190,6 +196,27 @@ public class InventoryStore {
         InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
                 sellerSku, toTransactionType(type), quantity.intValue(), beforeOnHand, balance.reserved(),
                 afterOnHand, balance.reserved(), type.name(), referenceId, null, Instant.now());
+        saveTransaction(txn);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void deductReservedInventory(String tenantId, String sellerSku, String warehouseId, int quantity,
+                                        String referenceType, String referenceId, String remark) {
+        InventoryBalance balance = findBalance(tenantId, warehouseId, sellerSku)
+                .orElseThrow(() -> new com.aidotnet.erp.common.exception.BizException("INVENTORY_NOT_FOUND", "inventory not found: " + sellerSku));
+        if (balance.reserved() < quantity) {
+            throw new com.aidotnet.erp.common.exception.BizException(
+                    "INVENTORY_DEDUCT_EXCEEDS_RESERVED", "reserved inventory is insufficient: " + sellerSku);
+        }
+        int beforeOnHand = balance.onHand();
+        int beforeReserved = balance.reserved();
+        int afterOnHand = beforeOnHand - quantity;
+        int afterReserved = beforeReserved - quantity;
+        saveBalance(new InventoryBalance(tenantId, warehouseId, sellerSku, afterOnHand, afterReserved,
+                balance.inTransit(), balance.frozen(), Instant.now()));
+        InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
+                sellerSku, InventoryTransaction.TransactionType.DEDUCT, quantity, beforeOnHand, beforeReserved,
+                afterOnHand, afterReserved, referenceType, referenceId, remark, Instant.now());
         saveTransaction(txn);
     }
 
@@ -268,6 +295,102 @@ public class InventoryStore {
         InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
                 sellerSku, InventoryTransaction.TransactionType.RECEIVE, quantity, balance.onHand(), balance.reserved(),
                 balance.onHand(), balance.reserved(), "IN_TRANSIT_ADD", referenceId, "增加在途库存", Instant.now());
+        saveTransaction(txn);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void addInTransitInventory(String tenantId, String sellerSku, String warehouseId, int quantity,
+                                      String referenceType, String referenceId, String remark) {
+        InventoryBalance balance = findBalance(tenantId, warehouseId, sellerSku)
+                .orElse(new InventoryBalance(tenantId, warehouseId, sellerSku, 0, 0, 0, 0, Instant.now()));
+        int afterInTransit = balance.inTransit() + quantity;
+        saveBalance(new InventoryBalance(tenantId, warehouseId, sellerSku, balance.onHand(), balance.reserved(),
+                afterInTransit, balance.frozen(), Instant.now()));
+        InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
+                sellerSku, InventoryTransaction.TransactionType.RECEIVE, quantity, balance.onHand(), balance.reserved(),
+                balance.onHand(), balance.reserved(), referenceType, referenceId, remark, Instant.now());
+        saveTransaction(txn);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void receiveInTransitInventory(String tenantId, String sellerSku, String warehouseId, int quantity,
+                                          String referenceType, String referenceId, String remark) {
+        InventoryBalance balance = findBalance(tenantId, warehouseId, sellerSku)
+                .orElseThrow(() -> new com.aidotnet.erp.common.exception.BizException("INVENTORY_NOT_FOUND", "inventory not found: " + sellerSku));
+        if (balance.inTransit() < quantity) {
+            throw new com.aidotnet.erp.common.exception.BizException(
+                    "IN_TRANSIT_INVENTORY_NOT_ENOUGH", "in-transit inventory is insufficient: " + sellerSku);
+        }
+        int afterOnHand = balance.onHand() + quantity;
+        int afterInTransit = balance.inTransit() - quantity;
+        saveBalance(new InventoryBalance(tenantId, warehouseId, sellerSku, afterOnHand, balance.reserved(),
+                afterInTransit, balance.frozen(), Instant.now()));
+        InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
+                sellerSku, InventoryTransaction.TransactionType.RECEIVE, quantity, balance.onHand(), balance.reserved(),
+                afterOnHand, balance.reserved(), referenceType, referenceId, remark, Instant.now());
+        saveTransaction(txn);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void freezeInventory(String tenantId, String sellerSku, String warehouseId, int quantity,
+                                String referenceType, String referenceId, String remark) {
+        InventoryBalance balance = findBalance(tenantId, warehouseId, sellerSku)
+                .orElseThrow(() -> new com.aidotnet.erp.common.exception.BizException("INSUFFICIENT_INVENTORY", "inventory not found: " + sellerSku));
+        if (balance.getAvailable() < quantity) {
+            throw new com.aidotnet.erp.common.exception.BizException(
+                    "INSUFFICIENT_AVAILABLE_INVENTORY", "可用库存不足，无法冻结: " + sellerSku);
+        }
+        int beforeFrozen = balance.frozen();
+        int afterFrozen = beforeFrozen + quantity;
+        saveBalance(new InventoryBalance(tenantId, warehouseId, sellerSku, balance.onHand(), balance.reserved(),
+                balance.inTransit(), afterFrozen, Instant.now()));
+        InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
+                sellerSku, InventoryTransaction.TransactionType.STOCK_ADJUST, quantity, balance.onHand(), balance.reserved(),
+                balance.onHand(), balance.reserved(), referenceType, referenceId, remark, Instant.now());
+        saveTransaction(txn);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void unfreezeInventory(String tenantId, String sellerSku, String warehouseId, int quantity,
+                                  String referenceType, String referenceId, String remark) {
+        InventoryBalance balance = findBalance(tenantId, warehouseId, sellerSku)
+                .orElseThrow(() -> new com.aidotnet.erp.common.exception.BizException("INSUFFICIENT_INVENTORY", "inventory not found: " + sellerSku));
+        if (balance.frozen() < quantity) {
+            throw new com.aidotnet.erp.common.exception.BizException(
+                    "INSUFFICIENT_FROZEN_INVENTORY", "冻结库存不足，无法释放: " + sellerSku);
+        }
+        int beforeFrozen = balance.frozen();
+        int afterFrozen = beforeFrozen - quantity;
+        saveBalance(new InventoryBalance(tenantId, warehouseId, sellerSku, balance.onHand(), balance.reserved(),
+                balance.inTransit(), afterFrozen, Instant.now()));
+        InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
+                sellerSku, InventoryTransaction.TransactionType.STOCK_ADJUST, quantity, balance.onHand(), balance.reserved(),
+                balance.onHand(), balance.reserved(), referenceType, referenceId, remark, Instant.now());
+        saveTransaction(txn);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void consumeFrozenInventory(String tenantId, String sellerSku, String warehouseId, int quantity,
+                                       String referenceType, String referenceId, String remark) {
+        InventoryBalance balance = findBalance(tenantId, warehouseId, sellerSku)
+                .orElseThrow(() -> new com.aidotnet.erp.common.exception.BizException("INVENTORY_NOT_FOUND", "inventory not found: " + sellerSku));
+        if (balance.frozen() < quantity) {
+            throw new com.aidotnet.erp.common.exception.BizException(
+                    "INSUFFICIENT_FROZEN_INVENTORY", "frozen inventory is insufficient: " + sellerSku);
+        }
+        if (balance.onHand() < quantity) {
+            throw new com.aidotnet.erp.common.exception.BizException(
+                    "INSUFFICIENT_ON_HAND_INVENTORY", "on-hand inventory is insufficient: " + sellerSku);
+        }
+        int beforeOnHand = balance.onHand();
+        int beforeReserved = balance.reserved();
+        int afterOnHand = beforeOnHand - quantity;
+        int afterFrozen = balance.frozen() - quantity;
+        saveBalance(new InventoryBalance(tenantId, warehouseId, sellerSku, afterOnHand, beforeReserved,
+                balance.inTransit(), afterFrozen, Instant.now()));
+        InventoryTransaction txn = new InventoryTransaction(java.util.UUID.randomUUID().toString(), tenantId, warehouseId,
+                sellerSku, InventoryTransaction.TransactionType.DEDUCT, quantity, beforeOnHand, beforeReserved,
+                afterOnHand, beforeReserved, referenceType, referenceId, remark, Instant.now());
         saveTransaction(txn);
     }
 

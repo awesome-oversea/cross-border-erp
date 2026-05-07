@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/sys/api/v1/api-management")
+@RequestMapping("/platform/sys/api/v1/api-management")
 public class ApiManagementController {
 
     private final ApiManagementService apiMgmtService;

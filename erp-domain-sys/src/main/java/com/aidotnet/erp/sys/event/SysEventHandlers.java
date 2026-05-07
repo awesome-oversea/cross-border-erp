@@ -2,11 +2,12 @@ package com.aidotnet.erp.sys.event;
 
 import com.aidotnet.erp.common.event.DomainEvent;
 import com.aidotnet.erp.common.event.DomainEventDispatcher;
+import com.aidotnet.erp.common.tenant.TenantContext;
 import com.aidotnet.erp.sys.application.BusinessAlertService;
 import com.aidotnet.erp.sys.application.PmsIntegrationService;
 import com.aidotnet.erp.sys.infrastructure.SysExtStore;
 import jakarta.annotation.PostConstruct;
-import java.util.Map;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -79,11 +80,9 @@ public class SysEventHandlers {
         String tenantId = event.tenantId();
         log.info("[SYS] Order cancelled: tenant={}, orderId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            String reason = payload != null ? (String) payload.get("reason") : "未知原因";
             alertService.createAlert(tenantId, new BusinessAlertService.CreateAlertCommand(
                     "ORDER_CANCELLED", "ORDER_CANCELLED", "medium", "OMS",
-                    "订单取消预警", "订单 " + event.aggregateId() + " 已取消，原因: " + reason,
+                    "订单取消预警", "订单 " + event.aggregateId() + " 已取消",
                     "ORDER", event.aggregateId()));
         } catch (Exception e) {
             log.error("[SYS] Failed to handle order cancelled: tenant={}, error={}", tenantId, e.getMessage(), e);
@@ -94,12 +93,9 @@ public class SysEventHandlers {
         String tenantId = event.tenantId();
         log.info("[SYS] Stock warning escalated: tenant={}, skuId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            String skuName = payload != null ? (String) payload.get("skuName") : "未知SKU";
-            Object quantity = payload != null ? payload.get("quantity") : "0";
             alertService.createAlert(tenantId, new BusinessAlertService.CreateAlertCommand(
                     "STOCK_WARNING", "STOCK_WARNING", "high", "WMS",
-                    "库存预警", "SKU " + skuName + " 库存不足，当前库存: " + quantity,
+                    "库存预警", "SKU " + event.aggregateId() + " 库存不足",
                     "SKU", event.aggregateId()));
         } catch (Exception e) {
             log.error("[SYS] Failed to handle stock warning: tenant={}, error={}", tenantId, e.getMessage(), e);
@@ -110,12 +106,9 @@ public class SysEventHandlers {
         String tenantId = event.tenantId();
         log.info("[SYS] Payment overdue: tenant={}, paymentId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            Object amount = payload != null ? payload.get("amount") : "0";
-            String currency = payload != null ? (String) payload.get("currency") : "CNY";
             alertService.createAlert(tenantId, new BusinessAlertService.CreateAlertCommand(
                     "PAYMENT_OVERDUE", "PAYMENT_OVERDUE", "high", "FMS",
-                    "付款逾期预警", "付款单 " + event.aggregateId() + " 已逾期，金额: " + amount + " " + currency,
+                    "付款逾期预警", "付款单 " + event.aggregateId() + " 已逾期",
                     "PAYMENT", event.aggregateId()));
         } catch (Exception e) {
             log.error("[SYS] Failed to handle payment overdue: tenant={}, error={}", tenantId, e.getMessage(), e);
@@ -126,13 +119,9 @@ public class SysEventHandlers {
         String tenantId = event.tenantId();
         log.info("[SYS] Shipment delayed: tenant={}, shipmentId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            String carrier = payload != null ? (String) payload.get("carrier") : "未知物流商";
-            Integer delayDays = payload != null && payload.get("delayDays") != null
-                    ? ((Number) payload.get("delayDays")).intValue() : 0;
             alertService.createAlert(tenantId, new BusinessAlertService.CreateAlertCommand(
                     "SHIPMENT_DELAYED", "SHIPMENT_DELAYED", "medium", "TMS",
-                    "物流延迟预警", "发货单 " + event.aggregateId() + " 延迟 " + delayDays + " 天，物流商: " + carrier,
+                    "物流延迟预警", "发货单 " + event.aggregateId() + " 配送延迟",
                     "SHIPMENT", event.aggregateId()));
         } catch (Exception e) {
             log.error("[SYS] Failed to handle shipment delayed: tenant={}, error={}", tenantId, e.getMessage(), e);
@@ -143,11 +132,9 @@ public class SysEventHandlers {
         String tenantId = event.tenantId();
         log.info("[SYS] Campaign overspend: tenant={}, campaignId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            Object overspendAmount = payload != null ? payload.get("overspendAmount") : "0";
             alertService.createAlert(tenantId, new BusinessAlertService.CreateAlertCommand(
                     "CAMPAIGN_OVERSPEND", "CAMPAIGN_OVERSPEND", "high", "ADS",
-                    "广告超支预警", "广告活动 " + event.aggregateId() + " 超出预算，超支金额: " + overspendAmount,
+                    "广告超支预警", "广告活动 " + event.aggregateId() + " 超出预算",
                     "CAMPAIGN", event.aggregateId()));
         } catch (Exception e) {
             log.error("[SYS] Failed to handle campaign overspend: tenant={}, error={}", tenantId, e.getMessage(), e);
@@ -158,12 +145,9 @@ public class SysEventHandlers {
         String tenantId = event.tenantId();
         log.info("[SYS] Supplier risk: tenant={}, supplierId={}", tenantId, event.aggregateId());
         try {
-            Map<String, Object> payload = event.payload();
-            String riskType = payload != null ? (String) payload.get("riskType") : "未知风险";
-            String supplierName = payload != null ? (String) payload.get("supplierName") : "未知供应商";
             alertService.createAlert(tenantId, new BusinessAlertService.CreateAlertCommand(
                     "SUPPLIER_RISK", "SUPPLIER_RISK", "high", "SCM",
-                    "供应商风险预警", "供应商 " + supplierName + " 存在风险: " + riskType,
+                    "供应商风险预警", "供应商 " + event.aggregateId() + " 存在风险",
                     "SUPPLIER", event.aggregateId()));
         } catch (Exception e) {
             log.error("[SYS] Failed to handle supplier risk: tenant={}, error={}", tenantId, e.getMessage(), e);
@@ -173,18 +157,25 @@ public class SysEventHandlers {
     private void handlePmsRecommendationExecuted(DomainEvent event) {
         String tenantId = event.tenantId();
         log.info("[SYS] PMS recommendation executed: tenant={}, recommendationId={}", tenantId, event.aggregateId());
-        try {
-            Map<String, Object> payload = event.payload();
-            String erpReferenceId = payload != null ? (String) payload.get("erpReferenceId") : null;
-            String executionStatus = payload != null ? (String) payload.get("executionStatus") : "UNKNOWN";
-            String executionResult = payload != null ? (String) payload.get("executionResult") : null;
-            if (erpReferenceId != null) {
-                pmsIntegrationService.sendFeedback(tenantId, erpReferenceId,
-                        "EXECUTION_RESULT", executionStatus, executionResult,
+        inTenant(tenantId, () -> {
+            try {
+                pmsIntegrationService.sendFeedback(tenantId, event.aggregateId(),
+                        "EXECUTION_RESULT", "EXECUTED", null,
                         null, null, "SYSTEM", event.traceId());
+            } catch (Exception e) {
+                log.error("[SYS] Failed to handle PMS recommendation executed: tenant={}, error={}", tenantId, e.getMessage(), e);
             }
-        } catch (Exception e) {
-            log.error("[SYS] Failed to handle PMS recommendation executed: tenant={}, error={}", tenantId, e.getMessage(), e);
+            return null;
+        });
+    }
+
+    private <T> T inTenant(String tenantId, Supplier<T> action) {
+        String previousTenantId = TenantContext.getTenantId();
+        TenantContext.setTenantId(tenantId);
+        try {
+            return action.get();
+        } finally {
+            TenantContext.setTenantId(previousTenantId);
         }
     }
 }

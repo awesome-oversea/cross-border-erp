@@ -253,6 +253,20 @@
         WHERE alert_id = #{alertId}
     </update>
 
+    <insert id="insertPmsRiskAlertReviewLog" parameterType="com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertReviewLogDO">
+        INSERT INTO oms_pms_risk_alert_review_log (log_id, tenant_id, alert_id, order_id, action,
+                                                   reviewer_note, risk_level, created_at)
+        VALUES (#{logId}, #{tenantId}, #{alertId}, #{orderId}, #{action},
+                #{reviewerNote}, #{riskLevel}, #{createdAt})
+    </insert>
+
+    <select id="selectPmsRiskAlertReviewLogs" resultType="com.aidotnet.erp.oms.infrastructure.data.PmsRiskAlertReviewLogDO">
+        SELECT log_id, tenant_id, alert_id, order_id, action, reviewer_note, risk_level, created_at
+        FROM oms_pms_risk_alert_review_log
+        WHERE tenant_id = #{tenantId} AND alert_id = #{alertId}
+        ORDER BY created_at DESC
+    </select>
+
     <insert id="insertOrderSyncLog" parameterType="com.aidotnet.erp.oms.infrastructure.data.OrderSyncLogDO">
         INSERT INTO oms_order_sync_log (sync_id, tenant_id, platform, sync_type, status,
                                          synced_count, failed_count, error_message,

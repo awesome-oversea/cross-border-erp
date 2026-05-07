@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public class TransferOrderLineDO {
     private String lineId;
+    private String tenantId;
     private String transferId;
     private String sellerSku;
     private int transferQuantity;
@@ -13,6 +14,8 @@ public class TransferOrderLineDO {
 
     public String getLineId() { return lineId; }
     public void setLineId(String lineId) { this.lineId = lineId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getTransferId() { return transferId; }
     public void setTransferId(String transferId) { this.transferId = transferId; }
     public String getSellerSku() { return sellerSku; }

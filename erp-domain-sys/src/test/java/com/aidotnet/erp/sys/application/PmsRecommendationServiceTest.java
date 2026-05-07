@@ -3,6 +3,12 @@ package com.aidotnet.erp.sys.application;
 import com.aidotnet.erp.sys.domain.PmsRecommendation;
 import com.aidotnet.erp.sys.domain.PmsWriteObjectType;
 import com.aidotnet.erp.sys.infrastructure.PmsRecommendationStore;
+import com.aidotnet.erp.sys.infrastructure.data.PmsRecommendationDO;
+import com.aidotnet.erp.sys.infrastructure.mapper.PmsRecommendationMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +22,7 @@ class PmsRecommendationServiceTest {
 
     @BeforeEach
     void setUp() {
-        store = new PmsRecommendationStore();
+        store = new PmsRecommendationStore(new InMemoryPmsRecommendationMapper(), new ObjectMapper());
         service = new PmsRecommendationService(store);
     }
 
@@ -61,5 +67,70 @@ class PmsRecommendationServiceTest {
         PmsRecommendation first = service.submit(cmd, ctx);
         PmsRecommendation second = service.submit(cmd, ctx);
         assertEquals(first.erpReferenceId(), second.erpReferenceId());
+    }
+
+    private static class InMemoryPmsRecommendationMapper implements PmsRecommendationMapper {
+
+        private final Map<String, PmsRecommendationDO> storage = new LinkedHashMap<>();
+
+        @Override
+        public void insert(PmsRecommendationDO recommendation) {
+            storage.put(recommendation.getErpReferenceId(), recommendation);
+        }
+
+        @Override
+        public void update(PmsRecommendationDO recommendation) {
+            storage.put(recommendation.getErpReferenceId(), recommendation);
+        }
+
+        @Override
+        public PmsRecommendationDO selectByErpReferenceId(String tenantId, String erpReferenceId) {
+            PmsRecommendationDO recommendation = storage.get(erpReferenceId);
+            if (recommendation == null || !tenantId.equals(recommendation.getTenantId())) {
+                return null;
+            }
+            return recommendation;
+        }
+
+        @Override
+        public PmsRecommendationDO selectByIdempotencyKey(String tenantId, String domain, String idempotencyKey) {
+            return storage.values().stream()
+                    .filter(item -> tenantId.equals(item.getTenantId()))
+                    .filter(item -> domain.equals(item.getDomain()))
+                    .filter(item -> idempotencyKey.equals(item.getIdempotencyKey()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        @Override
+        public List<PmsRecommendationDO> selectByTenant(String tenantId) {
+            return storage.values().stream()
+                    .filter(item -> tenantId.equals(item.getTenantId()))
+                    .toList();
+        }
+
+        @Override
+        public List<PmsRecommendationDO> selectByDomain(String tenantId, String domain) {
+            return storage.values().stream()
+                    .filter(item -> tenantId.equals(item.getTenantId()))
+                    .filter(item -> domain.equals(item.getDomain()))
+                    .toList();
+        }
+
+        @Override
+        public List<PmsRecommendationDO> selectByStatus(String tenantId, String status) {
+            return storage.values().stream()
+                    .filter(item -> tenantId.equals(item.getTenantId()))
+                    .filter(item -> status.equals(item.getStatus()))
+                    .toList();
+        }
+
+        @Override
+        public void deleteByErpReferenceId(String tenantId, String erpReferenceId) {
+            PmsRecommendationDO recommendation = storage.get(erpReferenceId);
+            if (recommendation != null && tenantId.equals(recommendation.getTenantId())) {
+                storage.remove(erpReferenceId);
+            }
+        }
     }
 }

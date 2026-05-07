@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.SupplierEvaluationMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierEvaluationDO">
+        INSERT INTO scm_supplier_evaluation (evaluation_id, tenant_id, supplier_id, quality_score, delivery_score,
+                                             price_score, service_score, overall_score, comment, evaluated_at)
+        VALUES (#{evaluationId}, #{tenantId}, #{supplierId}, #{qualityScore}, #{deliveryScore},
+                #{priceScore}, #{serviceScore}, #{overallScore}, #{comment}, #{evaluatedAt})
+    </insert>
+
+    <select id="selectBySupplier" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierEvaluationDO">
+        SELECT evaluation_id, tenant_id, supplier_id, quality_score, delivery_score, price_score,
+               service_score, overall_score, comment, evaluated_at
+        FROM scm_supplier_evaluation
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+        ORDER BY evaluated_at DESC
+    </select>
+
+    <select id="selectLatest" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierEvaluationDO">
+        SELECT evaluation_id, tenant_id, supplier_id, quality_score, delivery_score, price_score,
+               service_score, overall_score, comment, evaluated_at
+        FROM scm_supplier_evaluation
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+        ORDER BY evaluated_at DESC
+        LIMIT 1
+    </select>
+</mapper>

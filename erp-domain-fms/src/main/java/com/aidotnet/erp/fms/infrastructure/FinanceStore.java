@@ -114,6 +114,10 @@ public class FinanceStore {
         return mapper.selectPaymentRequests(tenantId).stream().map(this::toPaymentRequestDomain).toList();
     }
 
+    public List<PaymentRequest> listPaymentRequestsByPo(String tenantId, String poId) {
+        return mapper.selectPaymentRequestsByPo(tenantId, poId).stream().map(this::toPaymentRequestDomain).toList();
+    }
+
     public WriteOff saveWriteOff(WriteOff writeOff) {
         WriteOffDO existing = mapper.selectWriteOff(writeOff.tenantId(), writeOff.writeoffId());
         WriteOffDO data = toWriteOffData(writeOff);
@@ -446,6 +450,8 @@ public class FinanceStore {
         d.setSourceType(e.sourceType());
         d.setSourceId(e.sourceId());
         d.setSellerSku(e.sellerSku());
+        d.setStoreId(e.storeId());
+        d.setChannelCode(e.channelCode());
         d.setMarketplaceId(e.marketplaceId());
         d.setCurrency(e.currency());
         d.setAmount(e.amount());
@@ -456,7 +462,8 @@ public class FinanceStore {
 
     private CostEvent toCostEventDomain(CostEventDO d) {
         return new CostEvent(d.getCostEventId(), d.getTenantId(), d.getCostType(),
-                d.getSourceType(), d.getSourceId(), d.getSellerSku(), d.getMarketplaceId(),
+                d.getSourceType(), d.getSourceId(), d.getSellerSku(),
+                d.getStoreId(), d.getChannelCode(), d.getMarketplaceId(),
                 d.getCurrency(), d.getAmount(), d.getOccurredAt(), d.getCreatedAt());
     }
 

@@ -3,26 +3,43 @@
 <mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.RoleMapper">
 
     <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
-        INSERT INTO iam_role (role_code, name, permissions)
-        VALUES (#{roleCode}, #{name}, #{permissions})
+        INSERT INTO iam_role (role_id, tenant_id, name, code, type, status, perm_ids, created_at, updated_at)
+        VALUES (#{roleId}, #{tenantId}, #{name}, #{code}, #{type}, #{status}, #{permIds}, #{createdAt}, #{updatedAt})
     </insert>
 
     <select id="selectByCode" resultType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
-        SELECT role_code, name, permissions
+        SELECT role_id, tenant_id, name, code, type, status, perm_ids, created_at, updated_at
         FROM iam_role
-        WHERE role_code = #{roleCode}
+        WHERE code = #{roleCode}
+    </select>
+
+    <select id="selectById" resultType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
+        SELECT role_id, tenant_id, name, code, type, status, perm_ids, created_at, updated_at
+        FROM iam_role
+        WHERE role_id = #{roleId}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
+        SELECT role_id, tenant_id, name, code, type, status, perm_ids, created_at, updated_at
+        FROM iam_role
+        WHERE tenant_id = #{tenantId} OR tenant_id IS NULL
+        ORDER BY created_at
     </select>
 
     <select id="selectAll" resultType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
-        SELECT role_code, name, permissions
+        SELECT role_id, tenant_id, name, code, type, status, perm_ids, created_at, updated_at
         FROM iam_role
-        ORDER BY role_code
+        ORDER BY created_at
     </select>
 
     <update id="update" parameterType="com.aidotnet.erp.iam.infrastructure.data.RoleDO">
         UPDATE iam_role
-        SET name = #{name}, permissions = #{permissions}
-        WHERE role_code = #{roleCode}
+        SET name = #{name}, type = #{type}, status = #{status}, perm_ids = #{permIds}, updated_at = #{updatedAt}
+        WHERE role_id = #{roleId}
     </update>
+
+    <delete id="deleteById">
+        DELETE FROM iam_role WHERE role_id = #{roleId}
+    </delete>
 
 </mapper>

@@ -2,15 +2,21 @@ package com.aidotnet.erp.sys.application;
 
 import com.aidotnet.erp.common.exception.BizException;
 import com.aidotnet.erp.sys.domain.BusinessRuleVersion;
+import com.aidotnet.erp.sys.domain.PlugStandardRule;
 import com.aidotnet.erp.sys.domain.RuleExecutionLog;
 import com.aidotnet.erp.sys.domain.SimulationReplay;
 import com.aidotnet.erp.sys.infrastructure.SysExtStore;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,9 +46,11 @@ public class BusinessRuleService {
     private static final Logger log = LoggerFactory.getLogger(BusinessRuleService.class);
 
     private final SysExtStore extStore;
+    private final ObjectMapper objectMapper;
 
-    public BusinessRuleService(SysExtStore extStore) {
+    public BusinessRuleService(SysExtStore extStore, ObjectMapper objectMapper) {
         this.extStore = extStore;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -156,6 +164,28 @@ public class BusinessRuleService {
                 avgExecutionTimeMs, successRate);
     }
 
+    /**
+     * 规则执行核心方法
+     * <p>
+     * 解析BusinessRuleVersion.contentJson中的规则配置JSON，
+     * 对输入上下文(inputContext)执行条件匹配与动作计算。
+     * contentJson格式示例:
+     * <pre>
+     * {
+     *   "conditions": [
+     *     {"field": "orderAmount", "operator": "gt", "value": 1000},
+     *     {"field": "riskLevel", "operator": "eq", "value": "HIGH"}
+     *   ],
+     *   "logic": "AND",
+     *   "actions": [{"type": "reject", "reason": "高风险订单自动拦截"}]
+     * }
+     * </pre>
+     * 支持算子: gt/gte/lt/lte/eq/neq/contains/in
+     * 支持逻辑: AND(全部满足)/OR(任一满足)
+     * 数字类型自动跨类型比较(Integer/Double/Long/BigDecimal)
+     * </p>
+     */
+    @SuppressWarnings("unchecked")
     private Map<String, Object> evaluateRule(BusinessRuleVersion version, Map<String, Object> inputContext) {
         Map<String, Object> result = new HashMap<>();
         result.put("ruleId", version.ruleId());
@@ -163,7 +193,82 @@ public class BusinessRuleService {
         result.put("ruleType", version.ruleType());
         result.put("evaluated", true);
         result.put("inputKeys", inputContext.keySet());
+
+        if (version.contentJson() == null || version.contentJson().isBlank()) {
+            result.put("matched", false);
+            result.put("reason", "规则内容为空");
+            return result;
+        }
+        try {
+            Map<String, Object> ruleConfig = objectMapper.readValue(
+                    version.contentJson(), new TypeReference<Map<String, Object>>() {});
+            List<Map<String, Object>> conditions = (List<Map<String, Object>>) ruleConfig.get("conditions");
+            if (conditions == null || conditions.isEmpty()) {
+                result.put("matched", true);
+                result.put("reason", "无条件约束，默认命中");
+                return result;
+            }
+            String logic = (String) ruleConfig.getOrDefault("logic", "AND");
+            boolean isAnd = "AND".equalsIgnoreCase(logic);
+            result.put("logic", logic);
+            List<Map<String, Object>> matchedConds = new ArrayList<>();
+            List<Map<String, Object>> unmatchedConds = new ArrayList<>();
+            for (Map<String, Object> cond : conditions) {
+                String field = (String) cond.get("field");
+                String operator = (String) cond.get("operator");
+                Object expVal = cond.get("value");
+                Object actVal = inputContext.get(field);
+                boolean matched = evaluateOneCondition(operator, expVal, actVal);
+                Map<String, Object> cr = new HashMap<>();
+                cr.put("field", field); cr.put("operator", operator);
+                cr.put("expected", expVal); cr.put("actual", actVal); cr.put("matched", matched);
+                if (matched) matchedConds.add(cr); else unmatchedConds.add(cr);
+            }
+            boolean allMatched = isAnd ? unmatchedConds.isEmpty() : !matchedConds.isEmpty();
+            result.put("matched", allMatched);
+            result.put("conditionResults", matchedConds);
+            if (allMatched) {
+                List<Map<String, Object>> actions = (List<Map<String, Object>>) ruleConfig.get("actions");
+                result.put("actions", actions != null ? actions : List.of());
+                result.put("reason", "规则命中");
+            } else {
+                result.put("actions", List.of());
+                result.put("reason", isAnd ? "存在未匹配条件" : "所有条件均未匹配");
+            }
+        } catch (JsonProcessingException e) {
+            result.put("matched", false);
+            result.put("reason", "规则JSON解析失败");
+            log.warn("Rule parse failed: ruleId={} version={}", version.ruleId(), version.version());
+        }
         return result;
+    }
+
+    /**
+     * 单条件评估: 比较actual与expected，支持跨数字类型
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean evaluateOneCondition(String operator, Object expected, Object actual) {
+        if (actual == null) return false;
+        if (expected == null) return "null".equals(operator);
+        int cmp;
+        if (actual instanceof Number na && expected instanceof Number nb) {
+            cmp = Double.compare(na.doubleValue(), nb.doubleValue());
+        } else if (actual instanceof Comparable ca && expected.getClass() == actual.getClass()) {
+            cmp = ca.compareTo(expected);
+        } else {
+            cmp = actual.toString().compareTo(expected.toString());
+        }
+        return switch (operator) {
+            case "eq" -> cmp == 0;
+            case "neq" -> cmp != 0;
+            case "gt" -> cmp > 0;
+            case "gte" -> cmp >= 0;
+            case "lt" -> cmp < 0;
+            case "lte" -> cmp <= 0;
+            case "contains" -> actual.toString().toLowerCase().contains(expected.toString().toLowerCase());
+            case "in" -> expected instanceof List<?> list && list.stream().anyMatch(i -> i.toString().equals(actual.toString()));
+            default -> false;
+        };
     }
 
     public record CreateRuleVersionCommand(
@@ -181,4 +286,56 @@ public class BusinessRuleService {
     public record ExecutionStatistics(
             String tenantId, String ruleId, long totalCount, long successCount,
             long failCount, double avgExecutionTimeMs, double successRate) {}
+
+    // ========== 插头国标规则管理(规则引擎具体实现) ==========
+    /**
+     * 插头国标规则是业务规则引擎的一种具体应用。
+     * OMS在订单履约时通过跨域Feign客户端调用本服务接口，
+     * 按收货国家匹配对应的插头规格SKU，确保产品符合目标国家电器标准。
+     *
+     * 跨域调用链路: OMS → FeignClient → SYS BusinessRuleService.matchPlugRule
+     */
+
+    private final Map<String, PlugStandardRule> plugRuleStore = new ConcurrentHashMap<>();
+
+    @Transactional
+    public PlugStandardRule createPlugRule(String tenantId, CreatePlugRuleCommand command) {
+        Instant now = Instant.now();
+        PlugStandardRule rule = new PlugStandardRule(UUID.randomUUID().toString(), tenantId,
+                command.countryCode(), command.categoryId(), command.plugStandard(),
+                command.targetSku(), command.priority(), true, now, now);
+        plugRuleStore.put(rule.ruleId(), rule);
+        return rule;
+    }
+
+    /**
+     * 按国家匹配插头规格SKU(供OMS跨域调用)
+     * <p>
+     * 匹配策略: 先匹配国家+类目(精确匹配)，再匹配国家+全类目(兜底)，
+     * 按优先级取最高优先级的匹配结果。
+     * </p>
+     *
+     * @param tenantId   租户ID
+     * @param countryCode ISO国家代码(如 DE/US/GB)
+     * @param categoryId  产品类目ID(可为空)
+     * @return 匹配的插头规则，无匹配时返回null
+     */
+    public PlugStandardRule matchPlugRule(String tenantId, String countryCode, String categoryId) {
+        return plugRuleStore.values().stream()
+                .filter(r -> r.tenantId().equals(tenantId) && r.enabled())
+                .filter(r -> r.countryCode().equalsIgnoreCase(countryCode))
+                .filter(r -> r.categoryId() == null || r.categoryId().equals(categoryId))
+                .sorted((a, b) -> b.priority() - a.priority())
+                .findFirst()
+                .orElse(null);
+    }
+
+    public List<PlugStandardRule> listPlugRules(String tenantId) {
+        return plugRuleStore.values().stream()
+                .filter(r -> r.tenantId().equals(tenantId))
+                .collect(Collectors.toList());
+    }
+
+    public record CreatePlugRuleCommand(String countryCode, String categoryId, String plugStandard,
+                                         String targetSku, int priority) {}
 }

@@ -109,6 +109,11 @@ public class ReportService {
                 report.reportName(), snapshotData, "json", now, now);
     }
 
+    public ReportDefinition getReportByCode(String tenantId, String reportCode) {
+        return repository.findByCode(tenantId, reportCode)
+                .orElseThrow(() -> new BizException("REPORT_NOT_FOUND", "Report not found"));
+    }
+
     public List<ReportDefinition> list(String tenantId) {
         return repository.list(tenantId);
     }

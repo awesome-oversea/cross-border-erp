@@ -21,6 +21,7 @@ import com.aidotnet.erp.oms.domain.OrderRiskCheck;
 import com.aidotnet.erp.oms.domain.OrderStatus;
 import com.aidotnet.erp.oms.domain.OrderStrategy;
 import com.aidotnet.erp.oms.domain.OrderSyncLog;
+import com.aidotnet.erp.oms.domain.PmsRiskAlertReviewLog;
 import com.aidotnet.erp.oms.domain.PmsRiskAlert;
 import com.aidotnet.erp.oms.domain.PlatformShipmentSyncLog;
 import com.aidotnet.erp.oms.domain.PlatformShipmentSyncStatus;
@@ -155,12 +156,13 @@ public class OrderService {
                 now,
                 now));
         List<OrderRiskCheck> checks = new ArrayList<>();
-        checks.addAll(evaluateAuditRules(tenantId, imported, recentOrders));
+        List<OrderRiskCheck> auditChecks = evaluateAuditRules(tenantId, imported, recentOrders);
+        checks.addAll(auditChecks);
         checks.addAll(performInventoryRiskChecks(tenantId, imported));
         if (checks.isEmpty()) {
             checks.add(recordRisk(tenantId, imported.orderId(), OrderRiskCheck.RiskLevel.LOW, "NONE", "Order is normal", "APPROVE"));
         }
-        boolean reviewRequired = checks.stream().anyMatch(this::requiresReview);
+        boolean reviewRequired = auditChecks.stream().anyMatch(this::requiresReview);
         SalesOrder finalOrder = reviewRequired ? updateStatus(imported, OrderStatus.REVIEW_REQUIRED) : imported;
         publishEvent("erp.oms.order.created.v1", tenantId, finalOrder.orderId(), Map.of(
                 "platform", command.platform(),
@@ -190,8 +192,15 @@ public class OrderService {
         if (order.status() == OrderStatus.SHIPPED || order.status() == OrderStatus.DELIVERED) {
             throw new BizException("ORDER_STATUS_INVALID", "Shipped or delivered orders cannot be cancelled");
         }
+        int releasedPackageCount = releaseReservedInventoryForCancellation(tenantId, order);
+        int financeEventCount = shouldRecordCancellationCost(order)
+                ? recordReturnCostEvents(order, "OMS_ORDER", order.orderId(), order.totalAmount(), Instant.now())
+                : 0;
         SalesOrder cancelled = updateStatus(order, OrderStatus.CANCELLED);
-        publishEvent("erp.oms.order.cancelled.v1", tenantId, orderId, Map.of("previousStatus", order.status().name()));
+        publishEvent("erp.oms.order.cancelled.v1", tenantId, orderId, Map.of(
+                "previousStatus", order.status().name(),
+                "releasedPackageCount", releasedPackageCount,
+                "financeEventCount", financeEventCount));
         return cancelled;
     }
 
@@ -445,18 +454,19 @@ public class OrderService {
         SyncExecutionResult syncResult = syncShippedPackages(order, shippedPackages, false);
         syncResult.logs().forEach(platformShipmentSyncLogStore::save);
         recordFulfillmentCostEvents(order, syncResult.packages());
+        FulfillmentPlanStatus fulfillmentPlanStatus = resolvePlanStatusAfterShipment(syncResult.packages());
         OrderFulfillmentPlan savedPlan = fulfillmentPlanStore.save(new OrderFulfillmentPlan(
                 currentPlan.planId(),
                 currentPlan.tenantId(),
                 currentPlan.orderId(),
-                resolvePlanStatusAfterShipment(syncResult.packages()),
+                fulfillmentPlanStatus,
                 currentPlan.splitShipment(),
                 currentPlan.partialShipment(),
                 currentPlan.estimatedShippingCost(),
                 currentPlan.createdAt(),
                 Instant.now(),
                 syncResult.packages()));
-        SalesOrder shipped = updateStatus(order, OrderStatus.SHIPPED);
+        SalesOrder shipped = updateStatus(order, OrderStatus.SHIPPED, fulfillmentPlanStatus.name());
         publishEvent("erp.oms.order.shipped.v1", tenantId, orderId, Map.of(
                 "platform", order.platform(),
                 "countryCode", order.countryCode(),
@@ -536,11 +546,17 @@ public class OrderService {
                 OrderRefund.RefundStatus.REQUESTED,
                 now,
                 now));
+        SalesOrder requestedOrder;
         if (order.status() == OrderStatus.DELIVERED) {
-            updateStatus(order, OrderStatus.RETURN_REQUESTED);
+            requestedOrder = updateStatus(order, OrderStatus.RETURN_REQUESTED);
         } else {
-            updateStatus(order, OrderStatus.REFUND_REQUESTED);
+            requestedOrder = updateStatus(order, OrderStatus.REFUND_REQUESTED);
         }
+        publishEvent("erp.oms.refund.requested.v1", tenantId, refund.refundId(), Map.of(
+                "orderId", orderId,
+                "refundAmount", refund.refundAmount().toString(),
+                "refundType", refund.refundType().name(),
+                "orderStatus", requestedOrder.status().name()));
         return refund;
     }
 
@@ -549,7 +565,12 @@ public class OrderService {
         if (refund.status() != OrderRefund.RefundStatus.REQUESTED) {
             throw new BizException("REFUND_STATUS_INVALID", "Only requested refunds can be approved");
         }
-        return updateRefund(refund, OrderRefund.RefundStatus.APPROVED);
+        OrderRefund approved = updateRefund(refund, OrderRefund.RefundStatus.APPROVED);
+        publishEvent("erp.oms.refund.approved.v1", tenantId, refundId, Map.of(
+                "orderId", refund.orderId(),
+                "refundAmount", refund.refundAmount().toString(),
+                "refundType", refund.refundType().name()));
+        return approved;
     }
 
     public OrderRefund rejectRefund(String tenantId, String refundId) {
@@ -559,9 +580,14 @@ public class OrderService {
         }
         SalesOrder order = getOrder(tenantId, refund.orderId());
         if (order.status() == OrderStatus.REFUND_REQUESTED || order.status() == OrderStatus.RETURN_REQUESTED) {
-            updateStatus(order, OrderStatus.PAID);
+            updateStatus(order, resolveStatusAfterRefundReject(order));
         }
-        return updateRefund(refund, OrderRefund.RefundStatus.REJECTED);
+        OrderRefund rejected = updateRefund(refund, OrderRefund.RefundStatus.REJECTED);
+        publishEvent("erp.oms.refund.rejected.v1", tenantId, refundId, Map.of(
+                "orderId", refund.orderId(),
+                "refundAmount", refund.refundAmount().toString(),
+                "refundType", refund.refundType().name()));
+        return rejected;
     }
 
     public OrderRefund completeRefund(String tenantId, String refundId) {
@@ -570,12 +596,21 @@ public class OrderService {
             throw new BizException("REFUND_STATUS_INVALID", "Only approved refunds can be completed");
         }
         SalesOrder order = getOrder(tenantId, refund.orderId());
+        SalesOrder refundedOrder;
         if (refund.refundType() == OrderRefund.RefundType.FULL) {
-            updateStatus(order, OrderStatus.REFUNDED);
+            refundedOrder = updateStatus(order, OrderStatus.REFUNDED);
         } else {
-            updateStatus(order, OrderStatus.PARTIAL_REFUNDED);
+            refundedOrder = updateStatus(order, OrderStatus.PARTIAL_REFUNDED);
         }
-        return updateRefund(refund, OrderRefund.RefundStatus.COMPLETED);
+        int financeEventCount = recordReturnCostEvents(order, "REFUND", refund.refundId(), refund.refundAmount(), Instant.now());
+        OrderRefund completed = updateRefund(refund, OrderRefund.RefundStatus.COMPLETED);
+        publishEvent("erp.oms.order.refunded.v1", tenantId, order.orderId(), Map.of(
+                "refundId", refund.refundId(),
+                "refundAmount", refund.refundAmount().toString(),
+                "refundType", refund.refundType().name(),
+                "orderStatus", refundedOrder.status().name(),
+                "financeEventCount", financeEventCount));
+        return completed;
     }
 
     public List<OrderRefund> listRefunds(String tenantId, String orderId) {
@@ -626,6 +661,17 @@ public class OrderService {
                 "pending",
                 Instant.now());
         PmsRiskAlert saved = orderStore.savePmsRiskAlert(alert);
+        if (saved.alertId().equals(alert.alertId())) {
+            orderStore.saveRiskCheck(new OrderRiskCheck(
+                    UUID.randomUUID().toString(),
+                    tenantId,
+                    command.orderId(),
+                    mapRiskLevel(command.riskLevel()),
+                    command.riskType(),
+                    command.description(),
+                    command.suggestedAction(),
+                    Instant.now()));
+        }
         if (saved.requiresReview()) {
             SalesOrder order = orderStore.find(tenantId, command.orderId()).orElse(null);
             if (order != null && order.status() != OrderStatus.REVIEW_REQUIRED) {
@@ -646,9 +692,18 @@ public class OrderService {
         if (!alert.isPending()) {
             throw new BizException("PMS_RISK_ALERT_NOT_PENDING", "Only pending alerts can be reviewed");
         }
-        String newStatus = "approved".equals(action) ? "approved" : "rejected";
+        String newStatus = normalizeRiskReviewAction(action);
         orderStore.updatePmsRiskAlertStatus(alertId, newStatus);
-        if ("approved".equals(action) && alert.orderId() != null) {
+        orderStore.savePmsRiskAlertReviewLog(new PmsRiskAlertReviewLog(
+                UUID.randomUUID().toString(),
+                tenantId,
+                alertId,
+                alert.orderId(),
+                newStatus,
+                reviewerNote,
+                alert.riskLevel(),
+                Instant.now()));
+        if ("approved".equals(newStatus) && alert.orderId() != null) {
             SalesOrder order = orderStore.find(tenantId, alert.orderId()).orElse(null);
             if (order != null) {
                 SalesOrder updated = orderStore.save(new SalesOrder(
@@ -666,8 +721,9 @@ public class OrderService {
             }
         }
         publishEvent("erp.oms.pms-risk-alert.reviewed.v1", tenantId, alertId, Map.of(
-                "action", action,
-                "riskLevel", alert.riskLevel()));
+                "action", newStatus,
+                "riskLevel", alert.riskLevel(),
+                "reviewerNote", valueOrEmpty(reviewerNote)));
         return orderStore.findPmsRiskAlert(tenantId, alertId)
                 .orElseThrow(() -> new BizException("PMS_RISK_ALERT_NOT_FOUND", "PMS risk alert not found after update"));
     }
@@ -677,6 +733,10 @@ public class OrderService {
             return orderStore.listPmsRiskAlertsByOrder(tenantId, orderId);
         }
         return orderStore.listPendingPmsRiskAlerts(tenantId);
+    }
+
+    public List<PmsRiskAlertReviewLog> listRiskAlertReviewLogs(String tenantId, String alertId) {
+        return orderStore.listPmsRiskAlertReviewLogs(tenantId, alertId);
     }
 
     public OrderSyncLog syncOrders(String tenantId, SyncOrdersCommand command) {
@@ -825,9 +885,38 @@ public class OrderService {
         return orderStore.list(tenantId);
     }
 
+    public List<ProcurementDemandResponse> listProcurementDemand(String tenantId) {
+        Map<String, ProcurementDemandAccumulator> demandBySku = new LinkedHashMap<>();
+        for (SalesOrder order : orderStore.list(tenantId)) {
+            if (!isProcurementDemandEligible(order.status())) {
+                continue;
+            }
+            for (OrderLine line : order.lines()) {
+                if (line.sellerSku() == null || line.sellerSku().isBlank()) {
+                    continue;
+                }
+                demandBySku.computeIfAbsent(line.sellerSku(), ProcurementDemandAccumulator::new)
+                        .add(order.orderId(), line.quantity());
+            }
+        }
+        return demandBySku.values().stream()
+                .map(demand -> new ProcurementDemandResponse(
+                        demand.sellerSku(),
+                        demand.orderDemandQuantity(),
+                        List.copyOf(demand.orderIds())))
+                .toList();
+    }
+
     public SalesOrder getOrder(String tenantId, String orderId) {
         return orderStore.find(tenantId, orderId)
                 .orElseThrow(() -> new BizException("ORDER_NOT_FOUND", "Order does not exist"));
+    }
+
+    private boolean isProcurementDemandEligible(OrderStatus status) {
+        return status == OrderStatus.PENDING
+                || status == OrderStatus.CREATED
+                || status == OrderStatus.CONFIRMED
+                || status == OrderStatus.PAID;
     }
 
     private void ensureOrderCanPlanFulfillment(SalesOrder order) {
@@ -1197,6 +1286,13 @@ public class OrderService {
 
     private BigDecimal calculatePackageLineAmount(BigDecimal unitPrice, int quantity) {
         return scaleAmount(unitPrice.multiply(BigDecimal.valueOf(quantity)));
+    }
+
+    private BigDecimal calculateOrderLineAmount(OrderLine line) {
+        if (line.totalPrice() != null && line.totalPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return scaleAmount(line.totalPrice());
+        }
+        return calculatePackageLineAmount(line.unitPrice(), line.quantity());
     }
 
     private BigDecimal scaleAmount(BigDecimal amount) {
@@ -1636,10 +1732,24 @@ public class OrderService {
                                     String currency,
                                     BigDecimal amount,
                                     Instant occurredAt) {
+        tryRecordCostEvent(tenantId, orderId, costType, "OMS_FULFILLMENT_PACKAGE", sourceId, sellerSku,
+                marketplaceId, currency, amount, occurredAt);
+    }
+
+    private void tryRecordCostEvent(String tenantId,
+                                    String orderId,
+                                    String costType,
+                                    String sourceType,
+                                    String sourceId,
+                                    String sellerSku,
+                                    String marketplaceId,
+                                    String currency,
+                                    BigDecimal amount,
+                                    Instant occurredAt) {
         try {
             fmsClient.recordCostEvent(new FmsClient.RecordCostEventRequest(
                     costType,
-                    "OMS_FULFILLMENT_PACKAGE",
+                    sourceType,
                     sourceId,
                     sellerSku,
                     marketplaceId,
@@ -1652,6 +1762,109 @@ public class OrderService {
             recordRisk(tenantId, orderId, OrderRiskCheck.RiskLevel.MEDIUM, "COST_EVENT_RECORD_FAILED",
                     "Cost event record failed for " + costType + " / " + sellerSku, "CHECK_FINANCE");
         }
+    }
+
+    private int releaseReservedInventoryForCancellation(String tenantId, SalesOrder order) {
+        OrderFulfillmentPlan currentPlan = fulfillmentPlanStore.findByOrderId(tenantId, order.orderId()).orElse(null);
+        if (currentPlan == null) {
+            return 0;
+        }
+        int releasedPackageCount = 0;
+        for (OrderFulfillmentPackage fulfillmentPackage : currentPlan.packages()) {
+            if (fulfillmentPackage.status() != FulfillmentPackageStatus.READY
+                    || fulfillmentPackage.warehouseId() == null
+                    || fulfillmentPackage.warehouseId().isBlank()
+                    || fulfillmentPackage.lines().isEmpty()) {
+                continue;
+            }
+            releaseInventory(fulfillmentPackage.warehouseId(), fulfillmentPackage.lines(),
+                    "OMS_ORDER", order.orderId(), "OMS cancellation release");
+            releasedPackageCount++;
+        }
+        return releasedPackageCount;
+    }
+
+    private boolean shouldRecordCancellationCost(SalesOrder order) {
+        return order.status() == OrderStatus.PAID || "PAID".equalsIgnoreCase(valueOrEmpty(order.paymentStatus()));
+    }
+
+    private int recordReturnCostEvents(SalesOrder order,
+                                       String sourceType,
+                                       String sourceId,
+                                       BigDecimal amount,
+                                       Instant occurredAt) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0 || order.lines().isEmpty()) {
+            return 0;
+        }
+        BigDecimal totalAmount = scaleAmount(amount);
+        BigDecimal totalLineAmount = order.lines().stream()
+                .map(this::calculateOrderLineAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal allocated = BigDecimal.ZERO;
+        int financeEventCount = 0;
+        for (int index = 0; index < order.lines().size(); index++) {
+            OrderLine line = order.lines().get(index);
+            BigDecimal lineAmount = calculateOrderLineAmount(line);
+            BigDecimal lineReturnCost;
+            if (totalLineAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                lineReturnCost = index == order.lines().size() - 1 ? totalAmount.subtract(allocated) : BigDecimal.ZERO;
+            } else if (index == order.lines().size() - 1) {
+                lineReturnCost = totalAmount.subtract(allocated);
+            } else {
+                lineReturnCost = totalAmount.multiply(lineAmount)
+                        .divide(totalLineAmount, 2, RoundingMode.HALF_UP);
+                allocated = allocated.add(lineReturnCost);
+            }
+            if (lineReturnCost.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            tryRecordCostEvent(order.tenantId(), order.orderId(), "RETURN_COST", sourceType, sourceId,
+                    line.sellerSku(), resolveCostMarketplaceId(order), order.currency(), lineReturnCost, occurredAt);
+            financeEventCount++;
+        }
+        return financeEventCount;
+    }
+
+    private OrderStatus resolveStatusAfterRefundReject(SalesOrder order) {
+        if (order.status() == OrderStatus.RETURN_REQUESTED) {
+            return OrderStatus.DELIVERED;
+        }
+        if (order.status() == OrderStatus.REFUND_REQUESTED && isShippedFulfillmentStatus(order.fulfillmentStatus())) {
+            return OrderStatus.SHIPPED;
+        }
+        return OrderStatus.PAID;
+    }
+
+    private boolean isShippedFulfillmentStatus(String fulfillmentStatus) {
+        String normalizedStatus = valueOrEmpty(fulfillmentStatus).toUpperCase(Locale.ROOT);
+        return "SHIPPED".equals(normalizedStatus) || "PARTIALLY_SHIPPED".equals(normalizedStatus);
+    }
+
+    private String normalizeRiskReviewAction(String action) {
+        String normalizedAction = valueOrEmpty(action).trim().toLowerCase(Locale.ROOT);
+        return switch (normalizedAction) {
+            case "approved", "rejected" -> normalizedAction;
+            default -> throw new BizException("PMS_RISK_ALERT_ACTION_INVALID", "Risk alert action is invalid");
+        };
+    }
+
+    private OrderRiskCheck.RiskLevel mapRiskLevel(String riskLevel) {
+        String normalizedRiskLevel = valueOrEmpty(riskLevel).trim().toUpperCase(Locale.ROOT);
+        return switch (normalizedRiskLevel) {
+            case "LOW" -> OrderRiskCheck.RiskLevel.LOW;
+            case "MEDIUM" -> OrderRiskCheck.RiskLevel.MEDIUM;
+            case "HIGH" -> OrderRiskCheck.RiskLevel.HIGH;
+            case "CRITICAL" -> OrderRiskCheck.RiskLevel.CRITICAL;
+            default -> OrderRiskCheck.RiskLevel.MEDIUM;
+        };
+    }
+
+    private String resolveCostMarketplaceId(SalesOrder order) {
+        return hasText(order.marketplace()) ? order.marketplace() : order.platform();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String valueOrEmpty(String value) {
@@ -1671,6 +1884,10 @@ public class OrderService {
     }
 
     private SalesOrder updateStatus(SalesOrder order, OrderStatus status) {
+        return updateStatus(order, status, order.fulfillmentStatus());
+    }
+
+    private SalesOrder updateStatus(SalesOrder order, OrderStatus status, String fulfillmentStatus) {
         return orderStore.save(new SalesOrder(
                 order.orderId(),
                 order.tenantId(),
@@ -1690,7 +1907,7 @@ public class OrderService {
                 order.discountAmount(),
                 status,
                 order.paymentStatus(),
-                order.fulfillmentStatus(),
+                fulfillmentStatus,
                 order.riskLevel(),
                 order.profitMargin(),
                 order.lines(),
@@ -1960,9 +2177,40 @@ public class OrderService {
     public record UpdateOrderStrategyCommand(String strategyType, String name, String description,
                                              String rules, Boolean enabled, Integer priority) {}
 
+    public record ProcurementDemandResponse(String sellerSku, int orderDemandQuantity, List<String> orderIds) {}
+
     private record SyncExecutionResult(List<OrderFulfillmentPackage> packages, List<PlatformShipmentSyncLog> logs) {}
 
     private record PlatformSyncAttemptResult(OrderFulfillmentPackage updatedPackage, PlatformShipmentSyncLog log) {}
+
+    private static final class ProcurementDemandAccumulator {
+        private final String sellerSku;
+        private int orderDemandQuantity;
+        private final Set<String> orderIds = new java.util.LinkedHashSet<>();
+
+        private ProcurementDemandAccumulator(String sellerSku) {
+            this.sellerSku = sellerSku;
+        }
+
+        private void add(String orderId, int quantity) {
+            orderDemandQuantity += Math.max(quantity, 0);
+            if (orderId != null && !orderId.isBlank()) {
+                orderIds.add(orderId);
+            }
+        }
+
+        private String sellerSku() {
+            return sellerSku;
+        }
+
+        private int orderDemandQuantity() {
+            return orderDemandQuantity;
+        }
+
+        private Set<String> orderIds() {
+            return orderIds;
+        }
+    }
 
     private static final class WarehouseStockSnapshot {
         private final String warehouseId;

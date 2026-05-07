@@ -1,6 +1,8 @@
 package com.aidotnet.erp.crm.infrastructure.mapper;
 
 import com.aidotnet.erp.crm.infrastructure.data.ComplaintDO;
+import com.aidotnet.erp.crm.infrastructure.data.CustomerBehaviorDO;
+import com.aidotnet.erp.crm.infrastructure.data.CustomerProfileDO;
 import com.aidotnet.erp.crm.infrastructure.data.CustomerTagDO;
 import com.aidotnet.erp.crm.infrastructure.data.MessageDO;
 import com.aidotnet.erp.crm.infrastructure.data.ReplyTemplateDO;
@@ -13,7 +15,7 @@ import org.apache.ibatis.annotations.Param;
  * CRM扩展数据Mapper接口
  * <p>
  * 描述: CRM域扩展功能数据访问层，负责回复模板、客诉、客户标签、
- *       评价、消息等业务对象的CRUD操作。
+ *       评价、消息、客户画像、客户行为等业务对象的CRUD操作。
  * </p>
  *
  * @author ERP系统
@@ -71,4 +73,20 @@ public interface CrmExtMapper {
     List<MessageDO> selectMessages(@Param("tenantId") String tenantId, @Param("customerId") String customerId);
     /** 按租户查询未读消息列表 */
     List<MessageDO> selectUnreadMessages(@Param("tenantId") String tenantId);
+
+    /** 新增客户画像 */
+    void insertCustomerProfile(CustomerProfileDO profile);
+    /** 更新客户画像 */
+    void updateCustomerProfile(CustomerProfileDO profile);
+    /** 按租户和画像ID查询客户画像 */
+    CustomerProfileDO selectCustomerProfile(@Param("tenantId") String tenantId, @Param("profileId") String profileId);
+    /** 按租户和客户ID查询客户画像 */
+    CustomerProfileDO selectCustomerProfileByCustomerId(@Param("tenantId") String tenantId, @Param("customerId") String customerId);
+    /** 按租户和分群查询客户画像列表 */
+    List<CustomerProfileDO> selectCustomerProfiles(@Param("tenantId") String tenantId, @Param("segment") String segment);
+
+    /** 新增客户行为 */
+    void insertCustomerBehavior(CustomerBehaviorDO behavior);
+    /** 按租户、客户ID和行为类型查询客户行为列表 */
+    List<CustomerBehaviorDO> selectCustomerBehaviors(@Param("tenantId") String tenantId, @Param("customerId") String customerId, @Param("behaviorType") String behaviorType);
 }

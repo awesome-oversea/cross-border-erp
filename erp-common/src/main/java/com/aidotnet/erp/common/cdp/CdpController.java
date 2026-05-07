@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController("commonCdpController")
-@RequestMapping("/crm/api/v1/cdp")
+@RequestMapping("/platform/crm/api/v1/cdp")
 public class CdpController {
 
     private final CustomerDataPlatformService cdpService;

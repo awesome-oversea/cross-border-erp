@@ -66,6 +66,383 @@
         LIMIT 1
     </select>
 
+    <insert id="insertInvoice" parameterType="com.aidotnet.erp.fms.infrastructure.data.InvoiceDO">
+        INSERT INTO fms_invoice (
+            invoice_id, tenant_id, invoice_no, invoice_type, customer_id,
+            customer_name, country_code, currency, subtotal_amount, tax_amount,
+            total_amount, tax_id_number, status, voucher_id, invoice_date,
+            due_date, remark, created_at, updated_at
+        )
+        VALUES (
+            #{invoiceId}, #{tenantId}, #{invoiceNumber}, #{invoiceType}, #{customerId},
+            #{customerName}, #{countryCode}, #{currency}, #{subtotalAmount}, #{taxAmount},
+            #{totalAmount}, #{taxIdNumber}, #{status}, #{voucherId}, #{invoiceDate},
+            #{dueDate}, #{remark}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateInvoice" parameterType="com.aidotnet.erp.fms.infrastructure.data.InvoiceDO">
+        UPDATE fms_invoice
+        SET invoice_no = #{invoiceNumber},
+            invoice_type = #{invoiceType},
+            customer_id = #{customerId},
+            customer_name = #{customerName},
+            country_code = #{countryCode},
+            currency = #{currency},
+            subtotal_amount = #{subtotalAmount},
+            tax_amount = #{taxAmount},
+            total_amount = #{totalAmount},
+            tax_id_number = #{taxIdNumber},
+            status = #{status},
+            voucher_id = #{voucherId},
+            invoice_date = #{invoiceDate},
+            due_date = #{dueDate},
+            remark = #{remark},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND invoice_id = #{invoiceId}
+    </update>
+
+    <select id="selectInvoice" resultType="com.aidotnet.erp.fms.infrastructure.data.InvoiceDO">
+        SELECT invoice_id,
+               tenant_id,
+               invoice_no AS invoice_number,
+               invoice_type,
+               customer_id,
+               customer_name,
+               country_code,
+               currency,
+               subtotal_amount,
+               tax_amount,
+               total_amount,
+               tax_id_number,
+               status,
+               voucher_id,
+               invoice_date,
+               due_date,
+               remark,
+               created_at,
+               updated_at
+        FROM fms_invoice
+        WHERE tenant_id = #{tenantId}
+          AND invoice_id = #{invoiceId}
+    </select>
+
+    <select id="selectInvoices" resultType="com.aidotnet.erp.fms.infrastructure.data.InvoiceDO">
+        SELECT invoice_id,
+               tenant_id,
+               invoice_no AS invoice_number,
+               invoice_type,
+               customer_id,
+               customer_name,
+               country_code,
+               currency,
+               subtotal_amount,
+               tax_amount,
+               total_amount,
+               tax_id_number,
+               status,
+               voucher_id,
+               invoice_date,
+               due_date,
+               remark,
+               created_at,
+               updated_at
+        FROM fms_invoice
+        WHERE tenant_id = #{tenantId}
+        <if test="countryCode != null and countryCode != ''">
+          AND country_code = #{countryCode}
+        </if>
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
+        ORDER BY created_at DESC, invoice_id DESC
+    </select>
+
+    <insert id="insertVoucherTemplate" parameterType="com.aidotnet.erp.fms.infrastructure.data.VoucherTemplateDO">
+        INSERT INTO fms_voucher_template (
+            template_id, tenant_id, template_name, business_type, debit_account,
+            credit_account, description, enabled, created_at, updated_at
+        )
+        VALUES (
+            #{templateId}, #{tenantId}, #{templateName}, #{businessType}, #{debitAccount},
+            #{creditAccount}, #{description}, #{enabled}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateVoucherTemplate" parameterType="com.aidotnet.erp.fms.infrastructure.data.VoucherTemplateDO">
+        UPDATE fms_voucher_template
+        SET template_name = #{templateName},
+            business_type = #{businessType},
+            debit_account = #{debitAccount},
+            credit_account = #{creditAccount},
+            description = #{description},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND template_id = #{templateId}
+    </update>
+
+    <select id="selectVoucherTemplate" resultType="com.aidotnet.erp.fms.infrastructure.data.VoucherTemplateDO">
+        SELECT template_id, tenant_id, template_name, business_type, debit_account,
+               credit_account, description, enabled, created_at, updated_at
+        FROM fms_voucher_template
+        WHERE tenant_id = #{tenantId}
+          AND template_id = #{templateId}
+    </select>
+
+    <select id="selectVoucherTemplates" resultType="com.aidotnet.erp.fms.infrastructure.data.VoucherTemplateDO">
+        SELECT template_id, tenant_id, template_name, business_type, debit_account,
+               credit_account, description, enabled, created_at, updated_at
+        FROM fms_voucher_template
+        WHERE tenant_id = #{tenantId}
+        <if test="businessType != null and businessType != ''">
+          AND business_type = #{businessType}
+        </if>
+        ORDER BY created_at DESC, template_id DESC
+    </select>
+
+    <insert id="insertVoucher" parameterType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        INSERT INTO fms_voucher (
+            voucher_id, tenant_id, voucher_no, voucher_type, reference_type,
+            reference_id, currency, debit_total, credit_total, status,
+            lines_json, voucher_date, posted_by, posted_at, export_batch_id,
+            created_at, updated_at
+        )
+        VALUES (
+            #{voucherId}, #{tenantId}, #{voucherNumber}, #{voucherType}, #{referenceType},
+            #{referenceId}, #{currency}, #{totalDebit}, #{totalCredit}, #{status},
+            CAST(#{linesJson} AS JSONB), #{voucherDate}, #{postedBy}, #{postedAt}, #{exportBatchId},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateVoucher" parameterType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        UPDATE fms_voucher
+        SET voucher_no = #{voucherNumber},
+            voucher_type = #{voucherType},
+            reference_type = #{referenceType},
+            reference_id = #{referenceId},
+            currency = #{currency},
+            debit_total = #{totalDebit},
+            credit_total = #{totalCredit},
+            status = #{status},
+            lines_json = CAST(#{linesJson} AS JSONB),
+            voucher_date = #{voucherDate},
+            posted_by = #{postedBy},
+            posted_at = #{postedAt},
+            export_batch_id = #{exportBatchId},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND voucher_id = #{voucherId}
+    </update>
+
+    <select id="selectVoucher" resultType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        SELECT voucher_id, tenant_id, voucher_no AS voucher_number, voucher_type, reference_type,
+               reference_id, currency, debit_total AS total_debit, credit_total AS total_credit, status,
+               CAST(lines_json AS TEXT) AS lines_json, voucher_date, posted_by, posted_at,
+               export_batch_id, created_at, updated_at
+        FROM fms_voucher
+        WHERE tenant_id = #{tenantId}
+          AND voucher_id = #{voucherId}
+    </select>
+
+    <select id="selectVouchers" resultType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        SELECT voucher_id, tenant_id, voucher_no AS voucher_number, voucher_type, reference_type,
+               reference_id, currency, debit_total AS total_debit, credit_total AS total_credit, status,
+               CAST(lines_json AS TEXT) AS lines_json, voucher_date, posted_by, posted_at,
+               export_batch_id, created_at, updated_at
+        FROM fms_voucher
+        WHERE tenant_id = #{tenantId}
+        <if test="voucherType != null and voucherType != ''">
+          AND voucher_type = #{voucherType}
+        </if>
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
+        ORDER BY created_at DESC, voucher_id DESC
+    </select>
+
+    <select id="selectVouchersByReference" resultType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        SELECT voucher_id, tenant_id, voucher_no AS voucher_number, voucher_type, reference_type,
+               reference_id, currency, debit_total AS total_debit, credit_total AS total_credit, status,
+               CAST(lines_json AS TEXT) AS lines_json, voucher_date, posted_by, posted_at,
+               export_batch_id, created_at, updated_at
+        FROM fms_voucher
+        WHERE tenant_id = #{tenantId}
+          AND reference_type = #{referenceType}
+          AND reference_id = #{referenceId}
+        ORDER BY created_at DESC, voucher_id DESC
+    </select>
+
+    <insert id="insertInvoiceSetting" parameterType="com.aidotnet.erp.fms.infrastructure.data.InvoiceSettingDO">
+        INSERT INTO fms_invoice_setting (
+            setting_id, tenant_id, store_id, marketplace_id, template_id, invoice_title,
+            tax_registration_no, show_unit_price, show_tax_rate, show_discount, remark,
+            enabled, created_at, updated_at
+        )
+        VALUES (
+            #{settingId}, #{tenantId}, #{storeId}, #{marketplaceId}, #{templateId}, #{invoiceTitle},
+            #{taxRegistrationNo}, #{showUnitPrice}, #{showTaxRate}, #{showDiscount}, #{remark},
+            #{enabled}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateInvoiceSetting" parameterType="com.aidotnet.erp.fms.infrastructure.data.InvoiceSettingDO">
+        UPDATE fms_invoice_setting
+        SET store_id = #{storeId},
+            marketplace_id = #{marketplaceId},
+            template_id = #{templateId},
+            invoice_title = #{invoiceTitle},
+            tax_registration_no = #{taxRegistrationNo},
+            show_unit_price = #{showUnitPrice},
+            show_tax_rate = #{showTaxRate},
+            show_discount = #{showDiscount},
+            remark = #{remark},
+            enabled = #{enabled},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND setting_id = #{settingId}
+    </update>
+
+    <select id="selectInvoiceSetting" resultType="com.aidotnet.erp.fms.infrastructure.data.InvoiceSettingDO">
+        SELECT setting_id, tenant_id, store_id, marketplace_id, template_id, invoice_title,
+               tax_registration_no, show_unit_price, show_tax_rate, show_discount, remark,
+               enabled, created_at, updated_at
+        FROM fms_invoice_setting
+        WHERE tenant_id = #{tenantId}
+          AND setting_id = #{settingId}
+    </select>
+
+    <select id="selectInvoiceSettingByScope" resultType="com.aidotnet.erp.fms.infrastructure.data.InvoiceSettingDO">
+        SELECT setting_id, tenant_id, store_id, marketplace_id, template_id, invoice_title,
+               tax_registration_no, show_unit_price, show_tax_rate, show_discount, remark,
+               enabled, created_at, updated_at
+        FROM fms_invoice_setting
+        WHERE tenant_id = #{tenantId}
+          AND store_id = #{storeId}
+          AND (
+                (#{marketplaceId} IS NULL AND marketplace_id IS NULL)
+                OR marketplace_id = #{marketplaceId}
+              )
+        ORDER BY updated_at DESC, setting_id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectInvoiceSettings" resultType="com.aidotnet.erp.fms.infrastructure.data.InvoiceSettingDO">
+        SELECT setting_id, tenant_id, store_id, marketplace_id, template_id, invoice_title,
+               tax_registration_no, show_unit_price, show_tax_rate, show_discount, remark,
+               enabled, created_at, updated_at
+        FROM fms_invoice_setting
+        WHERE tenant_id = #{tenantId}
+        ORDER BY updated_at DESC, setting_id DESC
+    </select>
+
+    <insert id="insertExternalFinanceVoucher" parameterType="com.aidotnet.erp.fms.infrastructure.data.ExternalFinanceVoucherDO">
+        INSERT INTO fms_external_finance_voucher (
+            voucher_id, tenant_id, erp_voucher_id, finance_system, voucher_type, voucher_number,
+            erp_reference_type, erp_reference_id, voucher_data_json, sync_status,
+            sync_error, synced_at, created_at, updated_at
+        )
+        VALUES (
+            #{voucherId}, #{tenantId}, #{erpVoucherId}, #{financeSystem}, #{voucherType}, #{voucherNumber},
+            #{erpReferenceType}, #{erpReferenceId}, CAST(#{voucherDataJson} AS JSONB), #{syncStatus},
+            #{syncError}, #{syncedAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateExternalFinanceVoucher" parameterType="com.aidotnet.erp.fms.infrastructure.data.ExternalFinanceVoucherDO">
+        UPDATE fms_external_finance_voucher
+        SET erp_voucher_id = #{erpVoucherId},
+            finance_system = #{financeSystem},
+            voucher_type = #{voucherType},
+            voucher_number = #{voucherNumber},
+            erp_reference_type = #{erpReferenceType},
+            erp_reference_id = #{erpReferenceId},
+            voucher_data_json = CAST(#{voucherDataJson} AS JSONB),
+            sync_status = #{syncStatus},
+            sync_error = #{syncError},
+            synced_at = #{syncedAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND voucher_id = #{voucherId}
+    </update>
+
+    <select id="selectExternalFinanceVoucher" resultType="com.aidotnet.erp.fms.infrastructure.data.ExternalFinanceVoucherDO">
+        SELECT voucher_id, tenant_id, erp_voucher_id, finance_system, voucher_type, voucher_number,
+               erp_reference_type, erp_reference_id, CAST(voucher_data_json AS TEXT) AS voucher_data_json,
+               sync_status, sync_error, synced_at, created_at, updated_at
+        FROM fms_external_finance_voucher
+        WHERE tenant_id = #{tenantId}
+          AND voucher_id = #{voucherId}
+    </select>
+
+    <select id="selectExternalFinanceVouchers" resultType="com.aidotnet.erp.fms.infrastructure.data.ExternalFinanceVoucherDO">
+        SELECT voucher_id, tenant_id, erp_voucher_id, finance_system, voucher_type, voucher_number,
+               erp_reference_type, erp_reference_id, CAST(voucher_data_json AS TEXT) AS voucher_data_json,
+               sync_status, sync_error, synced_at, created_at, updated_at
+        FROM fms_external_finance_voucher
+        WHERE tenant_id = #{tenantId}
+        <if test="syncStatus != null and syncStatus != ''">
+          AND sync_status = #{syncStatus}
+        </if>
+        ORDER BY created_at DESC, voucher_id DESC
+    </select>
+
+    <insert id="insertFinanceSyncConfig" parameterType="com.aidotnet.erp.fms.infrastructure.data.FinanceSyncConfigDO">
+        INSERT INTO fms_finance_sync_config (
+            config_id, tenant_id, finance_system, api_url, api_key, api_secret,
+            account_set, enabled, mapping_rules_json, last_sync_at, created_at, updated_at
+        )
+        VALUES (
+            #{configId}, #{tenantId}, #{financeSystem}, #{apiUrl}, #{apiKey}, #{apiSecret},
+            #{accountSet}, #{enabled}, CAST(#{mappingRulesJson} AS JSONB), #{lastSyncAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateFinanceSyncConfig" parameterType="com.aidotnet.erp.fms.infrastructure.data.FinanceSyncConfigDO">
+        UPDATE fms_finance_sync_config
+        SET finance_system = #{financeSystem},
+            api_url = #{apiUrl},
+            api_key = #{apiKey},
+            api_secret = #{apiSecret},
+            account_set = #{accountSet},
+            enabled = #{enabled},
+            mapping_rules_json = CAST(#{mappingRulesJson} AS JSONB),
+            last_sync_at = #{lastSyncAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND config_id = #{configId}
+    </update>
+
+    <select id="selectFinanceSyncConfig" resultType="com.aidotnet.erp.fms.infrastructure.data.FinanceSyncConfigDO">
+        SELECT config_id, tenant_id, finance_system, api_url, api_key, api_secret,
+               account_set, enabled, CAST(mapping_rules_json AS TEXT) AS mapping_rules_json,
+               last_sync_at, created_at, updated_at
+        FROM fms_finance_sync_config
+        WHERE tenant_id = #{tenantId}
+          AND config_id = #{configId}
+    </select>
+
+    <select id="selectFinanceSyncConfigBySystem" resultType="com.aidotnet.erp.fms.infrastructure.data.FinanceSyncConfigDO">
+        SELECT config_id, tenant_id, finance_system, api_url, api_key, api_secret,
+               account_set, enabled, CAST(mapping_rules_json AS TEXT) AS mapping_rules_json,
+               last_sync_at, created_at, updated_at
+        FROM fms_finance_sync_config
+        WHERE tenant_id = #{tenantId}
+          AND finance_system = #{financeSystem}
+        LIMIT 1
+    </select>
+
+    <select id="selectFinanceSyncConfigs" resultType="com.aidotnet.erp.fms.infrastructure.data.FinanceSyncConfigDO">
+        SELECT config_id, tenant_id, finance_system, api_url, api_key, api_secret,
+               account_set, enabled, CAST(mapping_rules_json AS TEXT) AS mapping_rules_json,
+               last_sync_at, created_at, updated_at
+        FROM fms_finance_sync_config
+        WHERE tenant_id = #{tenantId}
+        ORDER BY updated_at DESC, config_id DESC
+    </select>
+
     <insert id="insertCostAggregationRule" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostAggregationRuleDO">
         INSERT INTO fms_cost_aggregation_rule (
             rule_id, tenant_id, rule_name, cost_source, cost_category,
@@ -109,7 +486,9 @@
                priority, created_at, updated_at
         FROM fms_cost_aggregation_rule
         WHERE tenant_id = #{tenantId}
-          AND (#{costSource} IS NULL OR cost_source = #{costSource})
+        <if test="costSource != null and costSource != ''">
+          AND cost_source = #{costSource}
+        </if>
         ORDER BY priority DESC, created_at DESC
     </select>
 
@@ -156,6 +535,105 @@
           AND target_dimension = #{dimensionType}
           AND target_id = #{dimensionId}
         ORDER BY allocated_at ASC, result_id ASC
+    </select>
+
+    <insert id="insertCostAnomaly" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostAnomalyDO">
+        INSERT INTO fms_cost_anomaly (
+            anomaly_id, tenant_id, erp_reference_id, idempotency_key, anomaly_type,
+            source_type, source_id, dimension_type, dimension_id, seller_sku,
+            store_id, channel_code, marketplace_id, cost_type, suggested_amount,
+            currency, auto_aggregate, reason, evidence_json, status,
+            submitted_by, submitted_actor_type, approved_by, approved_at, effective_cost_event_id,
+            allocation_result_ids_json, trace_id, purpose, raw_scope, created_at, updated_at
+        )
+        VALUES (
+            #{anomalyId}, #{tenantId}, #{erpReferenceId}, #{idempotencyKey}, #{anomalyType},
+            #{sourceType}, #{sourceId}, #{dimensionType}, #{dimensionId}, #{sellerSku},
+            #{storeId}, #{channelCode}, #{marketplaceId}, #{costType}, #{suggestedAmount},
+            #{currency}, #{autoAggregate}, #{reason}, #{evidenceJson}, #{status},
+            #{submittedBy}, #{submittedActorType}, #{approvedBy}, #{approvedAt}, #{effectiveCostEventId},
+            #{allocationResultIdsJson}, #{traceId}, #{purpose}, #{rawScope}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateCostAnomaly" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostAnomalyDO">
+        UPDATE fms_cost_anomaly
+        SET erp_reference_id = #{erpReferenceId},
+            idempotency_key = #{idempotencyKey},
+            anomaly_type = #{anomalyType},
+            source_type = #{sourceType},
+            source_id = #{sourceId},
+            dimension_type = #{dimensionType},
+            dimension_id = #{dimensionId},
+            seller_sku = #{sellerSku},
+            store_id = #{storeId},
+            channel_code = #{channelCode},
+            marketplace_id = #{marketplaceId},
+            cost_type = #{costType},
+            suggested_amount = #{suggestedAmount},
+            currency = #{currency},
+            auto_aggregate = #{autoAggregate},
+            reason = #{reason},
+            evidence_json = #{evidenceJson},
+            status = #{status},
+            submitted_by = #{submittedBy},
+            submitted_actor_type = #{submittedActorType},
+            approved_by = #{approvedBy},
+            approved_at = #{approvedAt},
+            effective_cost_event_id = #{effectiveCostEventId},
+            allocation_result_ids_json = #{allocationResultIdsJson},
+            trace_id = #{traceId},
+            purpose = #{purpose},
+            raw_scope = #{rawScope},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND anomaly_id = #{anomalyId}
+    </update>
+
+    <select id="selectCostAnomaly" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAnomalyDO">
+        SELECT anomaly_id, tenant_id, erp_reference_id, idempotency_key, anomaly_type,
+               source_type, source_id, dimension_type, dimension_id, seller_sku,
+               store_id, channel_code, marketplace_id, cost_type, suggested_amount,
+               currency, auto_aggregate, reason, evidence_json, status,
+               submitted_by, submitted_actor_type, approved_by, approved_at, effective_cost_event_id,
+               allocation_result_ids_json, trace_id, purpose, raw_scope, created_at, updated_at
+        FROM fms_cost_anomaly
+        WHERE tenant_id = #{tenantId}
+          AND anomaly_id = #{anomalyId}
+    </select>
+
+    <select id="selectCostAnomalyByIdempotencyKey" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAnomalyDO">
+        SELECT anomaly_id, tenant_id, erp_reference_id, idempotency_key, anomaly_type,
+               source_type, source_id, dimension_type, dimension_id, seller_sku,
+               store_id, channel_code, marketplace_id, cost_type, suggested_amount,
+               currency, auto_aggregate, reason, evidence_json, status,
+               submitted_by, submitted_actor_type, approved_by, approved_at, effective_cost_event_id,
+               allocation_result_ids_json, trace_id, purpose, raw_scope, created_at, updated_at
+        FROM fms_cost_anomaly
+        WHERE tenant_id = #{tenantId}
+          AND idempotency_key = #{idempotencyKey}
+        LIMIT 1
+    </select>
+
+    <select id="selectCostAnomalies" resultType="com.aidotnet.erp.fms.infrastructure.data.CostAnomalyDO">
+        SELECT anomaly_id, tenant_id, erp_reference_id, idempotency_key, anomaly_type,
+               source_type, source_id, dimension_type, dimension_id, seller_sku,
+               store_id, channel_code, marketplace_id, cost_type, suggested_amount,
+               currency, auto_aggregate, reason, evidence_json, status,
+               submitted_by, submitted_actor_type, approved_by, approved_at, effective_cost_event_id,
+               allocation_result_ids_json, trace_id, purpose, raw_scope, created_at, updated_at
+        FROM fms_cost_anomaly
+        WHERE tenant_id = #{tenantId}
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
+        <if test="sellerSku != null and sellerSku != ''">
+          AND seller_sku = #{sellerSku}
+        </if>
+        <if test="storeId != null and storeId != ''">
+          AND store_id = #{storeId}
+        </if>
+        ORDER BY created_at DESC, anomaly_id DESC
     </select>
 
     <insert id="insertProfitResult" parameterType="com.aidotnet.erp.fms.infrastructure.data.ProfitResultDO">
@@ -283,7 +761,9 @@
                severity, status, detected_at, resolved_at
         FROM fms_profit_deviation_alert
         WHERE tenant_id = #{tenantId}
-          AND (#{status} IS NULL OR status = #{status})
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
         ORDER BY detected_at DESC, alert_id DESC
     </select>
 

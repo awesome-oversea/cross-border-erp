@@ -7,6 +7,7 @@ import com.aidotnet.erp.fms.domain.JournalEntryType;
 import com.aidotnet.erp.fms.domain.TaxRule;
 import com.aidotnet.erp.fms.infrastructure.FmsExtStore;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -85,7 +86,9 @@ public class FmsExtService {
     public TaxRule createTaxRule(String tenantId, CreateTaxRuleCommand command) {
         Instant now = Instant.now();
         TaxRule rule = new TaxRule(UUID.randomUUID().toString(), tenantId, command.countryCode(), command.taxType(),
-                command.taxRate(), command.taxCategory(), true, command.effectiveFrom(), command.effectiveTo(), now, now);
+                normalizeTaxRate(command.taxRate()), command.taxCategory(), true,
+                command.effectiveFrom() != null ? command.effectiveFrom() : now,
+                command.effectiveTo(), now, now);
         return extStore.saveTaxRule(rule);
     }
 
@@ -93,7 +96,7 @@ public class FmsExtService {
     public TaxRule updateTaxRule(String tenantId, String ruleId, UpdateTaxRuleCommand command) {
         TaxRule existing = getTaxRule(tenantId, ruleId);
         return extStore.saveTaxRule(new TaxRule(existing.ruleId(), existing.tenantId(), existing.countryCode(),
-                existing.taxType(), command.taxRate() != null ? command.taxRate() : existing.taxRate(),
+                existing.taxType(), command.taxRate() != null ? normalizeTaxRate(command.taxRate()) : existing.taxRate(),
                 command.taxCategory() != null ? command.taxCategory() : existing.taxCategory(),
                 existing.enabled(), existing.effectiveFrom(),
                 command.effectiveTo() != null ? command.effectiveTo() : existing.effectiveTo(),
@@ -111,7 +114,7 @@ public class FmsExtService {
     public BigDecimal calculateTax(String tenantId, String countryCode, String taxType, BigDecimal amount) {
         TaxRule rule = extStore.findActiveTaxRule(tenantId, countryCode, taxType)
                 .orElseThrow(() -> new BizException("TAX_RULE_NOT_FOUND", "未找到有效税率规则"));
-        return amount.multiply(rule.taxRate()).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        return amount.multiply(toRateFactor(rule.taxRate())).setScale(2, RoundingMode.HALF_UP);
     }
 
     public List<TaxRule> listTaxRules(String tenantId, String countryCode) {
@@ -132,4 +135,22 @@ public class FmsExtService {
     public record CreateTaxRuleCommand(String countryCode, String taxType, BigDecimal taxRate,
                                        String taxCategory, Instant effectiveFrom, Instant effectiveTo) {}
     public record UpdateTaxRuleCommand(BigDecimal taxRate, String taxCategory, Instant effectiveTo) {}
+
+    private BigDecimal normalizeTaxRate(BigDecimal taxRate) {
+        if (taxRate == null || taxRate.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BizException("TAX_RATE_INVALID", "绋庣巼蹇呴』澶т簬0");
+        }
+        return taxRate.compareTo(BigDecimal.ONE) <= 0
+                ? taxRate.multiply(BigDecimal.valueOf(100))
+                : taxRate;
+    }
+
+    /**
+     * 兼容历史上按 0.19 传小数税率，以及当前领域按 19 传百分比税率的两种写法。
+     */
+    private BigDecimal toRateFactor(BigDecimal taxRate) {
+        return taxRate.compareTo(BigDecimal.ONE) > 0
+                ? taxRate.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP)
+                : taxRate;
+    }
 }

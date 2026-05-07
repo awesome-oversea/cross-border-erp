@@ -3,6 +3,7 @@ package com.aidotnet.erp.ads.application;
 import com.aidotnet.erp.ads.domain.AdStrategy;
 import com.aidotnet.erp.ads.domain.AdStrategy.StrategyStatus;
 import com.aidotnet.erp.ads.domain.AdStrategy.StrategyType;
+import com.aidotnet.erp.ads.domain.NegativeKeyword;
 import com.aidotnet.erp.ads.domain.PmsActionLog;
 import com.aidotnet.erp.ads.domain.PmsActionLog.ActionType;
 import com.aidotnet.erp.ads.domain.SearchTermAnalysis;
@@ -14,7 +15,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -388,4 +392,59 @@ public class AdsStrategyService {
     public record RecordPmsActionCommand(String campaignId, String bidId, ActionType actionType,
                                           String beforeValue, String afterValue, String pmsReason,
                                           boolean canRollback) {}
+
+    // ========== 否定关键词管理(内存存储) ==========
+
+    private final Map<String, NegativeKeyword> negativeKeywordStore = new ConcurrentHashMap<>();
+
+    @Transactional
+    public NegativeKeyword addNegativeKeyword(String tenantId, String campaignId, String keywordText, String matchType) {
+        Instant now = Instant.now();
+        NegativeKeyword nk = new NegativeKeyword(UUID.randomUUID().toString(), tenantId,
+                campaignId, null, keywordText, matchType, "MANUAL", true, now, now);
+        negativeKeywordStore.put(nk.negativeKeywordId(), nk);
+        return nk;
+    }
+
+    @Transactional
+    public void removeNegativeKeyword(String tenantId, String negativeKeywordId) {
+        NegativeKeyword nk = negativeKeywordStore.get(negativeKeywordId);
+        if (nk == null || !nk.tenantId().equals(tenantId)) {
+            throw new RuntimeException("否定关键词不存在");
+        }
+        negativeKeywordStore.remove(negativeKeywordId);
+    }
+
+    public List<NegativeKeyword> listNegativeKeywords(String tenantId, String campaignId) {
+        return negativeKeywordStore.values().stream()
+                .filter(nk -> nk.tenantId().equals(tenantId))
+                .filter(nk -> campaignId == null || nk.campaignId().equals(campaignId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 自动提炼搜索词(由定时任务触发)
+     * <p>
+     * HIGH_CONVERTING → 保留为关键词
+     * HIGH_SPEND_LOW_RETURN → 自动添加到否定关键词
+     * </p>
+     */
+    @Transactional
+    public int harvestSearchTerms(String tenantId, String campaignId) {
+        List<SearchTermAnalysis> analyses = extStore.listSearchTermAnalyses(tenantId, campaignId);
+        int count = 0;
+        for (SearchTermAnalysis a : analyses) {
+            for (String suggestion : a.suggestedKeywords()) {
+                if (suggestion.startsWith("neg:")) {
+                    String term = suggestion.substring(4);
+                    NegativeKeyword nk = new NegativeKeyword(UUID.randomUUID().toString(), tenantId,
+                            campaignId, null, term, "NEGATIVE_EXACT", "AUTO_HARVEST", true,
+                            Instant.now(), Instant.now());
+                    negativeKeywordStore.put(nk.negativeKeywordId(), nk);
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
 }

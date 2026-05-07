@@ -87,6 +87,8 @@ public record ProfitResult(
         SKU,
         /** 按店铺 */
         STORE,
+        /** 按渠道 */
+        CHANNEL,
         /** 按市场 */
         MARKETPLACE,
         /** 按产品 */

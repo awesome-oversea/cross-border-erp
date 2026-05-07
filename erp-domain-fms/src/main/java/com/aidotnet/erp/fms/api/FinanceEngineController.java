@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see BillingStrategyService
  */
 @RestController
-@RequestMapping("/fms/api/in/v1/engine")
+@RequestMapping({"/fms/api/in/v1/engine", "/fms/api/v1/engine"})
 public class FinanceEngineController {
 
     private final CostAggregationEngine costAggregationEngine;
@@ -73,6 +73,16 @@ public class FinanceEngineController {
         return Result.ok(profitCalculationEngine.listProfitResults(currentTenant(), dimensionType, dimensionId));
     }
 
+    @GetMapping("/profit-results/by-dimension")
+    public Result<List<ProfitResult>> listProfitResultsByDimension(@NotBlank String dimensionType) {
+        return Result.ok(profitCalculationEngine.listProfitResultsByDimension(currentTenant(), dimensionType));
+    }
+
+    @GetMapping("/profit-summary")
+    public Result<ProfitCalculationEngine.ProfitSummary> getProfitSummary(@NotBlank String dimensionType) {
+        return Result.ok(profitCalculationEngine.getProfitSummaryByDimension(currentTenant(), dimensionType));
+    }
+
     @PostMapping("/profit-deviation-alerts/detect")
     public Result<List<ProfitDeviationAlert>> detectAlerts(@Valid @RequestBody DetectDeviationAlertRequest request) {
         return Result.ok(profitCalculationEngine.detectDeviations(currentTenant(), request.threshold()));
@@ -81,6 +91,16 @@ public class FinanceEngineController {
     @GetMapping("/profit-deviation-alerts")
     public Result<List<ProfitDeviationAlert>> listAlerts(String status) {
         return Result.ok(profitCalculationEngine.listAlerts(currentTenant(), status));
+    }
+
+    @PostMapping("/profit-deviation-alerts/{alertId}/acknowledge")
+    public Result<ProfitDeviationAlert> acknowledgeAlert(@PathVariable String alertId) {
+        return Result.ok(profitCalculationEngine.acknowledgeAlert(currentTenant(), alertId));
+    }
+
+    @PostMapping("/profit-deviation-alerts/{alertId}/resolve")
+    public Result<ProfitDeviationAlert> resolveAlert(@PathVariable String alertId) {
+        return Result.ok(profitCalculationEngine.resolveAlert(currentTenant(), alertId));
     }
 
     private String currentTenant() {

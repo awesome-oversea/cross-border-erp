@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.ObjectPermissionMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.ObjectPermissionDO">
+        INSERT INTO iam_object_permission (obj_perm_id, tenant_id, user_id, resource_type, resource_id, permissions, granted_by, created_at)
+        VALUES (#{objPermId}, #{tenantId}, #{userId}, #{resourceType}, #{resourceId}, #{permissions}, #{grantedBy}, #{createdAt})
+    </insert>
+
+    <select id="selectById" resultType="com.aidotnet.erp.iam.infrastructure.data.ObjectPermissionDO">
+        SELECT obj_perm_id, tenant_id, user_id, resource_type, resource_id, permissions, granted_by, created_at
+        FROM iam_object_permission
+        WHERE obj_perm_id = #{objPermId}
+    </select>
+
+    <select id="selectByUserId" resultType="com.aidotnet.erp.iam.infrastructure.data.ObjectPermissionDO">
+        SELECT obj_perm_id, tenant_id, user_id, resource_type, resource_id, permissions, granted_by, created_at
+        FROM iam_object_permission
+        WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.iam.infrastructure.data.ObjectPermissionDO">
+        SELECT obj_perm_id, tenant_id, user_id, resource_type, resource_id, permissions, granted_by, created_at
+        FROM iam_object_permission
+        WHERE tenant_id = #{tenantId}
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM iam_object_permission WHERE obj_perm_id = #{objPermId}
+    </delete>
+
+</mapper>

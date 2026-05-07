@@ -276,7 +276,7 @@
         INSERT INTO dashboard_ai_insight_card (card_id, tenant_id, user_id, title, summary, insight_type,
             severity, data, source_domain, suggestion, action_url, is_read, is_dismissed, valid_until, created_at, updated_at)
         VALUES (#{cardId}, #{tenantId}, #{userId}, #{title}, #{summary}, #{insightType},
-            #{severity}, #{data}, #{sourceDomain}, #{suggestion}, #{actionUrl}, #{isRead}, #{isDismissed}, #{validUntil}, #{createdAt}, #{updatedAt})
+            #{severity}, CAST(#{data} AS JSONB), #{sourceDomain}, #{suggestion}, #{actionUrl}, #{isRead}, #{isDismissed}, #{validUntil}, #{createdAt}, #{updatedAt})
     </insert>
 
     <delete id="deleteAIInsightCard">

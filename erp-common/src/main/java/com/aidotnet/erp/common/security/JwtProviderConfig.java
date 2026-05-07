@@ -2,9 +2,11 @@ package com.aidotnet.erp.common.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+/**
+ * JwtProvider 已直接组件化注册。
+ * 当前类保留原有显式工厂语义，避免误删历史实现，但不再注册为运行时配置。
+ */
 public class JwtProviderConfig {
 
     @Bean

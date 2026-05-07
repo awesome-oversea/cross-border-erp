@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.scm.infrastructure.mapper.SupplierContactMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.scm.infrastructure.data.SupplierContactDO">
+        INSERT INTO scm_supplier_contact (contact_id, tenant_id, supplier_id, name, role, email, phone,
+                                          primary_contact, created_at, updated_at)
+        VALUES (#{contactId}, #{tenantId}, #{supplierId}, #{name}, #{role}, #{email}, #{phone},
+                #{primaryContact}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <delete id="deleteBySupplier">
+        DELETE FROM scm_supplier_contact
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+    </delete>
+
+    <select id="selectBySupplier" resultType="com.aidotnet.erp.scm.infrastructure.data.SupplierContactDO">
+        SELECT contact_id, tenant_id, supplier_id, name, role, email, phone, primary_contact, created_at, updated_at
+        FROM scm_supplier_contact
+        WHERE tenant_id = #{tenantId} AND supplier_id = #{supplierId}
+        ORDER BY primary_contact DESC, created_at DESC
+    </select>
+</mapper>

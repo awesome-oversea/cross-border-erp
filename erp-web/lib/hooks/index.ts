@@ -18,3 +18,5 @@ export function useBreadcrumbs() {
     href: '/' + segments.slice(0, i + 1).join('/'),
   }));
 }
+
+export { useApi, usePageApi } from './useApi';

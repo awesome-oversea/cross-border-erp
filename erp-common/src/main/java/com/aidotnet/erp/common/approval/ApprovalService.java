@@ -8,6 +8,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * 审批服务(内存实现)
+ * <p>
+ * 已废弃，请使用 PersistentApprovalService(数据库持久化实现)替代。
+ * 该实现仅在单元测试或无数据库环境时使用。
+ * </p>
+ *
+ * @deprecated 使用 {@link PersistentApprovalService} 替代
+ */
+@Deprecated
 public class ApprovalService {
 
     private final Map<String, ApprovalInstance> instances = new ConcurrentHashMap<>();

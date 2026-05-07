@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/sys/api/v1/masking")
+@RequestMapping("/platform/sys/api/v1/masking")
 public class DataMaskingController {
 
     private final DataMaskingService maskingService;

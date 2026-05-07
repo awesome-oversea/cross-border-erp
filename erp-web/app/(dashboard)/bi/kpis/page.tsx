@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Table, Button, Modal, Form, Input, InputNumber, Select, Tag, Space, message, Card, Typography, Badge, Progress } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { usePageApi } from '@/lib/hooks';
 import { biApi } from '@/lib/api';
-import type { KpiMetric } from '@/types';
+import type { KpiMetric, PageParams } from '@/types';
 
 const { Title } = Typography;
 
@@ -16,24 +17,10 @@ const statusMap: Record<string, { color: string; text: string }> = {
 };
 
 export default function KpisPage() {
-  const [kpis, setKpis] = useState<KpiMetric[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [params, setParams] = useState<PageParams & Record<string, unknown>>({ page: 1, size: 20 });
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await biApi.listKpis();
-      setKpis(data || []);
-    } catch {
-      setKpis([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, mutate } = usePageApi<KpiMetric>('/bi/api/in/v1/kpis', params);
 
   const handleCreate = async () => {
     try {
@@ -41,7 +28,7 @@ export default function KpisPage() {
       await biApi.recordKpi(values);
       message.success('KPI指标已录入');
       setModalOpen(false);
-      fetchData();
+      mutate();
     } catch {
       message.error('操作失败');
     }
@@ -68,10 +55,16 @@ export default function KpisPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>KPI指标</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>录入指标</Button>
+        <Space>
+          <Select placeholder="分类" allowClear style={{ width: 140 }}
+            options={[{ value: 'FINANCE', label: '财务' }, { value: 'SALES', label: '销售' }, { value: 'OPERATION', label: '运营' }, { value: 'CUSTOMER', label: '客户' }]}
+            onChange={(v) => setParams({ ...params, category: v })} />
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>录入指标</Button>
+        </Space>
       </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="kpiId" columns={columns} dataSource={kpis} loading={loading} size="middle" />
+        <Table rowKey="kpiId" columns={columns} dataSource={data?.list || []} size="middle"
+          pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
       <Modal title="录入KPI指标" open={modalOpen} onOk={handleCreate} onCancel={() => setModalOpen(false)} width={520}>
         <Form form={form} layout="vertical">

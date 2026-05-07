@@ -3,8 +3,10 @@ package com.aidotnet.erp.iam.application;
 import com.aidotnet.erp.common.exception.BizException;
 import com.aidotnet.erp.common.security.DataScope;
 import com.aidotnet.erp.common.security.DataScopeResolver;
+import com.aidotnet.erp.iam.domain.ObjectPermission;
 import com.aidotnet.erp.iam.domain.UserDataScope;
 import com.aidotnet.erp.iam.infrastructure.IamStore;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -26,15 +28,24 @@ import org.springframework.stereotype.Service;
  *   6. warehouse - 仓库维度，控制可访问的仓库范围
  *   7. supplier - 供应商维度，控制可访问的供应商范围
  *   8. category - 品类维度，控制可访问的品类范围
- *   9. data_level - 数据层级，控制数据可见粒度(汇总/明细)
+ *   9. data_level - 数据层级(SUMMARY/DETAIL/MASKED)，控制数据可见粒度
+ * </p>
+ * <p>
+ * 对象级权限(第10维):
+ *   10. object_permission - 业务对象级权限(产品/Listing/广告等)，
+ *       支持用户自定义产品角色，可查看全部或仅与自己相关的产品。
+ *       通过 checkObjectPermission 方法实现校验。
  * </p>
  * <p>
  * 数据层级(DataLevel):
- *   - SUMMARY: 仅查看汇总数据
+ *   - SUMMARY: 仅查看汇总数据，不可查看明细
  *   - DETAIL: 查看明细数据(默认)
+ *   - MASKED: 查看已脱敏的明细数据
  * </p>
  *
  * @author ERP系统
+ * @see DataScope
+ * @see DataScopeResolver
  */
 @Service
 public class DataScopeService implements DataScopeResolver {
@@ -56,6 +67,11 @@ public class DataScopeService implements DataScopeResolver {
      * 根据用户ID查找所有数据权限定义，按资源类型分组后构建DataScope对象。
      * 无数据权限定义时返回默认范围(空集合+DETAIL层级)。
      * </p>
+     * <p>
+     * 返回的DataScope包含完整的10维数据权限信息，SQL拦截器或业务方法
+     * 可以通过 DataScopeResolver 获取用户的权限范围，在查询时自动追加
+     * 租户隔离和数据权限筛选条件。
+     * </p>
      *
      * @param tenantId 租户ID
      * @param userId   用户ID
@@ -65,6 +81,7 @@ public class DataScopeService implements DataScopeResolver {
     public DataScope resolve(String tenantId, String userId) {
         Set<UserDataScope> scopes = iamStore.findDataScopes(userId);
         if (scopes.isEmpty()) {
+            // 默认：无数据权限约束时赋予DETAIL层级，表示可见全部明细数据
             return new DataScope(tenantId, Set.of(), Set.of(), Set.of(), Set.of(), Set.of(),
                     Set.of(), Set.of(), Set.of(), DataScope.DataLevel.DETAIL);
         }
@@ -93,11 +110,52 @@ public class DataScopeService implements DataScopeResolver {
      * @param tenantId     租户ID
      * @param resourceType 资源类型，如 org、department、store、warehouse
      * @param resourceIds  资源ID集合，CUSTOM类型时有效
-     * @param scopeType    范围类型: ALL(全部)/DEPT(本部门)/DEPT_AND_SUB(本部门及下级)/CUSTOM(自定义)
+     * @param scopeType    范围类型: ALL(全部访问)/DEPT(本部门)/DEPT_AND_SUB(本部门及下级)/CUSTOM(自定义)
      */
     public void setDataScope(String userId, String tenantId, String resourceType, Set<String> resourceIds, String scopeType) {
         String scopeId = "ds-" + userId + "-" + resourceType;
         iamStore.saveDataScope(new UserDataScope(scopeId, userId, tenantId, resourceType, resourceIds, scopeType));
+    }
+
+    /**
+     * 校验用户对特定业务对象的操作权限
+     * <p>
+     * 对象级权限(10维中的第10维)用于产品、Listing、广告等业务对象的精细权限控制。
+     * 支持两种模式:
+     *   1. 全部可见: 用户拥有该资源类型的ALL范围，可访问所有对象
+     *   2. 自定义可见: 用户只能访问resourceIds中指定的对象
+     * 业务规则:
+     *   - 无数据权限配置时默认放行(兼容简单场景)
+     *   - 有"product"资源类型的ALL范围时，可见所有产品
+     *   - 有"product"资源类型的CUSTOM范围时，只可见resourceIds中的产品
+     *   - 资源类型匹配和*通配符(表示拥有该资源所有操作权限)
+     *
+     * @param tenantId     租户ID
+     * @param userId       用户ID
+     * @param resourceType 资源类型(product/listing/ad等)
+     * @param resourceId   资源ID
+     * @param action       操作类型(read/write/delete等)
+     * @return true=有权限, false=无权限
+     */
+    @Override
+    public boolean checkObjectPermission(String tenantId, String userId, String resourceType, String resourceId, String action) {
+        Set<UserDataScope> scopes = iamStore.findDataScopes(userId);
+        // 无数据权限配置时默认放行
+        if (scopes.isEmpty()) {
+            return true;
+        }
+        // 优先通过对象级权限(ObjectPermission)校验
+        List<ObjectPermission> objPerms = iamStore.findObjectPermissions(tenantId, userId, resourceType);
+        for (ObjectPermission perm : objPerms) {
+            if (perm.resourceId().equals(resourceId)) {
+                // *表示拥有该资源的所有操作权限
+                return perm.permissions().contains(action) || perm.permissions().contains("*");
+            }
+        }
+        // 回退到数据权限范围校验: 检查是否ALL范围或resourceIds中是否包含
+        return scopes.stream()
+                .filter(s -> s.resourceType().equals(resourceType))
+                .anyMatch(s -> "ALL".equalsIgnoreCase(s.scopeType()) || s.resourceIds().contains(resourceId));
     }
 
     /** 按资源类型过滤数据权限范围，提取资源ID集合 */
@@ -108,14 +166,22 @@ public class DataScopeService implements DataScopeResolver {
                 .collect(Collectors.toSet());
     }
 
-    /** 解析数据层级，默认为DETAIL(明细) */
+    /**
+     * 解析数据层级，默认为DETAIL(明细)
+     * <p>
+     * 数据层级控制用户可见的数据粒度:
+     *   DETAIL - 可见完整明细数据
+     *   SUMMARY - 仅可见汇总统计，不可查看明细
+     *   MASKED - 可见已脱敏的明细数据(手机号/邮箱等敏感字段被遮挡)
+     * </p>
+     */
     private DataScope.DataLevel resolveDataLevel(Set<UserDataScope> scopes) {
         return scopes.stream()
                 .filter(s -> "data_level".equals(s.resourceType()))
                 .findFirst()
                 .map(s -> {
                     try {
-                        return DataScope.DataLevel.valueOf(s.scopeType());
+                        return DataScope.DataLevel.valueOf(s.scopeType().toUpperCase());
                     } catch (IllegalArgumentException e) {
                         return DataScope.DataLevel.DETAIL;
                     }

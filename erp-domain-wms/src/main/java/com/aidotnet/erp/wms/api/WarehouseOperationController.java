@@ -23,6 +23,7 @@ import com.aidotnet.erp.wms.domain.QualityCheck;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -172,6 +173,6 @@ public class WarehouseOperationController {
     public record MoveInventoryRequest(@NotBlank String warehouseId, @NotBlank String sellerSku,
                                        String fromLocationId, String toLocationId, @Positive int quantity) {}
     public record PerformQualityCheckRequest(@NotBlank String warehouseId, String inboundOrderId, @NotBlank String sellerSku,
-                                             @Positive int sampleQuantity, @Positive int passQuantity, @Positive int failQuantity,
+                                             @Positive int sampleQuantity, @PositiveOrZero int passQuantity, @PositiveOrZero int failQuantity,
                                              String inspector, String remark) {}
 }

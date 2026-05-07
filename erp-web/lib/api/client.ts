@@ -1,8 +1,8 @@
 import axios from 'axios';
-import type { Result } from '@/types';
+import type { Result, PageResult, PageParams } from '@/types';
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
+  baseURL: '',
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -34,6 +34,11 @@ apiClient.interceptors.response.use(
 
 export async function get<T>(url: string, params?: Record<string, unknown>): Promise<T> {
   const res = await apiClient.get<Result<T>>(url, { params });
+  return res.data.data;
+}
+
+export async function getPage<T>(url: string, params?: PageParams & Record<string, unknown>): Promise<PageResult<T>> {
+  const res = await apiClient.get<Result<PageResult<T>>>(url, { params });
   return res.data.data;
 }
 

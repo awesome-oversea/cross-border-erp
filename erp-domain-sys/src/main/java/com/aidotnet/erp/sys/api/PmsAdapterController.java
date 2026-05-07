@@ -2,6 +2,8 @@ package com.aidotnet.erp.sys.api;
 
 import com.aidotnet.erp.common.api.Result;
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.common.exception.ErrorCode;
+import com.aidotnet.erp.common.tenant.TenantContext;
 import com.aidotnet.erp.sys.application.PmsIntegrationService;
 import com.aidotnet.erp.sys.application.PmsRecommendationService;
 import com.aidotnet.erp.sys.application.PmsRecommendationService.PmsCallContext;
@@ -19,6 +21,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,31 +51,35 @@ public class PmsAdapterController {
         integrationService.validateWriteWhitelist(request.objectType());
         integrationService.validateDomain(request.domain());
         String tenantId = requiredHeader(headers, "tenant_id");
-        integrationService.validateDataSovereignty(tenantId, request.domain(), request.objectType());
-        if (!integrationService.checkAIFeatureEnabled(tenantId, request.domain())) {
-            throw new BizException("PMS_FEATURE_DISABLED", "该域AI功能已关闭");
-        }
-        PmsSubmitCommand command = new PmsSubmitCommand(
-                request.recommendationId(), request.domain(), request.recommendationType(),
-                request.objectType(), request.targetObjectType(), request.targetObjectId(),
-                request.content(), request.score(), request.confidence(),
-                request.evidenceChainId(), request.dataSources(), request.riskFlags(),
-                request.explainability(), request.requestedAction());
-        return Result.ok(recommendationService.submit(command, toContext(headers)));
+        return inTenant(tenantId, () -> {
+            integrationService.validateDataSovereignty(tenantId, request.domain(), request.objectType());
+            if (!integrationService.checkAIFeatureEnabled(tenantId, request.domain())) {
+                throw new BizException(ErrorCode.PMS_FEATURE_DISABLED, "该域AI功能已关闭");
+            }
+            PmsSubmitCommand command = new PmsSubmitCommand(
+                    request.recommendationId(), request.domain(), request.recommendationType(),
+                    request.objectType(), request.targetObjectType(), request.targetObjectId(),
+                    request.content(), request.score(), request.confidence(),
+                    request.evidenceChainId(), request.dataSources(), request.riskFlags(),
+                    request.explainability(), request.requestedAction());
+            return Result.ok(recommendationService.submit(command, toContext(headers)));
+        });
     }
 
     @GetMapping("/recommendations")
     public Result<List<PmsRecommendation>> listRecommendations(@RequestParam(required = false) String domain,
             @RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
-        return Result.ok(recommendationService.list(requiredHeader(headers, "tenant_id"), domain));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.list(tenantId, domain)));
     }
 
     @GetMapping("/recommendations/{erpReferenceId}")
     public Result<PmsRecommendation> getRecommendation(@PathVariable String erpReferenceId,
             @RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
-        return Result.ok(recommendationService.get(requiredHeader(headers, "tenant_id"), erpReferenceId));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.get(tenantId, erpReferenceId)));
     }
 
     @PostMapping("/recommendations/{erpReferenceId}/drafts")
@@ -81,12 +88,12 @@ public class PmsAdapterController {
             @RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
         String tenantId = requiredHeader(headers, "tenant_id");
-        return Result.ok(integrationService.generateDraft(tenantId, erpReferenceId,
+        return inTenant(tenantId, () -> Result.ok(integrationService.generateDraft(tenantId, erpReferenceId,
                 request.domain(), request.draftType(), request.targetBusinessType(),
                 request.contentJson(), request.trustLevel(),
                 requiredHeader(headers, "actor_id"), header(headers, "actor_type"),
                 header(headers, "agent_id"), requiredHeader(headers, "scope"),
-                requiredHeader(headers, "purpose"), requiredHeader(headers, "trace_id")));
+                requiredHeader(headers, "purpose"), requiredHeader(headers, "trace_id"))));
     }
 
     @PatchMapping("/drafts/{draftId}/approve")
@@ -94,8 +101,9 @@ public class PmsAdapterController {
             @RequestBody ApproveDraftRequest request,
             @RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
-        return Result.ok(integrationService.approveDraft(
-                requiredHeader(headers, "tenant_id"), draftId, request.approvedBy()));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(integrationService.approveDraft(
+                tenantId, draftId, request.approvedBy())));
     }
 
     @PatchMapping("/drafts/{draftId}/execute")
@@ -103,8 +111,9 @@ public class PmsAdapterController {
             @RequestBody ExecuteDraftRequest request,
             @RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
-        return Result.ok(integrationService.executeDraft(
-                requiredHeader(headers, "tenant_id"), draftId, request.executionResult()));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(integrationService.executeDraft(
+                tenantId, draftId, request.executionResult())));
     }
 
     @PostMapping("/recommendations/{erpReferenceId}/feedback")
@@ -113,52 +122,56 @@ public class PmsAdapterController {
             @RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
         String tenantId = requiredHeader(headers, "tenant_id");
-        return Result.ok(integrationService.sendFeedback(tenantId, erpReferenceId,
+        return inTenant(tenantId, () -> Result.ok(integrationService.sendFeedback(tenantId, erpReferenceId,
                 request.feedbackType(), request.executionStatus(), request.businessResult(),
                 request.businessMetricsJson(), request.failureReason(),
-                requiredHeader(headers, "actor_id"), requiredHeader(headers, "trace_id")));
+                requiredHeader(headers, "actor_id"), requiredHeader(headers, "trace_id"))));
     }
 
     @GetMapping("/feedbacks/pending")
     public Result<List<PmsFeedback>> listPendingFeedbacks(@RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
-        return Result.ok(integrationService.listPendingFeedbacks(requiredHeader(headers, "tenant_id")));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(integrationService.listPendingFeedbacks(tenantId)));
     }
 
     @PatchMapping("/feedbacks/{feedbackId}/delivered")
     public Result<PmsFeedback> markFeedbackDelivered(@PathVariable String feedbackId,
             @RequestHeader Map<String, String> headers) {
         integrationService.validateHeaders(headers);
-        return Result.ok(integrationService.markFeedbackDelivered(
-                requiredHeader(headers, "tenant_id"), feedbackId));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(integrationService.markFeedbackDelivered(
+                tenantId, feedbackId)));
     }
 
     @PostMapping("/data-trust-rules")
     public Result<PmsDataTrustRule> createDataTrustRule(@Valid @RequestBody DataTrustRuleRequest request,
             @RequestHeader Map<String, String> headers) {
         String tenantId = requiredHeader(headers, "tenant_id");
-        return Result.ok(integrationService.createDataTrustRule(tenantId, request.domain(),
+        return inTenant(tenantId, () -> Result.ok(integrationService.createDataTrustRule(tenantId, request.domain(),
                 request.objectType(), request.trustLevel(), request.description(),
-                request.allowedActions(), request.canOverwriteErp()));
+                request.allowedActions(), request.canOverwriteErp())));
     }
 
     @GetMapping("/data-trust-rules")
     public Result<List<PmsDataTrustRule>> listDataTrustRules(@RequestHeader Map<String, String> headers) {
-        return Result.ok(integrationService.listDataTrustRules(requiredHeader(headers, "tenant_id")));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(integrationService.listDataTrustRules(tenantId)));
     }
 
     @PostMapping("/ai-toggles")
     public Result<AIFeatureToggle> setAIFeatureToggle(@Valid @RequestBody AIToggleRequest request,
             @RequestHeader Map<String, String> headers) {
         String tenantId = requiredHeader(headers, "tenant_id");
-        return Result.ok(integrationService.setAIFeatureToggle(tenantId, request.featureCode(),
+        return inTenant(tenantId, () -> Result.ok(integrationService.setAIFeatureToggle(tenantId, request.featureCode(),
                 request.featureName(), request.domain(), request.enabled(),
-                request.description(), request.configJson()));
+                request.description(), request.configJson())));
     }
 
     @GetMapping("/ai-toggles")
     public Result<List<AIFeatureToggle>> listAIToggles(@RequestHeader Map<String, String> headers) {
-        return Result.ok(integrationService.listAIFeatureToggles(requiredHeader(headers, "tenant_id")));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(integrationService.listAIFeatureToggles(tenantId)));
     }
 
     private PmsCallContext toContext(Map<String, String> headers) {
@@ -170,10 +183,20 @@ public class PmsAdapterController {
                 requiredHeader(headers, "source_system"), requiredHeader(headers, "signature"));
     }
 
+    private <T> T inTenant(String tenantId, Supplier<T> action) {
+        String previousTenantId = TenantContext.getTenantId();
+        TenantContext.setTenantId(tenantId);
+        try {
+            return action.get();
+        } finally {
+            TenantContext.setTenantId(previousTenantId);
+        }
+    }
+
     private static String requiredHeader(Map<String, String> headers, String name) {
         String value = header(headers, name);
         if (value == null || value.isBlank()) {
-            throw new BizException("PMS_HEADER_MISSING", name + "不能为空");
+            throw new BizException(ErrorCode.PMS_HEADER_MISSING, name + "不能为空");
         }
         return value.trim();
     }

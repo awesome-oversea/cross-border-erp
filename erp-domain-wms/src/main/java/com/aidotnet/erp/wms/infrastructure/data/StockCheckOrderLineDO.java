@@ -2,6 +2,7 @@ package com.aidotnet.erp.wms.infrastructure.data;
 
 public class StockCheckOrderLineDO {
     private String lineId;
+    private String tenantId;
     private String checkOrderId;
     private String sellerSku;
     private String locationId;
@@ -12,6 +13,8 @@ public class StockCheckOrderLineDO {
 
     public String getLineId() { return lineId; }
     public void setLineId(String lineId) { this.lineId = lineId; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public String getCheckOrderId() { return checkOrderId; }
     public void setCheckOrderId(String checkOrderId) { this.checkOrderId = checkOrderId; }
     public String getSellerSku() { return sellerSku; }

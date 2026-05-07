@@ -3,6 +3,8 @@ package com.aidotnet.erp.tms.api;
 import com.aidotnet.erp.common.api.Result;
 import com.aidotnet.erp.common.exception.BizException;
 import com.aidotnet.erp.common.tenant.TenantContext;
+import com.aidotnet.erp.tms.application.ShipmentService;
+import com.aidotnet.erp.tms.application.ShipmentService.FreightDifference;
 import com.aidotnet.erp.tms.application.ShippingBatchService;
 import com.aidotnet.erp.tms.application.ShippingBatchService.CreateBatchCommand;
 import com.aidotnet.erp.tms.domain.ShippingBatch;
@@ -20,27 +22,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 批量发货控制器
+ * TMS 交运批次接口。
  * <p>
- * 描述: TMS域批量发货REST API，提供批量发货单创建、提交、取消等接口。
- *       路径前缀: /tms/api/in/v1/shipping-batches (内部接口)
+ * 交运批次属于 TMS 领域主控业务，内部直连统一使用 `/tms/api/v1/shipping-batches/...`。
  * </p>
- *
- * @author ERP系统
  */
 @RestController
-@RequestMapping("/tms/api/in/v1/shipping-batches")
+@RequestMapping("/tms/api/v1/shipping-batches")
 public class ShippingBatchController {
 
     private final ShippingBatchService service;
+    private final ShipmentService shipmentService;
 
-    /**
-     * 构造函数 - 依赖注入批量发货服务
-     *
-     * @param service 批量发货应用服务
-     */
-    public ShippingBatchController(ShippingBatchService service) {
+    public ShippingBatchController(ShippingBatchService service, ShipmentService shipmentService) {
         this.service = service;
+        this.shipmentService = shipmentService;
     }
 
     @PostMapping
@@ -72,6 +68,12 @@ public class ShippingBatchController {
     @GetMapping("/{batchId}")
     public Result<ShippingBatch> getBatch(@PathVariable String batchId) {
         return Result.ok(service.getBatch(currentTenant(), batchId));
+    }
+
+    @GetMapping("/{batchId}/freight-differences")
+    public Result<List<FreightDifference>> listFreightDifferences(@PathVariable String batchId) {
+        ShippingBatch batch = service.getBatch(currentTenant(), batchId);
+        return Result.ok(shipmentService.listFreightDifferences(currentTenant(), batch.shipmentIds()));
     }
 
     private String currentTenant() {

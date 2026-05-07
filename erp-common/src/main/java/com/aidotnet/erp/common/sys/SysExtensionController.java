@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/sys/api/v1")
+@RequestMapping("/platform/sys/api/v1")
 public class SysExtensionController {
 
     private final SysExtensionService sysExtService;

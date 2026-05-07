@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.PositionMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.PositionDO">
+        INSERT INTO iam_position (position_id, tenant_id, org_id, name, code, level, parent_id, status, created_at, updated_at)
+        VALUES (#{positionId}, #{tenantId}, #{orgId}, #{name}, #{code}, #{level}, #{parentId}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <select id="selectById" resultType="com.aidotnet.erp.iam.infrastructure.data.PositionDO">
+        SELECT position_id, tenant_id, org_id, name, code, level, parent_id, status, created_at, updated_at
+        FROM iam_position
+        WHERE tenant_id = #{tenantId} AND position_id = #{positionId}
+    </select>
+
+    <select id="selectByTenant" resultType="com.aidotnet.erp.iam.infrastructure.data.PositionDO">
+        SELECT position_id, tenant_id, org_id, name, code, level, parent_id, status, created_at, updated_at
+        FROM iam_position
+        WHERE tenant_id = #{tenantId}
+        ORDER BY level, created_at
+    </select>
+
+    <select id="selectByOrg" resultType="com.aidotnet.erp.iam.infrastructure.data.PositionDO">
+        SELECT position_id, tenant_id, org_id, name, code, level, parent_id, status, created_at, updated_at
+        FROM iam_position
+        WHERE tenant_id = #{tenantId} AND (org_id = #{orgId} OR org_id IS NULL)
+        ORDER BY level, created_at
+    </select>
+
+    <update id="update" parameterType="com.aidotnet.erp.iam.infrastructure.data.PositionDO">
+        UPDATE iam_position
+        SET name = #{name}, code = #{code}, level = #{level}, parent_id = #{parentId}, status = #{status}, updated_at = #{updatedAt}
+        WHERE position_id = #{positionId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM iam_position WHERE position_id = #{positionId}
+    </delete>
+
+</mapper>

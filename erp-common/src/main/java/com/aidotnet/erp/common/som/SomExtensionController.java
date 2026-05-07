@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/som/api/v1")
+@RequestMapping("/platform/som/api/v1")
 public class SomExtensionController {
 
     private final SomExtensionService somExtService;

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Card, Typography, Transfer } from 'antd';
+import { useState } from 'react';
+import { Table, Button, Modal, Form, Input, Tag, Space, message, Card, Typography, Transfer } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
+import { usePageApi } from '@/lib/hooks';
 import { iamApi } from '@/lib/api';
-import type { Role } from '@/types';
+import type { Role, PageParams } from '@/types';
 
 const { Title } = Typography;
 
@@ -16,76 +17,34 @@ const allPermissions = [
 ];
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [params, setParams] = useState<PageParams>({ page: 1, size: 20 });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
   const [form] = Form.useForm();
+  const { data, mutate } = usePageApi<Role>('/iam/api/in/v1/roles', params);
 
-  const fetchRoles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await iamApi.listRoles();
-      setRoles(data || []);
-    } catch {
-      setRoles([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchRoles(); }, [fetchRoles]);
-
-  const handleCreate = () => {
-    setEditingRole(null);
-    form.resetFields();
-    setSelectedPerms([]);
-    setModalOpen(true);
-  };
-
-  const handleEdit = (record: Role) => {
-    setEditingRole(record);
-    form.setFieldsValue({ roleName: record.roleName });
-    setSelectedPerms(record.permissions || []);
-    setModalOpen(true);
-  };
+  const handleCreate = () => { setEditingRole(null); form.resetFields(); setSelectedPerms([]); setModalOpen(true); };
+  const handleEdit = (record: Role) => { setEditingRole(record); form.setFieldsValue({ roleName: record.roleName }); setSelectedPerms(record.permissions || []); setModalOpen(true); };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       const roleData = { ...values, permissions: selectedPerms };
-      if (editingRole) {
-        await iamApi.createRole(roleData);
-        message.success('角色更新成功');
-      } else {
-        await iamApi.createRole(roleData);
-        message.success('角色创建成功');
-      }
+      if (editingRole) { await iamApi.updateRole(editingRole.roleId, roleData); message.success('角色更新成功'); }
+      else { await iamApi.createRole(roleData); message.success('角色创建成功'); }
       setModalOpen(false);
-      fetchRoles();
-    } catch {
-      message.error('操作失败');
-    }
+      mutate();
+    } catch { message.error('操作失败'); }
   };
 
   const columns = [
     { title: '角色名', dataIndex: 'roleName', key: 'roleName' },
-    {
-      title: '权限', dataIndex: 'permissions', key: 'permissions',
-      render: (perms: string[]) => (
-        <span>{perms?.slice(0, 5).map((p) => <Tag key={p} color="blue" style={{ marginBottom: 4 }}>{p}</Tag>)}{perms?.length > 5 && <Tag>+{perms.length - 5}</Tag>}</span>
-      ),
-    },
-    {
-      title: '操作', key: 'action',
-      render: (_: unknown, record: Role) => (
-        <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
-      ),
-    },
+    { title: '权限', dataIndex: 'permissions', key: 'permissions', render: (perms: string[]) => (
+      <span>{perms?.slice(0, 5).map((p) => <Tag key={p} color="blue" style={{ marginBottom: 4 }}>{p}</Tag>)}{perms?.length > 5 && <Tag>+{perms.length - 5}</Tag>}</span>
+    )},
+    { title: '操作', key: 'action', render: (_: unknown, record: Role) => <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button> },
   ];
-
-  const transferDataSource = allPermissions.map((p) => ({ key: p, title: p }));
 
   return (
     <div>
@@ -94,23 +53,16 @@ export default function RolesPage() {
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建角色</Button>
       </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="roleId" columns={columns} dataSource={roles} loading={loading} size="middle" />
+        <Table rowKey="roleId" columns={columns} dataSource={data?.list || []} size="middle"
+          pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
       <Modal title={editingRole ? '编辑角色' : '新建角色'} open={modalOpen} onOk={handleSubmit} onCancel={() => setModalOpen(false)} width={640}>
         <Form form={form} layout="vertical">
-          <Form.Item name="roleName" label="角色名" rules={[{ required: true, message: '请输入角色名' }]}>
-            <Input />
-          </Form.Item>
+          <Form.Item name="roleName" label="角色名" rules={[{ required: true }]}><Input /></Form.Item>
         </Form>
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontWeight: 500 }}>权限分配</div>
-          <Transfer
-            dataSource={transferDataSource}
-            targetKeys={selectedPerms}
-            onChange={(targetKeys) => setSelectedPerms(targetKeys as string[])}
-            render={(item) => item.title!}
-            listStyle={{ width: 260, height: 320 }}
-          />
+          <Transfer dataSource={allPermissions.map((p) => ({ key: p, title: p }))} targetKeys={selectedPerms} onChange={(keys) => setSelectedPerms(keys as string[])} render={(item) => item.title!} listStyle={{ width: 260, height: 320 }} />
         </div>
       </Modal>
     </div>

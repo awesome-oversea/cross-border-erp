@@ -55,20 +55,41 @@
     </select>
 
     <insert id="insertPurchaseApproval" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
-        INSERT INTO scm_purchase_approval (approval_id, tenant_id, po_id, status, approver_id, comment, approved_at, created_at)
-        VALUES (#{approvalId}, #{tenantId}, #{poId}, #{status}, #{approverId}, #{comment}, #{approvedAt}, #{createdAt})
+        INSERT INTO scm_purchase_approval (
+            approval_id, tenant_id, po_id, approval_level, status, approver_id, comment, approved_at, created_at
+        )
+        VALUES (
+            #{approvalId}, #{tenantId}, #{poId}, #{approvalLevel}, #{status}, #{approverId}, #{comment}, #{approvedAt}, #{createdAt}
+        )
     </insert>
 
+    <update id="updatePurchaseApproval" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
+        UPDATE scm_purchase_approval
+        SET po_id = #{poId},
+            approval_level = #{approvalLevel},
+            status = #{status},
+            approver_id = #{approverId},
+            comment = #{comment},
+            approved_at = #{approvedAt}
+        WHERE tenant_id = #{tenantId}
+          AND approval_id = #{approvalId}
+    </update>
+
+    <select id="selectPurchaseApproval" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
+        SELECT approval_id, tenant_id, po_id, approval_level, status, approver_id, comment, approved_at, created_at
+        FROM scm_purchase_approval WHERE tenant_id = #{tenantId} AND approval_id = #{approvalId}
+    </select>
+
     <select id="selectApprovalsByPo" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
-        SELECT approval_id, tenant_id, po_id, status, approver_id, comment, approved_at, created_at
+        SELECT approval_id, tenant_id, po_id, approval_level, status, approver_id, comment, approved_at, created_at
         FROM scm_purchase_approval WHERE tenant_id = #{tenantId} AND po_id = #{poId}
-        ORDER BY created_at ASC
+        ORDER BY approval_level ASC, created_at ASC
     </select>
 
     <select id="selectPendingApprovals" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseApprovalDO">
-        SELECT approval_id, tenant_id, po_id, status, approver_id, comment, approved_at, created_at
+        SELECT approval_id, tenant_id, po_id, approval_level, status, approver_id, comment, approved_at, created_at
         FROM scm_purchase_approval WHERE tenant_id = #{tenantId} AND approver_id = #{approverId} AND status = 'PENDING'
-        ORDER BY created_at ASC
+        ORDER BY approval_level ASC, created_at ASC
     </select>
 
     <insert id="insertProcessingOrder" parameterType="com.aidotnet.erp.scm.infrastructure.data.ProcessingOrderDO">
@@ -96,6 +117,104 @@
                total_cost, currency, status, created_at, updated_at
         FROM scm_processing_order WHERE tenant_id = #{tenantId}
         ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertTracking" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseTrackingDO">
+        INSERT INTO scm_purchase_tracking (
+            tracking_id, tenant_id, po_id, line_id, seller_sku, ordered_quantity, received_quantity,
+            pending_quantity, damaged_quantity, returned_quantity, ordered_unit_cost, actual_unit_cost,
+            status, last_received_at, created_at, updated_at
+        )
+        VALUES (
+            #{trackingId}, #{tenantId}, #{poId}, #{lineId}, #{sellerSku}, #{orderedQuantity}, #{receivedQuantity},
+            #{pendingQuantity}, #{damagedQuantity}, #{returnedQuantity}, #{orderedUnitCost}, #{actualUnitCost},
+            #{status}, #{lastReceivedAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateTracking" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseTrackingDO">
+        UPDATE scm_purchase_tracking
+        SET seller_sku = #{sellerSku},
+            ordered_quantity = #{orderedQuantity},
+            received_quantity = #{receivedQuantity},
+            pending_quantity = #{pendingQuantity},
+            damaged_quantity = #{damagedQuantity},
+            returned_quantity = #{returnedQuantity},
+            ordered_unit_cost = #{orderedUnitCost},
+            actual_unit_cost = #{actualUnitCost},
+            status = #{status},
+            last_received_at = #{lastReceivedAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND po_id = #{poId}
+          AND line_id = #{lineId}
+    </update>
+
+    <select id="selectTracking" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseTrackingDO">
+        SELECT tracking_id, tenant_id, po_id, line_id, seller_sku, ordered_quantity, received_quantity,
+               pending_quantity, damaged_quantity, returned_quantity, ordered_unit_cost, actual_unit_cost,
+               status, last_received_at, created_at, updated_at
+        FROM scm_purchase_tracking
+        WHERE tenant_id = #{tenantId} AND po_id = #{poId} AND line_id = #{lineId}
+    </select>
+
+    <select id="selectTrackings" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseTrackingDO">
+        SELECT tracking_id, tenant_id, po_id, line_id, seller_sku, ordered_quantity, received_quantity,
+               pending_quantity, damaged_quantity, returned_quantity, ordered_unit_cost, actual_unit_cost,
+               status, last_received_at, created_at, updated_at
+        FROM scm_purchase_tracking
+        WHERE tenant_id = #{tenantId} AND po_id = #{poId}
+        ORDER BY created_at ASC, line_id ASC
+    </select>
+
+    <insert id="insertException" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseExceptionDO">
+        INSERT INTO scm_purchase_exception (
+            exception_id, tenant_id, po_id, line_id, seller_sku, exception_type, expected_value, actual_value,
+            description, status, handler_id, handler_note, created_at, handled_at
+        )
+        VALUES (
+            #{exceptionId}, #{tenantId}, #{poId}, #{lineId}, #{sellerSku}, #{exceptionType}, #{expectedValue}, #{actualValue},
+            #{description}, #{status}, #{handlerId}, #{handlerNote}, #{createdAt}, #{handledAt}
+        )
+    </insert>
+
+    <update id="updateException" parameterType="com.aidotnet.erp.scm.infrastructure.data.PurchaseExceptionDO">
+        UPDATE scm_purchase_exception
+        SET line_id = #{lineId},
+            seller_sku = #{sellerSku},
+            exception_type = #{exceptionType},
+            expected_value = #{expectedValue},
+            actual_value = #{actualValue},
+            description = #{description},
+            status = #{status},
+            handler_id = #{handlerId},
+            handler_note = #{handlerNote},
+            handled_at = #{handledAt}
+        WHERE tenant_id = #{tenantId}
+          AND exception_id = #{exceptionId}
+    </update>
+
+    <select id="selectException" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseExceptionDO">
+        SELECT exception_id, tenant_id, po_id, line_id, seller_sku, exception_type, expected_value, actual_value,
+               description, status, handler_id, handler_note, created_at, handled_at
+        FROM scm_purchase_exception
+        WHERE tenant_id = #{tenantId} AND exception_id = #{exceptionId}
+    </select>
+
+    <select id="selectExceptions" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseExceptionDO">
+        SELECT exception_id, tenant_id, po_id, line_id, seller_sku, exception_type, expected_value, actual_value,
+               description, status, handler_id, handler_note, created_at, handled_at
+        FROM scm_purchase_exception
+        WHERE tenant_id = #{tenantId} AND po_id = #{poId}
+        ORDER BY created_at ASC, exception_id ASC
+    </select>
+
+    <select id="selectPendingExceptions" resultType="com.aidotnet.erp.scm.infrastructure.data.PurchaseExceptionDO">
+        SELECT exception_id, tenant_id, po_id, line_id, seller_sku, exception_type, expected_value, actual_value,
+               description, status, handler_id, handler_note, created_at, handled_at
+        FROM scm_purchase_exception
+        WHERE tenant_id = #{tenantId} AND status IN ('PENDING', 'PROCESSING')
+        ORDER BY created_at ASC, exception_id ASC
     </select>
 
 </mapper>

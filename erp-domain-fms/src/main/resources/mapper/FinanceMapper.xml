@@ -137,6 +137,16 @@
         ORDER BY created_at DESC, request_id DESC
     </select>
 
+    <select id="selectPaymentRequestsByPo" resultType="com.aidotnet.erp.fms.infrastructure.data.PaymentRequestDO">
+        SELECT request_id, tenant_id, po_id, supplier_id, amount, currency,
+               request_type, status, requested_by, approval_flow, paid_by,
+               paid_at, writeoff_status, writeoff_amount, created_at, updated_at
+        FROM fms_payment_request
+        WHERE tenant_id = #{tenantId}
+          AND po_id = #{poId}
+        ORDER BY created_at DESC, request_id DESC
+    </select>
+
     <insert id="insertWriteOff" parameterType="com.aidotnet.erp.fms.infrastructure.data.WriteOffDO">
         INSERT INTO fms_write_off (
             writeoff_id, tenant_id, type, ref_type, ref_id, amount, currency,
@@ -469,17 +479,20 @@
     <insert id="insertCostEvent" parameterType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
         INSERT INTO fms_cost_event (
             cost_event_id, tenant_id, cost_type, source_type, source_id,
-            seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+            seller_sku, store_id, channel_code, marketplace_id,
+            currency, amount, occurred_at, created_at
         )
         VALUES (
             #{costEventId}, #{tenantId}, #{costType}, #{sourceType}, #{sourceId},
-            #{sellerSku}, #{marketplaceId}, #{currency}, #{amount}, #{occurredAt}, #{createdAt}
+            #{sellerSku}, #{storeId}, #{channelCode}, #{marketplaceId},
+            #{currency}, #{amount}, #{occurredAt}, #{createdAt}
         )
     </insert>
 
     <select id="selectCostEvent" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
         SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
-               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+               seller_sku, store_id, channel_code, marketplace_id,
+               currency, amount, occurred_at, created_at
         FROM fms_cost_event
         WHERE tenant_id = #{tenantId}
           AND cost_event_id = #{costEventId}
@@ -487,7 +500,8 @@
 
     <select id="selectCostEvents" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
         SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
-               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+               seller_sku, store_id, channel_code, marketplace_id,
+               currency, amount, occurred_at, created_at
         FROM fms_cost_event
         WHERE tenant_id = #{tenantId}
         ORDER BY occurred_at DESC, cost_event_id DESC
@@ -495,7 +509,8 @@
 
     <select id="selectCostEventsBySku" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
         SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
-               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+               seller_sku, store_id, channel_code, marketplace_id,
+               currency, amount, occurred_at, created_at
         FROM fms_cost_event
         WHERE tenant_id = #{tenantId}
           AND seller_sku = #{sellerSku}
@@ -504,7 +519,8 @@
 
     <select id="selectCostEventsBySource" resultType="com.aidotnet.erp.fms.infrastructure.data.CostEventDO">
         SELECT cost_event_id, tenant_id, cost_type, source_type, source_id,
-               seller_sku, marketplace_id, currency, amount, occurred_at, created_at
+               seller_sku, store_id, channel_code, marketplace_id,
+               currency, amount, occurred_at, created_at
         FROM fms_cost_event
         WHERE tenant_id = #{tenantId}
           AND source_type = #{sourceType}
@@ -546,6 +562,67 @@
         WHERE tenant_id = #{tenantId}
           AND seller_sku = #{sellerSku}
         ORDER BY created_at DESC, statement_id DESC
+    </select>
+
+    <insert id="insertVoucher" parameterType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        INSERT INTO fms_voucher (
+            voucher_id, tenant_id, voucher_no, voucher_type, reference_type,
+            reference_id, currency, debit_total, credit_total, status,
+            lines_json, voucher_date, posted_by, posted_at, export_batch_id,
+            created_at, updated_at
+        )
+        VALUES (
+            #{voucherId}, #{tenantId}, #{voucherNumber}, #{voucherType}, #{referenceType},
+            #{referenceId}, #{currency}, #{totalDebit}, #{totalCredit}, #{status},
+            CAST(#{linesJson} AS JSONB), #{voucherDate}, #{postedBy}, #{postedAt}, #{exportBatchId},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateVoucher" parameterType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        UPDATE fms_voucher
+        SET voucher_no = #{voucherNumber},
+            voucher_type = #{voucherType},
+            reference_type = #{referenceType},
+            reference_id = #{referenceId},
+            currency = #{currency},
+            debit_total = #{totalDebit},
+            credit_total = #{totalCredit},
+            status = #{status},
+            lines_json = CAST(#{linesJson} AS JSONB),
+            voucher_date = #{voucherDate},
+            posted_by = #{postedBy},
+            posted_at = #{postedAt},
+            export_batch_id = #{exportBatchId},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND voucher_id = #{voucherId}
+    </update>
+
+    <select id="selectVoucher" resultType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        SELECT voucher_id, tenant_id, voucher_no AS voucher_number, voucher_type, reference_type,
+               reference_id, currency, debit_total AS total_debit, credit_total AS total_credit, status,
+               CAST(lines_json AS TEXT) AS lines_json, voucher_date, posted_by, posted_at,
+               export_batch_id, created_at, updated_at
+        FROM fms_voucher
+        WHERE tenant_id = #{tenantId}
+          AND voucher_id = #{voucherId}
+    </select>
+
+    <select id="selectVouchers" resultType="com.aidotnet.erp.fms.infrastructure.data.VoucherDO">
+        SELECT voucher_id, tenant_id, voucher_no AS voucher_number, voucher_type, reference_type,
+               reference_id, currency, debit_total AS total_debit, credit_total AS total_credit, status,
+               CAST(lines_json AS TEXT) AS lines_json, voucher_date, posted_by, posted_at,
+               export_batch_id, created_at, updated_at
+        FROM fms_voucher
+        WHERE tenant_id = #{tenantId}
+        <if test="voucherType != null and voucherType != ''">
+          AND voucher_type = #{voucherType}
+        </if>
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
+        ORDER BY created_at DESC, voucher_id DESC
     </select>
 
 </mapper>

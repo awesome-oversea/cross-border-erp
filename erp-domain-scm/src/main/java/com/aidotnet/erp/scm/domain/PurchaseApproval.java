@@ -10,5 +10,13 @@ import java.time.Instant;
  *
  * @author ERP系统
  */
-public record PurchaseApproval(String approvalId, String tenantId, String poId, ApprovalStatus status,
-                               String approverId, String comment, Instant approvedAt, Instant createdAt) {}
+public record PurchaseApproval(
+        String approvalId,
+        String tenantId,
+        String poId,
+        int approvalLevel,
+        ApprovalStatus status,
+        String approverId,
+        String comment,
+        Instant approvedAt,
+        Instant createdAt) {}

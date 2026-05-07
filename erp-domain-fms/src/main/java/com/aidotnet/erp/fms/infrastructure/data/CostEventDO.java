@@ -16,6 +16,8 @@ public class CostEventDO {
     private String sourceType;
     private String sourceId;
     private String sellerSku;
+    private String storeId;
+    private String channelCode;
     private String marketplaceId;
     private String currency;
     private BigDecimal amount;
@@ -36,6 +38,10 @@ public class CostEventDO {
     public void setSourceId(String sourceId) { this.sourceId = sourceId; }
     public String getSellerSku() { return sellerSku; }
     public void setSellerSku(String sellerSku) { this.sellerSku = sellerSku; }
+    public String getStoreId() { return storeId; }
+    public void setStoreId(String storeId) { this.storeId = storeId; }
+    public String getChannelCode() { return channelCode; }
+    public void setChannelCode(String channelCode) { this.channelCode = channelCode; }
     public String getMarketplaceId() { return marketplaceId; }
     public void setMarketplaceId(String marketplaceId) { this.marketplaceId = marketplaceId; }
     public String getCurrency() { return currency; }

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/fba/api/v1")
+@RequestMapping("/platform/fba/api/v1")
 public class FbaExtensionController {
 
     private final FbaExtensionService fbaExtService;

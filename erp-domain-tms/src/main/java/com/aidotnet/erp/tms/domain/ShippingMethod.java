@@ -3,26 +3,28 @@ package com.aidotnet.erp.tms.domain;
 import java.time.Instant;
 
 /**
- * 物流渠道领域模型
+ * 鐗╂祦娓犻亾棰嗗煙妯″瀷
  * <p>
- * 描述: 承运商下的物流渠道，定义运输类型和计费方式。
- * </p>
+ * 鎻忚堪: 鎵胯繍鍟嗕笅鐨勭墿娴佹笭閬擄紝瀹氫箟杩愯緭绫诲瀷鍜岃璐规柟寮忋€? * </p>
  *
- * @author ERP系统
+ * @author ERP绯荤粺
  */
 public record ShippingMethod(
         String methodId,
         String tenantId,
         String carrierId,
-        String name,
-        String type,
+        String methodCode,
+        String methodName,
+        String transportMode,
         String rateType,
         boolean enabled,
+        Integer estimatedDaysMin,
+        Integer estimatedDaysMax,
         Instant createdAt,
         Instant updatedAt
 ) {
-    /** 运输类型 */
-    public enum Type { /** 快递 */ EXPRESS, /** 标准 */ STANDARD, /** 经济 */ ECONOMY, /** 特殊 */ SPECIAL }
-    /** 计费类型 */
-    public enum RateType { /** 固定费率 */ FLAT, /** 按重量 */ WEIGHT_BASED, /** 按体积 */ VOLUME_BASED, /** 按区域 */ ZONE_BASED }
+    /** 杩愯緭鏂瑰紡 */
+    public enum TransportMode { AIR, SEA, LAND, RAIL, EXPRESS, LOCAL_DELIVERY }
+    /** 璁¤垂绫诲瀷 */
+    public enum RateType { /** 鍥哄畾璐圭巼 */ FLAT, /** 鎸夐噸閲?*/ WEIGHT_BASED, /** 鎸変綋绉?*/ VOLUME_BASED, /** 鎸夊尯鍩?*/ ZONE_BASED }
 }

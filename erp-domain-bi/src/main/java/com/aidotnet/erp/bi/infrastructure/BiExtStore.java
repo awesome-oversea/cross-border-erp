@@ -4,7 +4,9 @@ import com.aidotnet.erp.bi.domain.AlertCondition;
 import com.aidotnet.erp.bi.domain.AlertRule;
 import com.aidotnet.erp.bi.domain.AlertSeverity;
 import com.aidotnet.erp.bi.domain.CockpitTrend;
+import com.aidotnet.erp.bi.domain.CustomReport;
 import com.aidotnet.erp.bi.domain.DataExportTask;
+import com.aidotnet.erp.bi.domain.DeveloperCommissionReport;
 import com.aidotnet.erp.bi.domain.Dimension;
 import com.aidotnet.erp.bi.domain.KpiAssessment;
 import com.aidotnet.erp.bi.domain.KpiStatus;
@@ -16,6 +18,8 @@ import com.aidotnet.erp.bi.domain.RankingData;
 import com.aidotnet.erp.bi.domain.ReportSnapshot;
 import com.aidotnet.erp.bi.infrastructure.data.AlertRuleDO;
 import com.aidotnet.erp.bi.infrastructure.data.CockpitTrendDO;
+import com.aidotnet.erp.bi.infrastructure.data.CustomReportDO;
+import com.aidotnet.erp.bi.infrastructure.data.DeveloperCommissionReportDO;
 import com.aidotnet.erp.bi.infrastructure.data.KpiAssessmentDO;
 import com.aidotnet.erp.bi.infrastructure.data.KpiTargetDO;
 import com.aidotnet.erp.bi.infrastructure.data.KpiTemplateDO;
@@ -28,7 +32,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -126,6 +132,59 @@ public class BiExtStore {
     }
 
     /* ================================ 数据导出任务 ================================ */
+
+    /* ================================ 自定义报表 ================================ */
+
+    public CustomReport saveCustomReport(CustomReport report) {
+        CustomReportDO existing = mapper.selectCustomReport(report.tenantId(), report.reportId());
+        CustomReportDO data = toCustomReportData(report);
+        if (existing == null) {
+            mapper.insertCustomReport(data);
+        } else {
+            mapper.updateCustomReport(data);
+        }
+        return report;
+    }
+
+    public Optional<CustomReport> findCustomReport(String tenantId, String reportId) {
+        return Optional.ofNullable(mapper.selectCustomReport(tenantId, reportId)).map(this::toCustomReportDomain);
+    }
+
+    public Optional<CustomReport> findCustomReportByCode(String tenantId, String reportCode) {
+        return Optional.ofNullable(mapper.selectCustomReportByCode(tenantId, reportCode)).map(this::toCustomReportDomain);
+    }
+
+    public List<CustomReport> listCustomReports(String tenantId, String subjectArea) {
+        return mapper.selectCustomReports(tenantId, subjectArea).stream()
+                .map(this::toCustomReportDomain)
+                .collect(Collectors.toList());
+    }
+
+    public void deleteCustomReport(String tenantId, String reportId) {
+        mapper.deleteCustomReport(tenantId, reportId);
+    }
+
+    /* ================================ 开发提成报表 ================================ */
+
+    public DeveloperCommissionReport saveDeveloperCommissionReport(DeveloperCommissionReport report) {
+        mapper.insertDeveloperCommissionReport(toDeveloperCommissionReportData(report));
+        return report;
+    }
+
+    public Optional<DeveloperCommissionReport> findDeveloperCommissionReport(String tenantId, String reportId) {
+        return Optional.ofNullable(mapper.selectDeveloperCommissionReport(tenantId, reportId))
+                .map(this::toDeveloperCommissionReportDomain);
+    }
+
+    public List<DeveloperCommissionReport> listDeveloperCommissionReports(String tenantId, String period, String userId) {
+        return mapper.selectDeveloperCommissionReports(tenantId, period, userId).stream()
+                .map(this::toDeveloperCommissionReportDomain)
+                .collect(Collectors.toList());
+    }
+
+    public void deleteDeveloperCommissionReport(String tenantId, String reportId) {
+        mapper.deleteDeveloperCommissionReport(tenantId, reportId);
+    }
 
     public void saveDataExportTask(DataExportTask task) {
         DataExportTask existing = mapper.selectDataExportTask(task.tenantId(), task.taskId());
@@ -348,6 +407,120 @@ public class BiExtStore {
     }
 
     /* ================================ DO与领域对象转换方法 ================================ */
+
+    private CustomReportDO toCustomReportData(CustomReport report) {
+        CustomReportDO data = new CustomReportDO();
+        data.setReportId(report.reportId());
+        data.setTenantId(report.tenantId());
+        data.setReportCode(report.reportCode());
+        data.setReportName(report.reportName());
+        data.setSubjectArea(report.subjectArea());
+        data.setVisibility(report.visibility());
+        data.setPermissionCode(report.permissionCode());
+        data.setDataLevel(report.dataLevel());
+        data.setDescription(report.description());
+        data.setEnabled(report.enabled());
+        data.setLastRunSnapshotId(report.lastRunSnapshotId());
+        data.setLastRunAt(report.lastRunAt());
+        data.setCreatedAt(report.createdAt() != null ? report.createdAt() : Instant.now());
+        data.setUpdatedAt(report.updatedAt() != null ? report.updatedAt() : Instant.now());
+        try {
+            data.setDimensions(objectMapper.writeValueAsString(report.dimensions() != null ? report.dimensions() : List.of()));
+            data.setMetrics(objectMapper.writeValueAsString(report.metrics() != null ? report.metrics() : List.of()));
+            data.setFilters(objectMapper.writeValueAsString(report.filters() != null ? report.filters() : Collections.emptyMap()));
+            data.setSorts(objectMapper.writeValueAsString(report.sorts() != null ? report.sorts() : List.of()));
+        } catch (JsonProcessingException e) {
+            log.error("序列化自定义报表配置失败: reportId={}", report.reportId(), e);
+            data.setDimensions("[]");
+            data.setMetrics("[]");
+            data.setFilters("{}");
+            data.setSorts("[]");
+        }
+        return data;
+    }
+
+    private CustomReport toCustomReportDomain(CustomReportDO data) {
+        List<String> dimensions = List.of();
+        List<String> metrics = List.of();
+        Map<String, Object> filters = Collections.emptyMap();
+        List<String> sorts = List.of();
+        try {
+            if (data.getDimensions() != null) {
+                dimensions = objectMapper.readValue(data.getDimensions(), new TypeReference<List<String>>() {});
+            }
+            if (data.getMetrics() != null) {
+                metrics = objectMapper.readValue(data.getMetrics(), new TypeReference<List<String>>() {});
+            }
+            if (data.getFilters() != null) {
+                filters = objectMapper.readValue(data.getFilters(), new TypeReference<Map<String, Object>>() {});
+            }
+            if (data.getSorts() != null) {
+                sorts = objectMapper.readValue(data.getSorts(), new TypeReference<List<String>>() {});
+            }
+        } catch (JsonProcessingException e) {
+            log.error("反序列化自定义报表配置失败: reportId={}", data.getReportId(), e);
+        }
+        return new CustomReport(
+                data.getReportId(),
+                data.getTenantId(),
+                data.getReportCode(),
+                data.getReportName(),
+                data.getSubjectArea(),
+                dimensions,
+                metrics,
+                filters,
+                sorts,
+                data.getVisibility(),
+                data.getPermissionCode(),
+                data.getDataLevel(),
+                data.getDescription(),
+                data.isEnabled(),
+                data.getLastRunSnapshotId(),
+                data.getLastRunAt(),
+                data.getCreatedAt(),
+                data.getUpdatedAt());
+    }
+
+    private DeveloperCommissionReportDO toDeveloperCommissionReportData(DeveloperCommissionReport report) {
+        DeveloperCommissionReportDO data = new DeveloperCommissionReportDO();
+        data.setReportId(report.reportId());
+        data.setTenantId(report.tenantId());
+        data.setUserId(report.userId());
+        data.setUserName(report.userName());
+        data.setTeamCode(report.teamCode());
+        data.setPeriod(report.period());
+        data.setSkuCount(report.skuCount());
+        data.setOrderCount(report.orderCount());
+        data.setOrderRate(report.orderRate());
+        data.setSalesProfit(report.salesProfit());
+        data.setKpiScore(report.kpiScore());
+        data.setBaseCommissionRate(report.baseCommissionRate());
+        data.setCommissionCoefficient(report.commissionCoefficient());
+        data.setCommissionAmount(report.commissionAmount());
+        data.setCurrency(report.currency());
+        data.setCreatedAt(report.createdAt() != null ? report.createdAt() : Instant.now());
+        return data;
+    }
+
+    private DeveloperCommissionReport toDeveloperCommissionReportDomain(DeveloperCommissionReportDO data) {
+        return new DeveloperCommissionReport(
+                data.getReportId(),
+                data.getTenantId(),
+                data.getUserId(),
+                data.getUserName(),
+                data.getTeamCode(),
+                data.getPeriod(),
+                data.getSkuCount() != null ? data.getSkuCount() : 0,
+                data.getOrderCount() != null ? data.getOrderCount() : 0,
+                data.getOrderRate(),
+                data.getSalesProfit(),
+                data.getKpiScore(),
+                data.getBaseCommissionRate(),
+                data.getCommissionCoefficient(),
+                data.getCommissionAmount(),
+                data.getCurrency(),
+                data.getCreatedAt());
+    }
 
     private AlertRuleDO toAlertRuleData(AlertRule r) {
         AlertRuleDO data = new AlertRuleDO();

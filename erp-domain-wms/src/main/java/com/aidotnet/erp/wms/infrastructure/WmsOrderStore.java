@@ -1,5 +1,8 @@
 package com.aidotnet.erp.wms.infrastructure;
 
+import com.aidotnet.erp.wms.domain.DefectiveReturn;
+import com.aidotnet.erp.wms.domain.DefectiveReturnStatus;
+import com.aidotnet.erp.wms.domain.DefectiveSupplierReply;
 import com.aidotnet.erp.wms.domain.InboundOrder;
 import com.aidotnet.erp.wms.domain.InboundOrderLine;
 import com.aidotnet.erp.wms.domain.InboundOrderStatus;
@@ -8,13 +11,22 @@ import com.aidotnet.erp.wms.domain.MovementType;
 import com.aidotnet.erp.wms.domain.OutboundOrder;
 import com.aidotnet.erp.wms.domain.OutboundOrderLine;
 import com.aidotnet.erp.wms.domain.OutboundOrderStatus;
+import com.aidotnet.erp.wms.domain.OutboundPackage;
+import com.aidotnet.erp.wms.domain.OutboundPackageLine;
+import com.aidotnet.erp.wms.domain.OutboundPackageStatus;
+import com.aidotnet.erp.wms.domain.ProductRepair;
+import com.aidotnet.erp.wms.domain.ProductRepairStatus;
 import com.aidotnet.erp.wms.domain.QualityCheck;
 import com.aidotnet.erp.wms.domain.QualityCheckResult;
+import com.aidotnet.erp.wms.infrastructure.data.DefectiveReturnDO;
 import com.aidotnet.erp.wms.infrastructure.data.InboundOrderDO;
 import com.aidotnet.erp.wms.infrastructure.data.InboundOrderLineDO;
 import com.aidotnet.erp.wms.infrastructure.data.InventoryMovementDO;
 import com.aidotnet.erp.wms.infrastructure.data.OutboundOrderDO;
 import com.aidotnet.erp.wms.infrastructure.data.OutboundOrderLineDO;
+import com.aidotnet.erp.wms.infrastructure.data.OutboundPackageDO;
+import com.aidotnet.erp.wms.infrastructure.data.OutboundPackageLineDO;
+import com.aidotnet.erp.wms.infrastructure.data.ProductRepairDO;
 import com.aidotnet.erp.wms.infrastructure.data.QualityCheckDO;
 import com.aidotnet.erp.wms.infrastructure.mapper.WmsOrderMapper;
 import java.time.Instant;
@@ -94,6 +106,37 @@ public class WmsOrderStore {
         return mapper.selectOutboundOrderLines(orderId).stream().map(this::toOutboundOrderLineDomain).collect(Collectors.toList());
     }
 
+    public OutboundPackage saveOutboundPackage(OutboundPackage outboundPackage) {
+        OutboundPackageDO existing = mapper.selectOutboundPackage(outboundPackage.tenantId(), outboundPackage.packageId());
+        OutboundPackageDO data = toOutboundPackageData(outboundPackage);
+        if (existing == null) {
+            mapper.insertOutboundPackage(data);
+        } else {
+            mapper.updateOutboundPackage(data);
+        }
+        return outboundPackage;
+    }
+
+    public Optional<OutboundPackage> findOutboundPackage(String tenantId, String packageId) {
+        return Optional.ofNullable(mapper.selectOutboundPackage(tenantId, packageId)).map(this::toOutboundPackageDomain);
+    }
+
+    public List<OutboundPackage> listOutboundPackages(String tenantId, String orderId) {
+        return mapper.selectOutboundPackagesByOrder(tenantId, orderId).stream()
+                .map(this::toOutboundPackageDomain)
+                .collect(Collectors.toList());
+    }
+
+    public void saveOutboundPackageLine(OutboundPackageLine packageLine) {
+        mapper.insertOutboundPackageLine(toOutboundPackageLineData(packageLine));
+    }
+
+    public List<OutboundPackageLine> listOutboundPackageLines(String packageId) {
+        return mapper.selectOutboundPackageLines(packageId).stream()
+                .map(this::toOutboundPackageLineDomain)
+                .collect(Collectors.toList());
+    }
+
     public InventoryMovement saveMovement(InventoryMovement movement) {
         mapper.insertMovement(toMovementData(movement));
         return movement;
@@ -118,6 +161,54 @@ public class WmsOrderStore {
 
     public List<QualityCheck> listQualityChecksByInboundOrder(String tenantId, String inboundOrderId) {
         return mapper.selectQualityChecksByInboundOrder(tenantId, inboundOrderId).stream().map(this::toQualityCheckDomain).collect(Collectors.toList());
+    }
+
+    public DefectiveReturn saveDefectiveReturn(DefectiveReturn defectiveReturn) {
+        DefectiveReturnDO existing = mapper.selectDefectiveReturn(defectiveReturn.tenantId(), defectiveReturn.returnId());
+        DefectiveReturnDO data = toDefectiveReturnData(defectiveReturn);
+        if (existing == null) {
+            mapper.insertDefectiveReturn(data);
+        } else {
+            mapper.updateDefectiveReturn(data);
+        }
+        return defectiveReturn;
+    }
+
+    public Optional<DefectiveReturn> findDefectiveReturn(String tenantId, String returnId) {
+        return Optional.ofNullable(mapper.selectDefectiveReturn(tenantId, returnId)).map(this::toDefectiveReturnDomain);
+    }
+
+    public List<DefectiveReturn> listDefectiveReturns(String tenantId, String warehouseId) {
+        return mapper.selectDefectiveReturns(tenantId, warehouseId).stream()
+                .map(this::toDefectiveReturnDomain)
+                .collect(Collectors.toList());
+    }
+
+    public int pendingDefectiveReturnQuantity(String tenantId, String warehouseId, String sellerSku) {
+        return mapper.selectPendingDefectiveReturnsBySku(tenantId, warehouseId, sellerSku).stream()
+                .mapToInt(DefectiveReturnDO::getQuantity)
+                .sum();
+    }
+
+    public ProductRepair saveProductRepair(ProductRepair productRepair) {
+        ProductRepairDO existing = mapper.selectProductRepair(productRepair.tenantId(), productRepair.repairId());
+        ProductRepairDO data = toProductRepairData(productRepair);
+        if (existing == null) {
+            mapper.insertProductRepair(data);
+        } else {
+            mapper.updateProductRepair(data);
+        }
+        return productRepair;
+    }
+
+    public Optional<ProductRepair> findProductRepair(String tenantId, String repairId) {
+        return Optional.ofNullable(mapper.selectProductRepair(tenantId, repairId)).map(this::toProductRepairDomain);
+    }
+
+    public List<ProductRepair> listProductRepairs(String tenantId, String warehouseId) {
+        return mapper.selectProductRepairs(tenantId, warehouseId).stream()
+                .map(this::toProductRepairDomain)
+                .collect(Collectors.toList());
     }
 
     private InboundOrderDO toInboundOrderData(InboundOrder o) {
@@ -193,6 +284,62 @@ public class WmsOrderStore {
                 d.getRequiredQuantity(), d.getPickedQuantity(), d.getBatchNo());
     }
 
+    private OutboundPackageDO toOutboundPackageData(OutboundPackage p) {
+        OutboundPackageDO data = new OutboundPackageDO();
+        data.setPackageId(p.packageId());
+        data.setTenantId(p.tenantId());
+        data.setOrderId(p.orderId());
+        data.setWarehouseId(p.warehouseId());
+        data.setCarrierCode(p.carrierCode());
+        data.setTrackingNo(p.trackingNo());
+        data.setWeightKg(p.weightKg());
+        data.setStatus(p.status().name());
+        data.setRemark(p.remark());
+        data.setPackedAt(p.packedAt());
+        data.setShippedAt(p.shippedAt());
+        data.setCreatedAt(p.createdAt() != null ? p.createdAt() : Instant.now());
+        data.setUpdatedAt(p.updatedAt() != null ? p.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private OutboundPackage toOutboundPackageDomain(OutboundPackageDO d) {
+        return new OutboundPackage(
+                d.getPackageId(),
+                d.getTenantId(),
+                d.getOrderId(),
+                d.getWarehouseId(),
+                d.getCarrierCode(),
+                d.getTrackingNo(),
+                d.getWeightKg(),
+                OutboundPackageStatus.valueOf(d.getStatus()),
+                d.getRemark(),
+                d.getPackedAt(),
+                d.getShippedAt(),
+                d.getCreatedAt(),
+                d.getUpdatedAt());
+    }
+
+    private OutboundPackageLineDO toOutboundPackageLineData(OutboundPackageLine l) {
+        OutboundPackageLineDO data = new OutboundPackageLineDO();
+        data.setPackageLineId(l.packageLineId());
+        data.setPackageId(l.packageId());
+        data.setOrderLineId(l.orderLineId());
+        data.setSellerSku(l.sellerSku());
+        data.setQuantity(l.quantity());
+        data.setBatchNo(l.batchNo());
+        return data;
+    }
+
+    private OutboundPackageLine toOutboundPackageLineDomain(OutboundPackageLineDO d) {
+        return new OutboundPackageLine(
+                d.getPackageLineId(),
+                d.getPackageId(),
+                d.getOrderLineId(),
+                d.getSellerSku(),
+                d.getQuantity(),
+                d.getBatchNo());
+    }
+
     private InventoryMovementDO toMovementData(InventoryMovement m) {
         InventoryMovementDO data = new InventoryMovementDO();
         data.setMovementId(m.movementId());
@@ -237,5 +384,83 @@ public class WmsOrderStore {
         return new QualityCheck(d.getCheckId(), d.getTenantId(), d.getWarehouseId(), d.getInboundOrderId(),
                 d.getSellerSku(), d.getSampleQuantity(), d.getPassQuantity(), d.getFailQuantity(),
                 QualityCheckResult.valueOf(d.getResult()), d.getInspector(), d.getRemark(), d.getCheckedAt(), d.getCreatedAt());
+    }
+
+    private DefectiveReturnDO toDefectiveReturnData(DefectiveReturn defectiveReturn) {
+        DefectiveReturnDO data = new DefectiveReturnDO();
+        data.setReturnId(defectiveReturn.returnId());
+        data.setTenantId(defectiveReturn.tenantId());
+        data.setWarehouseId(defectiveReturn.warehouseId());
+        data.setPoId(defectiveReturn.poId());
+        data.setSupplierId(defectiveReturn.supplierId());
+        data.setSellerSku(defectiveReturn.sellerSku());
+        data.setQuantity(defectiveReturn.quantity());
+        data.setReason(defectiveReturn.reason());
+        data.setSupplierReply(defectiveReturn.supplierReply() != null ? defectiveReturn.supplierReply().name() : null);
+        data.setStatus(defectiveReturn.status().name());
+        data.setProcessedBy(defectiveReturn.processedBy());
+        data.setRemark(defectiveReturn.remark());
+        data.setProcessedAt(defectiveReturn.processedAt());
+        data.setCreatedAt(defectiveReturn.createdAt() != null ? defectiveReturn.createdAt() : Instant.now());
+        data.setUpdatedAt(defectiveReturn.updatedAt() != null ? defectiveReturn.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private DefectiveReturn toDefectiveReturnDomain(DefectiveReturnDO data) {
+        return new DefectiveReturn(
+                data.getReturnId(),
+                data.getTenantId(),
+                data.getWarehouseId(),
+                data.getPoId(),
+                data.getSupplierId(),
+                data.getSellerSku(),
+                data.getQuantity(),
+                data.getReason(),
+                data.getSupplierReply() != null ? DefectiveSupplierReply.valueOf(data.getSupplierReply()) : null,
+                DefectiveReturnStatus.valueOf(data.getStatus()),
+                data.getProcessedBy(),
+                data.getRemark(),
+                data.getProcessedAt(),
+                data.getCreatedAt(),
+                data.getUpdatedAt());
+    }
+
+    private ProductRepairDO toProductRepairData(ProductRepair productRepair) {
+        ProductRepairDO data = new ProductRepairDO();
+        data.setRepairId(productRepair.repairId());
+        data.setTenantId(productRepair.tenantId());
+        data.setWarehouseId(productRepair.warehouseId());
+        data.setSupplierId(productRepair.supplierId());
+        data.setSellerSku(productRepair.sellerSku());
+        data.setOutboundQuantity(productRepair.outboundQuantity());
+        data.setInboundQuantity(productRepair.inboundQuantity());
+        data.setReason(productRepair.reason());
+        data.setStatus(productRepair.status().name());
+        data.setQcResult(productRepair.qcResult() != null ? productRepair.qcResult().name() : null);
+        data.setProcessedBy(productRepair.processedBy());
+        data.setRemark(productRepair.remark());
+        data.setCompletedAt(productRepair.completedAt());
+        data.setCreatedAt(productRepair.createdAt() != null ? productRepair.createdAt() : Instant.now());
+        data.setUpdatedAt(productRepair.updatedAt() != null ? productRepair.updatedAt() : Instant.now());
+        return data;
+    }
+
+    private ProductRepair toProductRepairDomain(ProductRepairDO data) {
+        return new ProductRepair(
+                data.getRepairId(),
+                data.getTenantId(),
+                data.getWarehouseId(),
+                data.getSupplierId(),
+                data.getSellerSku(),
+                data.getOutboundQuantity(),
+                data.getInboundQuantity(),
+                data.getReason(),
+                ProductRepairStatus.valueOf(data.getStatus()),
+                data.getQcResult() != null ? QualityCheckResult.valueOf(data.getQcResult()) : null,
+                data.getProcessedBy(),
+                data.getRemark(),
+                data.getCompletedAt(),
+                data.getCreatedAt(),
+                data.getUpdatedAt());
     }
 }

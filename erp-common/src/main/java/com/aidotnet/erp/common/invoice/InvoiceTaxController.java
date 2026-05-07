@@ -15,8 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/fms/api/v1/invoice")
+/**
+ * 平台共享发票税务正式能力已迁移至 erp-domain-fms 平台控制器。
+ * 当前类保留源代码语义，避免误删历史实现，但不再注册为运行时接口。
+ */
+@RequestMapping("/platform/fms/api/v1/invoice")
 public class InvoiceTaxController {
 
     private final InvoiceTaxService invoiceTaxService;
@@ -86,8 +89,11 @@ public class InvoiceTaxController {
     }
 }
 
-@RestController
-@RequestMapping("/fms/api/v1/tax")
+/**
+ * 平台共享税务正式能力已迁移至 erp-domain-fms 平台控制器。
+ * 当前类保留源代码语义，避免误删历史实现，但不再注册为运行时接口。
+ */
+@RequestMapping("/platform/fms/api/v1/tax")
 class TaxController {
 
     private final InvoiceTaxService invoiceTaxService;

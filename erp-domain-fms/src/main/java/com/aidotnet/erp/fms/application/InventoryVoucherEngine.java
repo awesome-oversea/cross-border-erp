@@ -1,6 +1,8 @@
 package com.aidotnet.erp.fms.application;
 
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.fms.domain.ExternalFinanceVoucher;
+import com.aidotnet.erp.fms.domain.FinanceSyncConfig;
 import com.aidotnet.erp.fms.domain.Voucher;
 import com.aidotnet.erp.fms.domain.Voucher.VoucherStatus;
 import com.aidotnet.erp.fms.domain.VoucherLine;
@@ -43,12 +45,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InventoryVoucherEngine {
 
+    private static final String KINGDEE_SYSTEM = "KINGDEE";
+    private static final String YONYOU_SYSTEM = "YONYOU";
+
     private final FmsExtStore extStore;
     private final FinanceStore financeStore;
+    private final ExternalFinanceSyncService externalFinanceSyncService;
 
-    public InventoryVoucherEngine(FmsExtStore extStore, FinanceStore financeStore) {
+    public InventoryVoucherEngine(FmsExtStore extStore, FinanceStore financeStore,
+                                  ExternalFinanceSyncService externalFinanceSyncService) {
         this.extStore = extStore;
         this.financeStore = financeStore;
+        this.externalFinanceSyncService = externalFinanceSyncService;
     }
 
     @Transactional
@@ -62,7 +70,7 @@ public class InventoryVoucherEngine {
 
     @Transactional
     public VoucherTemplate updateTemplate(String tenantId, String templateId, CreateVoucherTemplateCommand command) {
-        VoucherTemplate existing = extStore.listVoucherTemplates(tenantId, command.businessType()).stream()
+        VoucherTemplate existing = extStore.listVoucherTemplates(tenantId, null).stream()
                 .filter(t -> t.templateId().equals(templateId))
                 .findFirst()
                 .orElseThrow(() -> new BizException("TEMPLATE_NOT_FOUND", "凭证模板不存在"));
@@ -102,7 +110,7 @@ public class InventoryVoucherEngine {
         List<VoucherLine> lines = buildVoucherLines(template, command);
         Instant now = Instant.now();
         Voucher voucher = new Voucher(
-                UUID.randomUUID().toString(), tenantId, null, command.voucherType(),
+                UUID.randomUUID().toString(), tenantId, generateVoucherNumber(now), command.voucherType(),
                 command.businessType(), command.sourceId(), command.currency(), command.amount(), command.amount(),
                 VoucherStatus.DRAFT, lines, now, null, null, null, now, now);
         return financeStore.saveVoucher(voucher);
@@ -225,6 +233,12 @@ public class InventoryVoucherEngine {
     public Voucher voidVoucher(String tenantId, String voucherId) {
         Voucher voucher = financeStore.findVoucher(tenantId, voucherId)
                 .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "凭证不存在"));
+        if (voucher.status() == VoucherStatus.VOIDED) {
+            throw new BizException("INVALID_STATUS", "已作废凭证不可重复作废");
+        }
+        if (voucher.status() == VoucherStatus.EXPORTED) {
+            throw new BizException("INVALID_STATUS", "已导出凭证不可直接作废");
+        }
         Instant now = Instant.now();
         Voucher voided = new Voucher(
                 voucher.voucherId(), voucher.tenantId(), voucher.voucherNumber(), voucher.voucherType(),
@@ -269,6 +283,55 @@ public class InventoryVoucherEngine {
 
     @Transactional
     public boolean pushToKingdee(String tenantId, String voucherId) {
+        FinanceSyncConfig syncConfig = externalFinanceSyncService.findSyncConfigBySystem(tenantId, KINGDEE_SYSTEM)
+                .orElse(null);
+        if (syncConfig == null) {
+            return pushToKingdeeLegacy(tenantId, voucherId);
+        }
+        if (!syncConfig.enabled()) {
+            throw new BizException("SYNC_DISABLED", "KINGDEE finance sync config is disabled");
+        }
+        Voucher voucher = loadPostedVoucher(tenantId, voucherId, "KINGDEE");
+        ExternalFinanceVoucher pushed = externalFinanceSyncService.pushVoucher(
+                tenantId, syncConfig.configId(), voucher.voucherId(), voucher.voucherType(), voucher.voucherNumber(),
+                voucher.referenceType(), voucher.referenceId(), buildExternalVoucherData(voucher));
+        ensureVoucherSynced(pushed, "KINGDEE");
+        markVoucherExported(voucher, "KD-");
+        return true;
+    }
+
+    @Transactional
+    public boolean pushToYonyou(String tenantId, String voucherId) {
+        FinanceSyncConfig syncConfig = externalFinanceSyncService.findSyncConfigBySystem(tenantId, YONYOU_SYSTEM)
+                .orElse(null);
+        if (syncConfig == null) {
+            return pushToYonyouLegacy(tenantId, voucherId);
+        }
+        if (!syncConfig.enabled()) {
+            throw new BizException("SYNC_DISABLED", "YONYOU finance sync config is disabled");
+        }
+        Voucher voucher = loadPostedVoucher(tenantId, voucherId, "YONYOU");
+        ExternalFinanceVoucher pushed = externalFinanceSyncService.pushVoucher(
+                tenantId, syncConfig.configId(), voucher.voucherId(), voucher.voucherType(), voucher.voucherNumber(),
+                voucher.referenceType(), voucher.referenceId(), buildExternalVoucherData(voucher));
+        ensureVoucherSynced(pushed, "YONYOU");
+        markVoucherExported(voucher, "YY-");
+        return true;
+    }
+
+    @Transactional
+    public ExternalFinanceVoucher retryExternalVoucher(String tenantId, String externalVoucherId) {
+        ExternalFinanceVoucher syncedVoucher = externalFinanceSyncService.retryVoucher(tenantId, externalVoucherId);
+        ensureVoucherSynced(syncedVoucher, syncedVoucher.financeSystem());
+        Voucher sourceVoucher = resolveVoucherForExternalSync(tenantId, syncedVoucher);
+        if (sourceVoucher.status() != VoucherStatus.EXPORTED) {
+            markVoucherExported(sourceVoucher, resolveBatchPrefix(syncedVoucher.financeSystem()));
+        }
+        return syncedVoucher;
+    }
+
+    @Transactional
+    private boolean pushToKingdeeLegacy(String tenantId, String voucherId) {
         Voucher voucher = financeStore.findVoucher(tenantId, voucherId)
                 .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "凭证不存在"));
         if (voucher.status() != VoucherStatus.POSTED) {
@@ -286,7 +349,7 @@ public class InventoryVoucherEngine {
     }
 
     @Transactional
-    public boolean pushToYonyou(String tenantId, String voucherId) {
+    private boolean pushToYonyouLegacy(String tenantId, String voucherId) {
         Voucher voucher = financeStore.findVoucher(tenantId, voucherId)
                 .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "凭证不存在"));
         if (voucher.status() != VoucherStatus.POSTED) {
@@ -354,6 +417,87 @@ public class InventoryVoucherEngine {
             exportData.add(row);
         }
         return exportData;
+    }
+
+    private Voucher loadPostedVoucher(String tenantId, String voucherId, String financeSystemName) {
+        Voucher voucher = financeStore.findVoucher(tenantId, voucherId)
+                .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "Voucher not found"));
+        if (voucher.status() != VoucherStatus.POSTED) {
+            throw new BizException("INVALID_STATUS", "Only posted vouchers can be pushed to " + financeSystemName);
+        }
+        return voucher;
+    }
+
+    private void markVoucherExported(Voucher voucher, String batchPrefix) {
+        Instant now = Instant.now();
+        String batchId = batchPrefix + UUID.randomUUID().toString().substring(0, 8);
+        Voucher exported = new Voucher(
+                voucher.voucherId(), voucher.tenantId(), voucher.voucherNumber(), voucher.voucherType(),
+                voucher.referenceType(), voucher.referenceId(), voucher.currency(), voucher.totalDebit(), voucher.totalCredit(),
+                VoucherStatus.EXPORTED, voucher.lines(), voucher.voucherDate(), voucher.postedBy(), voucher.postedAt(),
+                batchId, voucher.createdAt(), now);
+        financeStore.saveVoucher(exported);
+    }
+
+    private Voucher resolveVoucherForExternalSync(String tenantId, ExternalFinanceVoucher syncedVoucher) {
+        // 外部同步记录单独持久化用于补偿和审计，这里优先使用显式 ERP 凭证ID 回填内部状态。
+        if (syncedVoucher.erpVoucherId() != null && !syncedVoucher.erpVoucherId().isBlank()) {
+            return financeStore.findVoucher(tenantId, syncedVoucher.erpVoucherId())
+                    .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "Source voucher not found for finance sync"));
+        }
+        return financeStore.listVouchers(tenantId, null, null).stream()
+                .filter(voucher -> syncedVoucher.voucherNumber().equals(voucher.voucherNumber()))
+                .findFirst()
+                .orElseThrow(() -> new BizException("VOUCHER_NOT_FOUND", "Source voucher not found for finance sync"));
+    }
+
+    private String resolveBatchPrefix(String financeSystem) {
+        return switch (financeSystem.toUpperCase()) {
+            case KINGDEE_SYSTEM -> "KD-";
+            case YONYOU_SYSTEM -> "YY-";
+            default -> "EXT-";
+        };
+    }
+
+    private void ensureVoucherSynced(ExternalFinanceVoucher voucher, String financeSystemName) {
+        if (!"SYNCED".equals(voucher.syncStatus())) {
+            throw new BizException("FINANCE_SYNC_FAILED",
+                    financeSystemName + " voucher sync failed: "
+                            + (voucher.syncError() != null ? voucher.syncError() : "UNKNOWN_ERROR"));
+        }
+    }
+
+    private Map<String, Object> buildExternalVoucherData(Voucher voucher) {
+        // Keep outbound payload self-contained so external sync records also serve as audit snapshots.
+        List<Map<String, Object>> entries = voucher.lines().stream()
+                .map(line -> {
+                    Map<String, Object> entry = new LinkedHashMap<>();
+                    entry.put("lineId", line.lineId());
+                    entry.put("accountCode", line.accountCode());
+                    entry.put("accountName", line.accountName());
+                    entry.put("entryType", line.type().name());
+                    entry.put("debitAmount", line.type() == VoucherLineType.DEBIT ? line.amount() : BigDecimal.ZERO);
+                    entry.put("creditAmount", line.type() == VoucherLineType.CREDIT ? line.amount() : BigDecimal.ZERO);
+                    entry.put("amount", line.amount());
+                    entry.put("remark", line.remark());
+                    return entry;
+                })
+                .toList();
+        Map<String, Object> voucherData = new LinkedHashMap<>();
+        voucherData.put("date", voucher.voucherDate());
+        voucherData.put("currency", voucher.currency());
+        voucherData.put("totalDebit", voucher.totalDebit());
+        voucherData.put("totalCredit", voucher.totalCredit());
+        voucherData.put("referenceType", voucher.referenceType());
+        voucherData.put("referenceId", voucher.referenceId());
+        voucherData.put("entries", entries);
+        return voucherData;
+    }
+
+    private String generateVoucherNumber(Instant voucherDate) {
+        LocalDate businessDate = voucherDate.atZone(ZoneOffset.UTC).toLocalDate();
+        return "VCH-" + businessDate.toString().replace("-", "")
+                + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     public record CreateVoucherTemplateCommand(

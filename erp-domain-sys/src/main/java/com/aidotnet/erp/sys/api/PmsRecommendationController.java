@@ -2,6 +2,7 @@ package com.aidotnet.erp.sys.api;
 
 import com.aidotnet.erp.common.api.Result;
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.common.tenant.TenantContext;
 import com.aidotnet.erp.sys.application.PmsRecommendationService;
 import com.aidotnet.erp.sys.application.PmsRecommendationService.PmsCallContext;
 import com.aidotnet.erp.sys.application.PmsRecommendationService.PmsSubmitCommand;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,70 +38,91 @@ public class PmsRecommendationController {
     @PostMapping
     public Result<PmsRecommendation> submit(@Valid @RequestBody SubmitRecommendationRequest request,
             @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.submit(request.toCommand(), context(headers)));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.submit(request.toCommand(), context(headers))));
     }
 
     @GetMapping
     public Result<List<PmsRecommendation>> list(@RequestParam(required = false) String domain,
             @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.list(requiredHeader(headers, "tenant_id"), domain));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.list(tenantId, domain)));
     }
 
     @GetMapping("/{erpReferenceId}")
     public Result<PmsRecommendation> detail(@PathVariable String erpReferenceId, @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.get(requiredHeader(headers, "tenant_id"), erpReferenceId));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.get(tenantId, erpReferenceId)));
     }
 
     @PatchMapping("/{erpReferenceId}/submit-approval")
     public Result<PmsRecommendation> submitApproval(@PathVariable String erpReferenceId, @RequestBody ApprovalRequest request,
             @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.submitForApproval(requiredHeader(headers, "tenant_id"), erpReferenceId,
-                request == null ? null : request.approvalPolicy()));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.submitForApproval(tenantId, erpReferenceId,
+                request == null ? null : request.approvalPolicy())));
     }
 
     @PatchMapping("/{erpReferenceId}/approve")
     public Result<PmsRecommendation> approve(@PathVariable String erpReferenceId, @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.approve(requiredHeader(headers, "tenant_id"), erpReferenceId));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.approve(tenantId, erpReferenceId)));
     }
 
     @PatchMapping("/{erpReferenceId}/reject-approval")
     public Result<PmsRecommendation> rejectApproval(@PathVariable String erpReferenceId, @RequestBody RejectRequest request,
             @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.rejectApproval(requiredHeader(headers, "tenant_id"), erpReferenceId,
-                request == null ? null : request.reason()));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.rejectApproval(tenantId, erpReferenceId,
+                request == null ? null : request.reason())));
     }
 
     @PatchMapping("/{erpReferenceId}/start-execution")
     public Result<PmsRecommendation> startExecution(@PathVariable String erpReferenceId, @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.startExecution(requiredHeader(headers, "tenant_id"), erpReferenceId));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.startExecution(tenantId, erpReferenceId)));
     }
 
     @PatchMapping("/{erpReferenceId}/complete-execution")
     public Result<PmsRecommendation> completeExecution(@PathVariable String erpReferenceId, @RequestBody ExecutionRequest request,
             @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.completeExecution(requiredHeader(headers, "tenant_id"), erpReferenceId,
-                request == null ? null : request.executionResult()));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.completeExecution(tenantId, erpReferenceId,
+                request == null ? null : request.executionResult())));
     }
 
     @PatchMapping("/{erpReferenceId}/fail-execution")
     public Result<PmsRecommendation> failExecution(@PathVariable String erpReferenceId, @RequestBody ExecutionRequest request,
             @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.failExecution(requiredHeader(headers, "tenant_id"), erpReferenceId,
-                request == null ? null : request.executionResult()));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.failExecution(tenantId, erpReferenceId,
+                request == null ? null : request.executionResult())));
     }
 
     @PatchMapping("/{erpReferenceId}/measure")
     public Result<PmsRecommendation> measure(@PathVariable String erpReferenceId, @RequestBody MeasureRequest request,
             @RequestHeader Map<String, String> headers) {
-        return Result.ok(recommendationService.measure(requiredHeader(headers, "tenant_id"), erpReferenceId,
-                request == null ? null : request.measuredResult()));
+        String tenantId = requiredHeader(headers, "tenant_id");
+        return inTenant(tenantId, () -> Result.ok(recommendationService.measure(tenantId, erpReferenceId,
+                request == null ? null : request.measuredResult())));
     }
 
     private PmsCallContext context(Map<String, String> headers) {
         return new PmsCallContext(requiredHeader(headers, "tenant_id"), requiredHeader(headers, "actor_id"),
                 requiredHeader(headers, "actor_type"), header(headers, "agent_id"), requiredHeader(headers, "scope"),
-                requiredHeader(headers, "purpose"), requiredHeader(headers, "trace_id"), requiredHeader(headers, "idempotency_key"),
-                requiredHeader(headers, "source_system"), requiredHeader(headers, "signature"));
+                requiredHeader(headers, "purpose"), requiredHeader(headers, "trace_id"),
+                requiredHeader(headers, "idempotency_key"), requiredHeader(headers, "source_system"),
+                requiredHeader(headers, "signature"));
+    }
+
+    private <T> T inTenant(String tenantId, Supplier<T> action) {
+        String previousTenantId = TenantContext.getTenantId();
+        TenantContext.setTenantId(tenantId);
+        try {
+            return action.get();
+        } finally {
+            TenantContext.setTenantId(previousTenantId);
+        }
     }
 
     private static String requiredHeader(Map<String, String> headers, String name) {

@@ -15,7 +15,10 @@ import com.aidotnet.erp.wms.domain.TransferOrder;
 import com.aidotnet.erp.wms.domain.TransferOrderLine;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -84,7 +87,7 @@ public class TransferAndCheckController {
 
     @GetMapping("/transfers/{transferId}/lines")
     public Result<List<TransferOrderLine>> listTransferLines(@PathVariable String transferId) {
-        return Result.ok(service.listTransferOrderLines(transferId));
+        return Result.ok(service.listTransferOrderLines(currentTenant(), transferId));
     }
 
     @PostMapping("/stock-checks")
@@ -123,7 +126,7 @@ public class TransferAndCheckController {
 
     @GetMapping("/stock-checks/{checkOrderId}/lines")
     public Result<List<StockCheckOrderLine>> listStockCheckLines(@PathVariable String checkOrderId) {
-        return Result.ok(service.listStockCheckOrderLines(checkOrderId));
+        return Result.ok(service.listStockCheckOrderLines(currentTenant(), checkOrderId));
     }
 
     private String currentTenant() {
@@ -135,14 +138,14 @@ public class TransferAndCheckController {
     }
 
     public record CreateTransferRequest(@NotBlank String fromWarehouseId, @NotBlank String toWarehouseId,
-                                        String remark, List<TransferLineRequest> lines) {}
+                                        String remark, @NotEmpty @Valid List<TransferLineRequest> lines) {}
     public record TransferLineRequest(@NotBlank String sellerSku, @Positive int transferQuantity,
                                       BigDecimal unitCost, String batchNo) {}
     public record ReceiveTransferLineRequest(@NotBlank String lineId, @Positive int receivedQuantity) {}
     public record CreateStockCheckRequest(@NotBlank String warehouseId,
-                                          @NotBlank StockCheckOrder.CheckType checkType,
+                                          @NotNull StockCheckOrder.CheckType checkType,
                                           String checkedBy, String remark,
-                                          List<StockCheckLineRequest> lines) {}
+                                          @NotEmpty @Valid List<StockCheckLineRequest> lines) {}
     public record StockCheckLineRequest(@NotBlank String sellerSku, String locationId) {}
-    public record CountLineRequest(@Positive int actualQuantity) {}
+    public record CountLineRequest(@PositiveOrZero int actualQuantity) {}
 }

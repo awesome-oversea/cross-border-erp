@@ -9,16 +9,14 @@ spring:
     password: ${ERP_TEST_DATASOURCE_PASSWORD:erp}
     hikari:
       connection-init-sql: SET search_path TO platform, iam, pdm, som, ads, oms, scm, wms, fba, tms, crm, fms, bi, sys, dashboard, public
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
   sql:
     init:
       mode: always
+      continue-on-error: true
       schema-locations:
         - classpath:postgresql-test-reset.sql
         - classpath:postgresql-compat-aliases.sql
-        - classpath*:db/migration/V*.sql
+        - classpath:db/schema.sql
         - classpath:postgresql-test-patches.sql
   cloud:
     discovery:

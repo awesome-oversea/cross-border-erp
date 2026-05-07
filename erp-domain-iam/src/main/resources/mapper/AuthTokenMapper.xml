@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aidotnet.erp.iam.infrastructure.mapper.AuthTokenMapper">
+
+    <insert id="insert" parameterType="com.aidotnet.erp.iam.infrastructure.data.AuthTokenDO">
+        INSERT INTO iam_auth_token (token_hash, tenant_id, user_id, username, permissions, expires_at, created_at)
+        VALUES (#{tokenHash}, #{tenantId}, #{userId}, #{username}, #{permissions}, #{expiresAt}, #{createdAt})
+    </insert>
+
+    <select id="selectByToken" resultType="com.aidotnet.erp.iam.infrastructure.data.AuthTokenDO">
+        SELECT token_hash, tenant_id, user_id, username, permissions, expires_at, created_at
+        FROM iam_auth_token
+        WHERE token_hash = #{token}
+    </select>
+
+    <delete id="deleteByToken">
+        DELETE FROM iam_auth_token WHERE token_hash = #{token}
+    </delete>
+
+    <delete id="deleteByUserId">
+        DELETE FROM iam_auth_token WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+    </delete>
+
+</mapper>

@@ -2,6 +2,7 @@ package com.aidotnet.erp.fms.application;
 
 import com.aidotnet.erp.common.exception.BizException;
 import com.aidotnet.erp.fms.domain.Invoice;
+import com.aidotnet.erp.fms.domain.InvoiceSetting;
 import com.aidotnet.erp.fms.domain.InvoiceStatus;
 import com.aidotnet.erp.fms.domain.Voucher;
 import com.aidotnet.erp.fms.domain.VoucherLine;
@@ -204,4 +205,42 @@ public class InvoiceVoucherService {
     public record CreateVoucherCommand(String voucherType, String referenceType, String referenceId,
                                        String currency, Instant voucherDate,
                                        List<VoucherLine> lines) {}
+
+    // ========== 自定义发票设置管理(内存存储) ==========
+    /**
+     * 按店铺+市场维度配置发票参数，包括发票抬头、税务登记号、显示项等。
+     * V4需求: "自定义发票设置：配置打印模板" / "VAT/GST计算、税率管理、多国税率自动匹配"
+     */
+
+    @Transactional
+    public InvoiceSetting saveInvoiceSetting(String tenantId, SaveInvoiceSettingCommand command) {
+        Instant now = Instant.now();
+        InvoiceSetting existing = extStore.findInvoiceSettingByScope(tenantId, command.storeId(), command.marketplaceId())
+                .orElse(null);
+        InvoiceSetting setting = new InvoiceSetting(
+                existing != null ? existing.settingId() : UUID.randomUUID().toString(),
+                tenantId,
+                command.storeId(), command.marketplaceId(), command.templateId(),
+                command.invoiceTitle(), command.taxRegistrationNo(),
+                command.showUnitPrice(), command.showTaxRate(), command.showDiscount(),
+                command.remark(), true,
+                existing != null ? existing.createdAt() : now, now);
+        return extStore.saveInvoiceSetting(setting);
+    }
+
+    /**
+     * 获取指定店铺在指定市场的发票配置
+     */
+    public InvoiceSetting getInvoiceSetting(String tenantId, String storeId, String marketplaceId) {
+        return extStore.findInvoiceSettingByScope(tenantId, storeId, marketplaceId).orElse(null);
+    }
+
+    public List<InvoiceSetting> listInvoiceSettings(String tenantId) {
+        return extStore.listInvoiceSettings(tenantId);
+    }
+
+    public record SaveInvoiceSettingCommand(String storeId, String marketplaceId, String templateId,
+                                             String invoiceTitle, String taxRegistrationNo,
+                                             boolean showUnitPrice, boolean showTaxRate, boolean showDiscount,
+                                             String remark) {}
 }

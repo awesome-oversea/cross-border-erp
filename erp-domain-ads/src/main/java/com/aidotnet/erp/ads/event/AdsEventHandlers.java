@@ -65,8 +65,8 @@ public class AdsEventHandlers {
      * @param event PDM产品创建领域事件
      */
     private void handleProductCreated(DomainEvent event) {
-        log.info("[ADS] Product created - auto-campaign suggestion: tenant={}, productId={}, payload={}",
-                event.tenantId(), event.aggregateId(), event.payload());
+        log.info("[ADS] Product created - auto-campaign suggestion: tenant={}, productId={}",
+                event.tenantId(), event.aggregateId());
     }
 
     /**
@@ -79,7 +79,7 @@ public class AdsEventHandlers {
      * @param event OMS订单交付领域事件
      */
     private void handleOrderDelivered(DomainEvent event) {
-        log.info("[ADS] Order delivered - ROAS calculation trigger: tenant={}, orderId={}, payload={}",
-                event.tenantId(), event.aggregateId(), event.payload());
+        log.info("[ADS] Order delivered - ROAS calculation trigger: tenant={}, orderId={}",
+                event.tenantId(), event.aggregateId());
     }
 }
