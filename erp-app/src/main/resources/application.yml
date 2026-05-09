@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${ERP_DATASOURCE_URL:jdbc:postgresql://localhost:5432/erp}
     username: ${ERP_DATASOURCE_USERNAME:erp}
-    password: ${ERP_DATASOURCE_PASSWORD:erp}
+    password: ${ERP_DATASOURCE_PASSWORD:changeme}
     driver-class-name: ${ERP_DATASOURCE_DRIVER:org.postgresql.Driver}
     hikari:
       connection-init-sql: SET search_path TO platform, iam, pdm, som, ads, oms, scm, wms, fba, tms, crm, fms, bi, sys, dashboard, public
@@ -153,12 +153,12 @@ mybatis-plus:
 
 erp:
   jwt:
-    secret: ${ERP_JWT_SECRET:default-secret-key-for-development-only-must-be-at-least-256-bits-long}
+    secret: ${ERP_JWT_SECRET:changeme-must-be-at-least-256-bits-long}
     expiration-seconds: ${ERP_JWT_EXPIRATION:7200}
   minio:
     endpoint: ${ERP_MINIO_ENDPOINT:http://localhost:9000}
-    access-key: ${ERP_MINIO_ACCESS_KEY:minioadmin}
-    secret-key: ${ERP_MINIO_SECRET_KEY:minioadmin}
+    access-key: ${ERP_MINIO_ACCESS_KEY:changeme}
+    secret-key: ${ERP_MINIO_SECRET_KEY:changeme}
     default-bucket: ${ERP_MINIO_BUCKET:erp-files}
   elasticsearch:
     host: ${ERP_ES_HOST:localhost}

@@ -31,7 +31,7 @@ class IamApiTests {
                         .header("X-Tenant-Id", "tenant-demo")
                         .header("X-Trace-Id", "trace-iam")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"${TEST_ADMIN_PASSWORD}\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.tenantId").value("tenant-demo"))
@@ -77,7 +77,7 @@ class IamApiTests {
         mockMvc.perform(post("/iam/api/in/v1/auth/login")
                         .header("X-Tenant-Id", "tenant-disabled")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"${TEST_ADMIN_PASSWORD}\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("TENANT_DISABLED"));
 

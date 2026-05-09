@@ -6,7 +6,7 @@ spring:
     url: ${ERP_TEST_DATASOURCE_URL:jdbc:postgresql://localhost:5432/erp_test}
     driver-class-name: org.postgresql.Driver
     username: ${ERP_TEST_DATASOURCE_USERNAME:erp}
-    password: ${ERP_TEST_DATASOURCE_PASSWORD:erp}
+    password: ${ERP_TEST_DATASOURCE_PASSWORD:changeme}
     hikari:
       connection-init-sql: SET search_path TO platform, iam, pdm, som, ads, oms, scm, wms, fba, tms, crm, fms, bi, sys, dashboard, public
   sql:
@@ -66,7 +66,7 @@ logging:
 
 erp:
   jwt:
-    secret: test-secret-key-for-integration-testing-must-be-at-least-256-bits-long
+    secret: ${ERP_JWT_SECRET:changeme-must-be-at-least-256-bits-long}
     expiration-seconds: 7200
   security:
     permit-all: true

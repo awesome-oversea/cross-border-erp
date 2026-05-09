@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Table, Card, Typography, Tag, Space, Input, Select, Badge } from 'antd';
+import { Table, Card, Typography, Tag, Space, Input, Select } from 'antd';
 import { usePageApi } from '@/lib/hooks';
 import type { Customer, PageParams } from '@/types';
 
@@ -16,10 +16,11 @@ export default function CustomersPage() {
   const columns = [
     { title: '客户名', dataIndex: 'name', key: 'name' },
     { title: '邮箱', dataIndex: 'email', key: 'email' },
-    { title: '等级', dataIndex: 'level', key: 'level', render: (v: string) => <Tag color={levelColors[v] || 'default'}>{v}</Tag> },
+    { title: '国家', dataIndex: 'countryCode', key: 'countryCode', render: (v: string) => <Tag>{v}</Tag> },
+    { title: '平台', dataIndex: 'platform', key: 'platform', render: (v: string) => <Tag color="blue">{v}</Tag> },
     { title: '累计消费', dataIndex: 'totalSpent', key: 'totalSpent', render: (v: number) => v?.toFixed(2) },
-    { title: '订单数', dataIndex: 'orderCount', key: 'orderCount' },
-    { title: '最近下单', dataIndex: 'lastOrderDate', key: 'lastOrderDate', render: (v: string) => v ? new Date(v).toLocaleDateString() : '-' },
+    { title: '订单数', dataIndex: 'totalOrders', key: 'totalOrders' },
+    { title: '最近下单', dataIndex: 'lastOrderAt', key: 'lastOrderAt', render: (v: string) => v ? new Date(v).toLocaleDateString() : '-' },
     { title: '工单', key: 'tickets', render: (_: unknown, r: Customer) => <a href={`/crm/tickets?customerId=${r.customerId}`}>查看</a> },
   ];
 
@@ -30,9 +31,9 @@ export default function CustomersPage() {
         <Space>
           <Input placeholder="搜索客户" allowClear style={{ width: 200 }}
             onChange={(e) => setParams({ ...params, keyword: e.target.value || undefined })} />
-          <Select placeholder="等级" allowClear style={{ width: 120 }}
-            options={[{ value: 'VIP', label: 'VIP' }, { value: 'NORMAL', label: '普通' }, { value: 'NEW', label: '新客' }]}
-            onChange={(v) => setParams({ ...params, level: v })} />
+          <Select placeholder="平台" allowClear style={{ width: 120 }}
+            options={[{ value: 'AMAZON', label: 'Amazon' }, { value: 'SHOPIFY', label: 'Shopify' }, { value: 'EBAY', label: 'eBay' }]}
+            onChange={(v) => setParams({ ...params, platform: v })} />
         </Space>
       </div>
       <Card style={{ borderRadius: 8 }}>

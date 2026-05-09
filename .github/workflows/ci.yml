@@ -1,11 +1,14 @@
-name: ci
+name: CI
 
 on:
   push:
+    branches: [main, develop]
   pull_request:
+    branches: [main]
 
 jobs:
-  build:
+  backend:
+    name: Backend Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,4 +17,37 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - run: mvn -B test
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build & Test
+        run: mvn -B verify
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/target/surefire-reports/'
+
+  frontend:
+    name: Frontend Build & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: erp-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: erp-web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build

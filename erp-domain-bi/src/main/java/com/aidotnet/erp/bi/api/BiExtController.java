@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/bi/api/in/v1")
+@RequestMapping({"/bi/api/in/v1", "/bi/api/v1"})
 public class BiExtController {
 
     private final BiExtService biExtService;

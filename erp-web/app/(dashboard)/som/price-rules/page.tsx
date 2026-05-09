@@ -64,15 +64,14 @@ export default function PriceRulesPage() {
       const s = ruleTypeMap[v] || { color: 'default', text: v };
       return <Tag color={s.color}>{s.text}</Tag>;
     }},
-    { title: '目标平台', dataIndex: 'targetPlatform', key: 'targetPlatform', render: (v: string) => v ? <Tag>{v}</Tag> : '-' },
+    { title: '目标平台', dataIndex: 'platform', key: 'platform', render: (v: string) => v ? <Tag>{v}</Tag> : '-' },
     { title: '调价幅度', key: 'adjustment', render: (_: unknown, r: PriceRule) => {
-      if (r.ruleType === 'PERCENTAGE') return `${r.adjustmentValue ?? 0}%`;
-      if (r.ruleType === 'FIXED_PRICE') return `$${r.adjustmentValue ?? 0}`;
-      return r.adjustmentValue ?? '-';
+      if (r.ruleType === 'PERCENTAGE') return `${r.adjustment ?? 0}%`;
+      return `${r.currency} ${r.adjustment ?? 0}`;
     }},
-    { title: '最低价', dataIndex: 'minPrice', key: 'minPrice', render: (v: number) => v != null ? `$${v}` : '-' },
-    { title: '最高价', dataIndex: 'maxPrice', key: 'maxPrice', render: (v: number) => v != null ? `$${v}` : '-' },
-    { title: '启用', dataIndex: 'enabled', key: 'enabled', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '是' : '否'}</Tag> },
+    { title: '优先级', dataIndex: 'priority', key: 'priority' },
+    { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => <Tag color={v === 'ACTIVE' ? 'green' : v === 'DRAFT' ? 'default' : 'red'}>{v}</Tag> },
+    { title: '有效期', key: 'effective', render: (_: unknown, r: PriceRule) => `${r.effectiveFrom || '-'} ~ ${r.effectiveTo || '无限'}` },
     { title: '操作', key: 'action', width: 150, render: (_: unknown, record: PriceRule) => (
       <Space>
         <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>

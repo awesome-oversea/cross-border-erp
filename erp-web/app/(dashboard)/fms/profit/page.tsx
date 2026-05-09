@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Card, Typography, Row, Col, Statistic, Table, Tag, Space, Select, DatePicker, Tabs, Badge, Button } from 'antd';
-import { DollarOutlined, ArrowUpOutlined, ArrowDownOutlined, SyncOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import ReactEChartsCore from 'echarts-for-react';
 import * as echarts from 'echarts/core';
 import { LineChart, BarChart } from 'echarts/charts';
@@ -25,30 +25,31 @@ export default function ProfitPage() {
 
   const latest = profitSummaries?.[0];
   const prev = profitSummaries?.[1];
+  const totalCost = (p: ProfitSummary) => p.cogs + p.shippingCost + p.platformFee + p.adCost + p.otherCost;
 
   const profitTrendOption = {
     tooltip: { trigger: 'axis' as const },
-    legend: { data: ['收入', '成本', '利润'] },
+    legend: { data: ['收入', '成本', '净利润'] },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: { type: 'category' as const, data: profitSummaries?.map((p: ProfitSummary) => p.period) || [] },
     yAxis: { type: 'value' as const, name: 'USD' },
     series: [
       { name: '收入', type: 'bar', data: profitSummaries?.map((p: ProfitSummary) => p.revenue) || [], itemStyle: { color: '#1890ff' } },
-      { name: '成本', type: 'bar', data: profitSummaries?.map((p: ProfitSummary) => p.totalCost) || [], itemStyle: { color: '#ff4d4f' } },
-      { name: '利润', type: 'line', data: profitSummaries?.map((p: ProfitSummary) => p.profit) || [], itemStyle: { color: '#52c41a' }, lineStyle: { width: 3 } },
+      { name: '成本', type: 'bar', data: profitSummaries?.map((p: ProfitSummary) => totalCost(p)) || [], itemStyle: { color: '#ff4d4f' } },
+      { name: '净利润', type: 'line', data: profitSummaries?.map((p: ProfitSummary) => p.netProfit) || [], itemStyle: { color: '#52c41a' }, lineStyle: { width: 3 } },
     ],
   };
 
   const profitColumns = [
     { title: '期间', dataIndex: 'period', key: 'period' },
     { title: '收入', dataIndex: 'revenue', key: 'revenue', render: (v: number) => `$${(v || 0).toLocaleString()}` },
-    { title: '产品成本', dataIndex: 'productCost', key: 'productCost', render: (v: number) => `$${(v || 0).toLocaleString()}` },
-    { title: '物流成本', dataIndex: 'logisticsCost', key: 'logisticsCost', render: (v: number) => `$${(v || 0).toLocaleString()}` },
+    { title: '产品成本', dataIndex: 'cogs', key: 'cogs', render: (v: number) => `$${(v || 0).toLocaleString()}` },
+    { title: '物流成本', dataIndex: 'shippingCost', key: 'shippingCost', render: (v: number) => `$${(v || 0).toLocaleString()}` },
     { title: '平台佣金', dataIndex: 'platformFee', key: 'platformFee', render: (v: number) => `$${(v || 0).toLocaleString()}` },
     { title: '广告成本', dataIndex: 'adCost', key: 'adCost', render: (v: number) => `$${(v || 0).toLocaleString()}` },
     { title: '其他成本', dataIndex: 'otherCost', key: 'otherCost', render: (v: number) => `$${(v || 0).toLocaleString()}` },
-    { title: '总成本', dataIndex: 'totalCost', key: 'totalCost', render: (v: number) => `$${(v || 0).toLocaleString()}` },
-    { title: '利润', dataIndex: 'profit', key: 'profit', render: (v: number) => (
+    { title: '毛利润', dataIndex: 'grossProfit', key: 'grossProfit', render: (v: number) => `$${(v || 0).toLocaleString()}` },
+    { title: '净利润', dataIndex: 'netProfit', key: 'netProfit', render: (v: number) => (
       <span style={{ color: v >= 0 ? '#52c41a' : '#ff4d4f', fontWeight: 600 }}>${(v || 0).toLocaleString()}</span>
     )},
     { title: '利润率', dataIndex: 'margin', key: 'margin', render: (v: number) => (
@@ -66,9 +67,9 @@ export default function ProfitPage() {
       <span style={{ color: v !== 0 ? '#ff4d4f' : '#52c41a' }}>${(v || 0).toFixed(2)}</span>
     )},
     { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => (
-      <Badge color={v === 'MATCHED' ? 'green' : v === 'MISMATCH' ? 'red' : 'orange'} text={v === 'MATCHED' ? '匹配' : v === 'MISMATCH' ? '不匹配' : '待处理'} />
+      <Badge color={v === 'MATCHED' ? 'green' : v === 'UNMATCHED' ? 'red' : 'orange'} text={v === 'MATCHED' ? '匹配' : v === 'UNMATCHED' ? '不匹配' : '待处理'} />
     )},
-    { title: '操作', key: 'action', render: (_: unknown, r: Reconciliation) => r.status === 'MISMATCH' ? (
+    { title: '操作', key: 'action', render: (_: unknown, r: Reconciliation) => r.status === 'UNMATCHED' ? (
       <Button type="link" size="small" onClick={async () => {
         try {
           await fmsApi.resolveReconciliation(r.reconciliationId, { resolution: '已核实' });
@@ -104,12 +105,12 @@ export default function ProfitPage() {
                   </Col>
                   <Col xs={24} sm={8}>
                     <Card style={{ borderRadius: 8 }}>
-                      <Statistic title="本期成本" value={latest?.totalCost ?? 0} prefix="$" valueStyle={{ color: '#ff4d4f' }} />
+                      <Statistic title="本期成本" value={latest ? totalCost(latest) : 0} prefix="$" valueStyle={{ color: '#ff4d4f' }} />
                     </Card>
                   </Col>
                   <Col xs={24} sm={8}>
                     <Card style={{ borderRadius: 8 }}>
-                      <Statistic title="本期利润" value={latest?.profit ?? 0} prefix="$" valueStyle={{ color: '#52c41a' }}
+                      <Statistic title="本期净利润" value={latest?.netProfit ?? 0} prefix="$" valueStyle={{ color: '#52c41a' }}
                         suffix={<span style={{ fontSize: 14 }}>{latest?.margin?.toFixed(1) ?? 0}%</span>} />
                     </Card>
                   </Col>
@@ -131,7 +132,7 @@ export default function ProfitPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                   <Title level={4} style={{ margin: 0 }}>对账管理</Title>
                   <Select placeholder="状态" allowClear style={{ width: 120 }}
-                    options={[{ value: 'PENDING', label: '待处理' }, { value: 'MATCHED', label: '匹配' }, { value: 'MISMATCH', label: '不匹配' }]}
+                    options={[{ value: 'UNMATCHED', label: '不匹配' }, { value: 'MATCHED', label: '匹配' }, { value: 'RESOLVED', label: '已解决' }]}
                     onChange={(v) => setReconParams({ ...reconParams, status: v })} />
                 </div>
                 <Table

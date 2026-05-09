@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/bi/api/in/v1", "/api/bi"})
+@RequestMapping({"/bi/api/in/v1", "/bi/api/v1", "/api/bi"})
 public class ReportController {
 
     private final ReportService reportService;

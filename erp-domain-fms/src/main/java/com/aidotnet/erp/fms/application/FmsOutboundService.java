@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
@@ -154,6 +155,74 @@ public class FmsOutboundService {
                 Instant.now());
     }
 
+    /**
+     * 统一利润中心读取SKU利润闭环时，以订单维度利润结果作为事实来源，避免跨维度重复累计。
+     */
+    public ProfitReportResult buildSkuProfitReport(String tenantId, String sellerSku, String storeId,
+                                                   String marketplaceId, String currency, String alertStatus) {
+        return buildProfitReport(tenantId, new ProfitReportQuery(
+                "ORDER", null, sellerSku, storeId, marketplaceId, currency, alertStatus));
+    }
+
+    public ProfitReportResult buildOrderProfitReport(String tenantId, String sellerSku, String storeId,
+                                                     String marketplaceId, String currency, String alertStatus) {
+        return buildProfitReport(tenantId, new ProfitReportQuery(
+                "ORDER", null, sellerSku, storeId, marketplaceId, currency, alertStatus));
+    }
+
+    public ProfitStatisticsResult buildProfitStatistics(String tenantId, ProfitStatisticsQuery query) {
+        ProfitReportResult report = buildOrderProfitReport(tenantId, query.sellerSku(), query.storeId(),
+                query.marketplaceId(), query.currency(), query.alertStatus());
+        return new ProfitStatisticsResult(
+                "ORDER",
+                report.sellerSku(),
+                report.storeId(),
+                report.marketplaceId(),
+                report.currency(),
+                report.totalCount(),
+                report.totalRevenue(),
+                report.totalCost(),
+                report.totalGrossProfit(),
+                report.avgGrossMargin(),
+                report.alertCount(),
+                report.openAlertCount(),
+                report.generatedAt());
+    }
+
+    public ProfitTrendResult buildProfitTrend(String tenantId, ProfitTrendQuery query) {
+        ProfitReportResult report = buildSkuProfitReport(tenantId, query.sellerSku(), query.storeId(),
+                query.marketplaceId(), query.currency(), query.alertStatus());
+        Map<LocalDate, List<ProfitLineResult>> grouped = report.results().stream()
+                .filter(line -> line.calculatedAt() != null)
+                .collect(Collectors.groupingBy(
+                        line -> line.calculatedAt().atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
+                        TreeMap::new,
+                        Collectors.toList()));
+        List<ProfitTrendPointResult> points = grouped.entrySet().stream()
+                .map(entry -> {
+                    BigDecimal totalRevenue = sum(entry.getValue().stream().map(ProfitLineResult::revenue).toList());
+                    BigDecimal totalCost = sum(entry.getValue().stream().map(ProfitLineResult::totalCost).toList());
+                    BigDecimal totalGrossProfit = sum(entry.getValue().stream().map(ProfitLineResult::grossProfit).toList());
+                    return new ProfitTrendPointResult(
+                            entry.getKey(),
+                            entry.getValue().size(),
+                            totalRevenue,
+                            totalCost,
+                            totalGrossProfit,
+                            calculateMargin(totalRevenue, totalGrossProfit));
+                })
+                .toList();
+        return new ProfitTrendResult(
+                "ORDER",
+                report.sellerSku(),
+                report.storeId(),
+                report.marketplaceId(),
+                report.currency(),
+                report.totalCount(),
+                points,
+                report.generatedAt());
+    }
+
     private PaymentExecutionResult toPaymentExecutionResult(PaymentRequest paymentRequest) {
         return new PaymentExecutionResult(
                 paymentRequest.requestId(),
@@ -221,7 +290,8 @@ public class FmsOutboundService {
                         latestAlert.deviation(),
                         latestAlert.detectedAt(),
                         latestAlert.resolvedAt()) : null,
-                costTraces);
+                costTraces,
+                result.calculatedAt());
     }
 
     private boolean matchesTrace(CostAllocationResult allocation, ProfitResult result) {
@@ -481,7 +551,50 @@ public class FmsOutboundService {
                                    BigDecimal grossMargin,
                                    Map<String, BigDecimal> costDetails,
                                    ProfitAlertResult latestAlert,
-                                   List<CostTraceResult> costTraces) {}
+                                   List<CostTraceResult> costTraces,
+                                   Instant calculatedAt) {}
+
+    public record ProfitStatisticsQuery(String sellerSku,
+                                        String storeId,
+                                        String marketplaceId,
+                                        String currency,
+                                        String alertStatus) {}
+
+    public record ProfitStatisticsResult(String sourceDimensionType,
+                                         String sellerSku,
+                                         String storeId,
+                                         String marketplaceId,
+                                         String currency,
+                                         int totalCount,
+                                         BigDecimal totalRevenue,
+                                         BigDecimal totalCost,
+                                         BigDecimal totalGrossProfit,
+                                         BigDecimal avgGrossMargin,
+                                         int alertCount,
+                                         int openAlertCount,
+                                         Instant generatedAt) {}
+
+    public record ProfitTrendQuery(String sellerSku,
+                                   String storeId,
+                                   String marketplaceId,
+                                   String currency,
+                                   String alertStatus) {}
+
+    public record ProfitTrendResult(String sourceDimensionType,
+                                    String sellerSku,
+                                    String storeId,
+                                    String marketplaceId,
+                                    String currency,
+                                    int totalCount,
+                                    List<ProfitTrendPointResult> points,
+                                    Instant generatedAt) {}
+
+    public record ProfitTrendPointResult(LocalDate pointDate,
+                                         int totalCount,
+                                         BigDecimal totalRevenue,
+                                         BigDecimal totalCost,
+                                         BigDecimal totalGrossProfit,
+                                         BigDecimal avgGrossMargin) {}
 
     public record ProfitAlertResult(String alertId,
                                     String status,

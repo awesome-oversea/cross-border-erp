@@ -27,7 +27,7 @@ class IamAuthIntegrationTest extends BaseIntegrationTest {
         headers.set("X-Tenant-Id", "tenant-demo");
 
         String body = """
-                {"username": "admin", "password": "admin123"}
+                {"username": "admin", "password": "${TEST_ADMIN_PASSWORD}"}
                 """;
         HttpEntity<String> request = new HttpEntity<>(body, headers);
 

@@ -8,8 +8,17 @@ import com.aidotnet.erp.common.exception.BizException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -141,6 +150,51 @@ public class KpiAssessmentService {
         return weightedScore.divide(totalWeight, 2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * KPI 统计视图，面向 BI 域统一 `/bi/api/v1/kpis/statistics` 读模型。
+     * 当前团队(team)口径沿用 department 责任主体，保证未上线阶段不引入新的主数据耦合。
+     */
+    public KpiStatisticsResult buildStatistics(String tenantId, String period, String department,
+                                               String role, String userId) {
+        List<KpiTarget> filteredTargets = extStore.listKpiTargets(tenantId, department, period).stream()
+                .filter(target -> matchesFilter(role, target.role()))
+                .sorted(Comparator.comparing(KpiTarget::department, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(KpiTarget::role, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(KpiTarget::targetId))
+                .toList();
+        Map<String, KpiTarget> targetIndex = filteredTargets.stream()
+                .collect(Collectors.toMap(KpiTarget::targetId, Function.identity(),
+                        (left, right) -> left, LinkedHashMap::new));
+        List<KpiAssessment> filteredAssessments = extStore.listKpiAssessments(tenantId, userId, period).stream()
+                .filter(assessment -> targetIndex.containsKey(assessment.targetId()))
+                .sorted(Comparator.comparing(KpiAssessment::userId, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(KpiAssessment::assessmentId))
+                .toList();
+        long assessedTargetCount = filteredAssessments.stream()
+                .map(KpiAssessment::targetId)
+                .distinct()
+                .count();
+        List<KpiDimensionStatistics> departmentStats = buildTargetDimensionStatistics(
+                filteredTargets, filteredAssessments, targetIndex, KpiTarget::department, "department");
+        return new KpiStatisticsResult(
+                period,
+                department,
+                role,
+                userId,
+                filteredTargets.size(),
+                filteredAssessments.size(),
+                assessedTargetCount,
+                toPercent(BigDecimal.valueOf(assessedTargetCount), BigDecimal.valueOf(filteredTargets.size())),
+                average(filteredAssessments.stream().map(KpiAssessment::achievementRate).toList()),
+                average(filteredAssessments.stream().map(KpiAssessment::score).toList()),
+                buildStatusCounts(filteredAssessments),
+                departmentStats,
+                aliasDimensionStatistics(departmentStats, "team"),
+                buildTargetDimensionStatistics(filteredTargets, filteredAssessments, targetIndex, KpiTarget::role, "role"),
+                buildAssessmentDimensionStatistics(filteredAssessments, "user"),
+                Instant.now());
+    }
+
     private BigDecimal calculateAchievementRate(BigDecimal actualValue, BigDecimal targetValue) {
         if (actualValue == null || targetValue == null || targetValue.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
@@ -204,6 +258,194 @@ public class KpiAssessmentService {
         }
         if (targetValue == null || targetValue.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BizException("INVALID_TARGET_VALUE", "目标值必须大于0");
+        }
+    }
+
+    private List<KpiDimensionStatistics> buildTargetDimensionStatistics(List<KpiTarget> targets,
+                                                                       List<KpiAssessment> assessments,
+                                                                       Map<String, KpiTarget> targetIndex,
+                                                                       Function<KpiTarget, String> dimensionExtractor,
+                                                                       String dimension) {
+        Map<String, KpiStatisticsAccumulator> grouped = new LinkedHashMap<>();
+        for (KpiTarget target : targets) {
+            String dimensionValue = resolveDimensionValue(dimensionExtractor.apply(target));
+            grouped.computeIfAbsent(dimensionValue, ignored -> new KpiStatisticsAccumulator())
+                    .registerTarget(target.targetId());
+        }
+        for (KpiAssessment assessment : assessments) {
+            KpiTarget target = targetIndex.get(assessment.targetId());
+            if (target == null) {
+                continue;
+            }
+            String dimensionValue = resolveDimensionValue(dimensionExtractor.apply(target));
+            grouped.computeIfAbsent(dimensionValue, ignored -> new KpiStatisticsAccumulator())
+                    .registerAssessment(assessment);
+        }
+        return toDimensionStatistics(grouped, dimension);
+    }
+
+    private List<KpiDimensionStatistics> buildAssessmentDimensionStatistics(List<KpiAssessment> assessments,
+                                                                           String dimension) {
+        Map<String, KpiStatisticsAccumulator> grouped = new LinkedHashMap<>();
+        for (KpiAssessment assessment : assessments) {
+            String dimensionValue = resolveDimensionValue(assessment.userId());
+            grouped.computeIfAbsent(dimensionValue, ignored -> new KpiStatisticsAccumulator())
+                    .registerAssessment(assessment);
+        }
+        return toDimensionStatistics(grouped, dimension);
+    }
+
+    private List<KpiDimensionStatistics> toDimensionStatistics(Map<String, KpiStatisticsAccumulator> grouped,
+                                                               String dimension) {
+        return grouped.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> entry.getValue().toResult(dimension, entry.getKey()))
+                .toList();
+    }
+
+    private List<KpiDimensionStatistics> aliasDimensionStatistics(List<KpiDimensionStatistics> source,
+                                                                  String dimension) {
+        return source.stream()
+                .map(item -> new KpiDimensionStatistics(
+                        dimension,
+                        item.dimensionValue(),
+                        item.targetCount(),
+                        item.assessedCount(),
+                        item.avgAchievementRate(),
+                        item.avgScore(),
+                        item.statusCounts(),
+                        item.targetIds(),
+                        item.assessmentIds()))
+                .toList();
+    }
+
+    private Map<String, Long> buildStatusCounts(List<KpiAssessment> assessments) {
+        Map<String, Long> statusCounts = emptyStatusCounts();
+        for (KpiAssessment assessment : assessments) {
+            String status = assessment.status() != null ? assessment.status().name() : KpiStatus.NOT_STARTED.name();
+            statusCounts.merge(status, 1L, Long::sum);
+        }
+        return statusCounts;
+    }
+
+    private Map<String, Long> emptyStatusCounts() {
+        Map<String, Long> statusCounts = new LinkedHashMap<>();
+        Arrays.stream(KpiStatus.values()).forEach(status -> statusCounts.put(status.name(), 0L));
+        return statusCounts;
+    }
+
+    private BigDecimal average(List<BigDecimal> values) {
+        List<BigDecimal> filtered = values.stream()
+                .filter(value -> value != null)
+                .toList();
+        if (filtered.isEmpty()) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal total = filtered.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        return total.divide(BigDecimal.valueOf(filtered.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal toPercent(BigDecimal numerator, BigDecimal denominator) {
+        if (numerator == null || denominator == null || denominator.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return numerator.divide(denominator, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private boolean matchesFilter(String filter, String actualValue) {
+        if (filter == null || filter.isBlank()) {
+            return true;
+        }
+        if (actualValue == null || actualValue.isBlank()) {
+            return false;
+        }
+        return filter.trim().equalsIgnoreCase(actualValue.trim());
+    }
+
+    private String resolveDimensionValue(String dimensionValue) {
+        if (dimensionValue == null || dimensionValue.isBlank()) {
+            return "UNSPECIFIED";
+        }
+        return dimensionValue.trim();
+    }
+
+    public record KpiStatisticsResult(String period,
+                                      String department,
+                                      String role,
+                                      String userId,
+                                      long targetCount,
+                                      long assessedCount,
+                                      long assessedTargetCount,
+                                      BigDecimal completionRate,
+                                      BigDecimal avgAchievementRate,
+                                      BigDecimal avgScore,
+                                      Map<String, Long> statusCounts,
+                                      List<KpiDimensionStatistics> departmentStats,
+                                      List<KpiDimensionStatistics> teamStats,
+                                      List<KpiDimensionStatistics> roleStats,
+                                      List<KpiDimensionStatistics> userStats,
+                                      Instant generatedAt) {}
+
+    public record KpiDimensionStatistics(String dimension,
+                                         String dimensionValue,
+                                         long targetCount,
+                                         long assessedCount,
+                                         BigDecimal avgAchievementRate,
+                                         BigDecimal avgScore,
+                                         Map<String, Long> statusCounts,
+                                         List<String> targetIds,
+                                         List<String> assessmentIds) {}
+
+    private static final class KpiStatisticsAccumulator {
+
+        private final Set<String> targetIds = new TreeSet<>();
+        private final List<String> assessmentIds = new ArrayList<>();
+        private final Map<String, Long> statusCounts = new LinkedHashMap<>();
+        private BigDecimal totalAchievementRate = BigDecimal.ZERO;
+        private BigDecimal totalScore = BigDecimal.ZERO;
+
+        private KpiStatisticsAccumulator() {
+            Arrays.stream(KpiStatus.values()).forEach(status -> statusCounts.put(status.name(), 0L));
+        }
+
+        private void registerTarget(String targetId) {
+            if (targetId != null && !targetId.isBlank()) {
+                targetIds.add(targetId);
+            }
+        }
+
+        private void registerAssessment(KpiAssessment assessment) {
+            registerTarget(assessment.targetId());
+            if (assessment.assessmentId() != null && !assessment.assessmentId().isBlank()) {
+                assessmentIds.add(assessment.assessmentId());
+            }
+            totalAchievementRate = totalAchievementRate.add(assessment.achievementRate() != null
+                    ? assessment.achievementRate() : BigDecimal.ZERO);
+            totalScore = totalScore.add(assessment.score() != null ? assessment.score() : BigDecimal.ZERO);
+            String status = assessment.status() != null ? assessment.status().name() : KpiStatus.NOT_STARTED.name();
+            statusCounts.merge(status, 1L, Long::sum);
+        }
+
+        private KpiDimensionStatistics toResult(String dimension, String dimensionValue) {
+            long assessedCount = assessmentIds.size();
+            BigDecimal avgAchievementRate = assessedCount == 0
+                    ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+                    : totalAchievementRate.divide(BigDecimal.valueOf(assessedCount), 2, RoundingMode.HALF_UP);
+            BigDecimal avgScore = assessedCount == 0
+                    ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+                    : totalScore.divide(BigDecimal.valueOf(assessedCount), 2, RoundingMode.HALF_UP);
+            return new KpiDimensionStatistics(
+                    dimension,
+                    dimensionValue,
+                    targetIds.size(),
+                    assessedCount,
+                    avgAchievementRate,
+                    avgScore,
+                    new LinkedHashMap<>(statusCounts),
+                    List.copyOf(targetIds),
+                    List.copyOf(assessmentIds));
         }
     }
 

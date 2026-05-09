@@ -1141,16 +1141,16 @@ public class FinanceService {
     public ForexRate saveForexRate(String tenantId, SaveForexRateCommand command) {
         Instant now = Instant.now();
         return financeStore.saveForexRate(new ForexRate(UUID.randomUUID().toString(), tenantId,
-                command.fromCurrency(), command.toCurrency(), command.rate(),
-                command.effectiveDate(), command.source(), now));
+                normalizeCurrency(command.fromCurrency()), normalizeCurrency(command.toCurrency()), command.rate(),
+                command.effectiveDate(), normalizeForexRateSource(command.source()), now));
     }
 
     public Optional<ForexRate> getLatestForexRate(String tenantId, String fromCurrency, String toCurrency) {
-        return financeStore.findLatestForexRate(tenantId, fromCurrency, toCurrency);
+        return financeStore.findLatestForexRate(tenantId, normalizeCurrency(fromCurrency), normalizeCurrency(toCurrency));
     }
 
     public Optional<ForexRate> getForexRateAsOf(String tenantId, String fromCurrency, String toCurrency, LocalDate effectiveDate) {
-        return financeStore.findLatestForexRateAsOf(tenantId, fromCurrency, toCurrency, effectiveDate);
+        return financeStore.findLatestForexRateAsOf(tenantId, normalizeCurrency(fromCurrency), normalizeCurrency(toCurrency), effectiveDate);
     }
 
     public List<ForexRate> listForexRates(String tenantId) {
@@ -1158,13 +1158,15 @@ public class FinanceService {
     }
 
     public List<ForexRate> listForexRateHistory(String tenantId, String fromCurrency, String toCurrency) {
-        return financeStore.listForexRateHistory(tenantId, fromCurrency, toCurrency);
+        return financeStore.listForexRateHistory(tenantId, normalizeCurrency(fromCurrency), normalizeCurrency(toCurrency));
     }
 
     public ForexRiskAlert checkForexRisk(String tenantId, String fromCurrency, String toCurrency) {
-        List<ForexRate> history = financeStore.listForexRateHistory(tenantId, fromCurrency, toCurrency);
+        String normalizedFromCurrency = normalizeCurrency(fromCurrency);
+        String normalizedToCurrency = normalizeCurrency(toCurrency);
+        List<ForexRate> history = financeStore.listForexRateHistory(tenantId, normalizedFromCurrency, normalizedToCurrency);
         if (history.size() < 2) {
-            return new ForexRiskAlert(fromCurrency, toCurrency, BigDecimal.ZERO, BigDecimal.ZERO,
+            return new ForexRiskAlert(normalizedFromCurrency, normalizedToCurrency, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, null, null, "INSUFFICIENT_DATA");
         }
         ForexRate latest = history.get(0);
@@ -1179,8 +1181,21 @@ public class FinanceService {
         } else if (absChange.compareTo(BigDecimal.valueOf(2)) >= 0) {
             level = "MEDIUM";
         }
-        return new ForexRiskAlert(fromCurrency, toCurrency, latest.rate(), previous.rate(),
+        return new ForexRiskAlert(normalizedFromCurrency, normalizedToCurrency, latest.rate(), previous.rate(),
                 changeRatio, latest.effectiveDate(), previous.effectiveDate(), level);
+    }
+
+    /**
+     * FMS统一外汇中心批量换汇能力，面向店铺利润分析、回款换汇测算等场景。
+     */
+    public ForexConversionBatchResult convertForexBatch(String tenantId, ForexConversionBatchCommand command) {
+        if (command.conversions() == null || command.conversions().isEmpty()) {
+            throw new BizException("FOREX_CONVERSION_EMPTY", "Forex conversion request must contain at least one item");
+        }
+        List<ForexConversionResult> conversions = command.conversions().stream()
+                .map(conversion -> convertForex(tenantId, conversion))
+                .toList();
+        return new ForexConversionBatchResult(conversions.size(), conversions);
     }
 
     public ForexTransaction createForexTransaction(String tenantId, CreateForexTransactionCommand command) {
@@ -1188,7 +1203,7 @@ public class FinanceService {
                 .setScale(2, RoundingMode.HALF_UP);
         BigDecimal fee = command.fee() != null ? command.fee() : BigDecimal.ZERO;
         return financeStore.saveForexTransaction(new ForexTransaction(UUID.randomUUID().toString(), tenantId,
-                command.fromCurrency(), command.toCurrency(), command.amount(), command.rate(),
+                normalizeCurrency(command.fromCurrency()), normalizeCurrency(command.toCurrency()), command.amount(), command.rate(),
                 fee, convertedAmount, command.refType(), command.refId(), Instant.now()));
     }
 
@@ -1200,8 +1215,42 @@ public class FinanceService {
         return financeStore.listForexTransactionsByRef(tenantId, refType, refId);
     }
 
+    private ForexConversionResult convertForex(String tenantId, ForexConversionCommand command) {
+        String fromCurrency = normalizeCurrency(command.fromCurrency());
+        String toCurrency = normalizeCurrency(command.toCurrency());
+        Optional<ForexRate> rate = command.effectiveDate() == null
+                ? getLatestForexRate(tenantId, fromCurrency, toCurrency)
+                : getForexRateAsOf(tenantId, fromCurrency, toCurrency, command.effectiveDate());
+        ForexRate resolvedRate = rate.orElseThrow(() -> new BizException("FOREX_RATE_NOT_FOUND",
+                "Forex rate does not exist for " + fromCurrency + " -> " + toCurrency));
+        BigDecimal convertedAmount = command.amount().multiply(resolvedRate.rate())
+                .setScale(2, RoundingMode.HALF_UP);
+        return new ForexConversionResult(fromCurrency, toCurrency, command.amount(), resolvedRate.rate(),
+                convertedAmount, resolvedRate.effectiveDate(), resolvedRate.source());
+    }
+
+    private String normalizeCurrency(String currency) {
+        return currency.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeForexRateSource(String source) {
+        return hasText(source) ? source.trim().toUpperCase(Locale.ROOT) : "MANUAL";
+    }
+
     public record SaveForexRateCommand(String fromCurrency, String toCurrency, BigDecimal rate,
                                        LocalDate effectiveDate, String source) {}
+
+    public record ForexConversionBatchCommand(List<ForexConversionCommand> conversions) {}
+
+    public record ForexConversionCommand(String fromCurrency, String toCurrency,
+                                         BigDecimal amount, LocalDate effectiveDate) {}
+
+    public record ForexConversionBatchResult(int totalCount, List<ForexConversionResult> conversions) {}
+
+    public record ForexConversionResult(String fromCurrency, String toCurrency,
+                                        BigDecimal amount, BigDecimal rate,
+                                        BigDecimal convertedAmount, LocalDate effectiveDate,
+                                        String source) {}
 
     public record CreateForexTransactionCommand(String fromCurrency, String toCurrency, BigDecimal amount,
                                                 BigDecimal rate, BigDecimal fee, String refType, String refId) {}

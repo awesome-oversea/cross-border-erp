@@ -17,6 +17,7 @@ export interface PageParams {
   page?: number;
   size?: number;
   sort?: string;
+  [key: string]: unknown;
 }
 
 export interface AuthToken {
@@ -755,4 +756,55 @@ export interface ComplianceRule {
   action: 'BLOCK' | 'WARN' | 'REVIEW';
   status: 'ACTIVE' | 'DRAFT' | 'DISABLED';
   createdAt: string;
+}
+
+export interface Ticket extends ServiceTicket {
+  ticketNo: string;
+  priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+export interface QualityInspection {
+  inspectionId: string;
+  tenantId: string;
+  inspectionNo: string;
+  orderId: string;
+  productId: string;
+  result: 'PASSED' | 'FAILED' | 'PENDING';
+  defectCount: number;
+  inspector: string;
+  inspectionDate: string;
+}
+
+export interface Campaign {
+  campaignId: string;
+  tenantId: string;
+  name: string;
+  channel: 'EMAIL' | 'SMS' | 'WECHAT' | 'WHATSAPP';
+  status: 'DRAFT' | 'SCHEDULED' | 'RUNNING' | 'COMPLETED';
+  targetCount: number;
+  sentCount: number;
+  conversionRate: number;
+  startDate: string;
+  endDate: string | null;
+  templateId: string;
+  targetSegment: string;
+  createdAt: string;
+}
+
+export interface TrendData {
+  date: string;
+  metric: string;
+  value: number;
+  momChange: number;
+  yoyChange: number;
+}
+
+export interface Permission {
+  permissionId: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  domain: string;
+  type: 'READ' | 'WRITE';
+  description: string;
 }

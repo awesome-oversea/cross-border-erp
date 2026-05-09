@@ -221,6 +221,560 @@ class BiApiTests {
     }
 
     @Test
+    void exposeUnifiedV1CoreReportMetricAndDashboardSummary() throws Exception {
+        String tenantId = uniqueTenant("core-v1");
+        String otherTenantId = uniqueTenant("core-v1-other");
+
+        String metricResponse = mockMvc.perform(post("/bi/api/v1/metrics")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "metricCode":"sales_gmv_v1",
+                                  "metricName":"Sales GMV V1",
+                                  "category":"sales",
+                                  "formula":"sum(order_amount)",
+                                  "unit":"USD",
+                                  "permissionCode":"bi:metric:read",
+                                  "dataLevel":"DETAIL",
+                                  "description":"Unified v1 sales metric",
+                                  "enabled":true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metricCode").value("sales_gmv_v1"))
+                .andReturn().getResponse().getContentAsString();
+        String metricId = objectMapper.readTree(metricResponse).at("/data/metricId").asText();
+
+        mockMvc.perform(get("/bi/api/v1/metrics")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("category", "sales")
+                        .param("enabled", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].metricId").value(metricId));
+
+        mockMvc.perform(post("/bi/api/v1/reports")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reportCode":"profit_board_v1",
+                                  "reportName":"Profit Board V1",
+                                  "dataSource":"fms_profit_statement",
+                                  "queryText":"select * from bi_profit_statement_v1"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reportCode").value("profit_board_v1"));
+
+        mockMvc.perform(post("/bi/api/v1/kpis")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "kpiCode":"sales_goal_v1",
+                                  "kpiName":"Sales Goal V1",
+                                  "category":"sales",
+                                  "value":120.00,
+                                  "targetValue":100.00,
+                                  "unit":"USD"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kpiCode").value("sales_goal_v1"));
+
+        mockMvc.perform(get("/bi/api/v1/dashboard/summary")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metricCount").value(1))
+                .andExpect(jsonPath("$.data.reportCount").value(1))
+                .andExpect(jsonPath("$.data.widgetCount").value(0))
+                .andExpect(jsonPath("$.data.cockpitCards.sales.kpiCode").value("sales_goal_v1"))
+                .andExpect(jsonPath("$.data.cockpitCards.sales.achieved").value(true));
+
+        mockMvc.perform(get("/bi/api/v1/metrics/" + metricId)
+                        .header("X-Tenant-Id", otherTenantId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("METRIC_DEFINITION_NOT_FOUND"));
+    }
+
+    @Test
+    void exposeUnifiedV1BiExtAlertSnapshotCockpitTemplateTrendAndRanking() throws Exception {
+        String tenantId = uniqueTenant("ext-v1");
+        String otherTenantId = uniqueTenant("ext-v1-other");
+
+        String alertRuleResponse = mockMvc.perform(post("/bi/api/v1/alert-rules")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ruleName":"Unified Profit Alert",
+                                  "metricCode":"gross_profit_rate_v1",
+                                  "domain":"finance",
+                                  "condition":"LESS_THAN",
+                                  "threshold":"15",
+                                  "severity":"WARNING",
+                                  "notifyChannel":"EMAIL",
+                                  "notifyTargets":"finance@erp.test"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.ruleName").value("Unified Profit Alert"))
+                .andReturn().getResponse().getContentAsString();
+        String ruleId = objectMapper.readTree(alertRuleResponse).at("/data/ruleId").asText();
+
+        mockMvc.perform(get("/bi/api/v1/alert-rules")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("domain", "finance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].ruleId").value(ruleId));
+
+        mockMvc.perform(get("/bi/api/v1/alert-rules/" + ruleId)
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metricCode").value("gross_profit_rate_v1"));
+
+        String snapshotResponse = mockMvc.perform(post("/bi/api/v1/report-snapshots")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reportId":"profit_report_v1",
+                                  "snapshotName":"Profit Snapshot V1",
+                                  "snapshotData":"{\\"grossProfit\\":1250.35}",
+                                  "format":"json"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reportId").value("profit_report_v1"))
+                .andReturn().getResponse().getContentAsString();
+        String snapshotId = objectMapper.readTree(snapshotResponse).at("/data/snapshotId").asText();
+
+        mockMvc.perform(get("/bi/api/v1/report-snapshots")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("reportId", "profit_report_v1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].snapshotId").value(snapshotId));
+
+        mockMvc.perform(get("/bi/api/v1/report-snapshots/" + snapshotId)
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.snapshotName").value("Profit Snapshot V1"));
+
+        mockMvc.perform(get("/bi/api/v1/cockpit")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.tenantId").value(tenantId))
+                .andExpect(jsonPath("$.data.alerts.length()").value(1))
+                .andExpect(jsonPath("$.data.alerts[0].ruleId").value(ruleId));
+
+        String templateResponse = mockMvc.perform(post("/bi/api/v1/kpi-templates")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "templateCode":"profit_margin_tpl_v1",
+                                  "templateName":"Profit Margin Template V1",
+                                  "category":"finance",
+                                  "defaultUnit":"PERCENT",
+                                  "defaultTargetFormula":"gross_profit/revenue",
+                                  "description":"Unified v1 KPI template"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.templateCode").value("profit_margin_tpl_v1"))
+                .andReturn().getResponse().getContentAsString();
+        String templateId = objectMapper.readTree(templateResponse).at("/data/templateId").asText();
+
+        mockMvc.perform(get("/bi/api/v1/kpi-templates")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].templateId").value(templateId));
+
+        mockMvc.perform(get("/bi/api/v1/kpi-templates/" + templateId)
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.templateName").value("Profit Margin Template V1"));
+
+        String trendResponse = mockMvc.perform(post("/bi/api/v1/trends")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "metricCode":"gross_profit_rate_v1",
+                                  "metricName":"Gross Profit Rate V1",
+                                  "period":"P7D",
+                                  "dataPoints":3
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metricCode").value("gross_profit_rate_v1"))
+                .andExpect(jsonPath("$.data.dataPoints.length()").value(3))
+                .andReturn().getResponse().getContentAsString();
+        String trendId = objectMapper.readTree(trendResponse).at("/data/trendId").asText();
+
+        mockMvc.perform(get("/bi/api/v1/trends")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("metricCode", "gross_profit_rate_v1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].trendId").value(trendId));
+
+        String rankingResponse = mockMvc.perform(post("/bi/api/v1/rankings")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "rankingType":"profit-store",
+                                  "dimension":"store",
+                                  "items":[
+                                    {
+                                      "rankKey":"AMZ-US-001",
+                                      "label":"Amazon US Store",
+                                      "value":580.25,
+                                      "rank":1
+                                    },
+                                    {
+                                      "rankKey":"AMZ-EU-001",
+                                      "label":"Amazon EU Store",
+                                      "value":420.15,
+                                      "rank":2
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rankingType").value("profit-store"))
+                .andExpect(jsonPath("$.data.items.length()").value(2))
+                .andReturn().getResponse().getContentAsString();
+        String rankingId = objectMapper.readTree(rankingResponse).at("/data/rankingId").asText();
+
+        mockMvc.perform(get("/bi/api/v1/rankings")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("rankingType", "profit-store"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].rankingId").value(rankingId))
+                .andExpect(jsonPath("$.data[0].items.length()").value(2));
+
+        mockMvc.perform(get("/bi/api/v1/cockpit")
+                        .header("X-Tenant-Id", otherTenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.alerts.length()").value(0));
+    }
+
+    @Test
+    void aggregateUnifiedCockpitMetricsFromOperationsFinanceAndServiceSignals() throws Exception {
+        String tenantId = uniqueTenant("cockpit-live");
+        String otherTenantId = uniqueTenant("cockpit-live-other");
+
+        mockMvc.perform(post("/bi/api/v1/alert-rules")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ruleName":"Cockpit Inventory Alert",
+                                  "metricCode":"inventory_available",
+                                  "domain":"cockpit",
+                                  "condition":"LESS_THAN",
+                                  "threshold":"5",
+                                  "severity":"WARNING",
+                                  "notifyChannel":"EMAIL",
+                                  "notifyTargets":"ops@erp.test"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        String customerResponse = mockMvc.perform(post("/crm/api/in/v1/customers")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name":"Cockpit Customer",
+                                  "email":"cockpit.customer@erp.test",
+                                  "phone":"13800138000",
+                                  "countryCode":"US",
+                                  "platform":"amazon"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String customerId = objectMapper.readTree(customerResponse).at("/data/customerId").asText();
+
+        mockMvc.perform(post("/crm/api/in/v1/tickets")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "customerId":"%s",
+                                  "subject":"Delayed order follow-up",
+                                  "description":"Customer is waiting for the FBA shipment to arrive."
+                                }
+                                """.formatted(customerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("OPEN"));
+
+        String storeResponse = mockMvc.perform(post("/som/api/in/v1/stores")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "platform":"amazon",
+                                  "storeCode":"AMZ-COCKPIT-US",
+                                  "storeName":"Amazon Cockpit US"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String storeId = objectMapper.readTree(storeResponse).at("/data/storeId").asText();
+
+        mockMvc.perform(patch("/som/api/in/v1/stores/" + storeId + "/connect")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk());
+
+        String listingResponse = mockMvc.perform(post("/som/api/in/v1/listings")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "productId":"PROD-COCKPIT-100",
+                                  "storeId":"%s",
+                                  "title":"Cockpit Listing",
+                                  "description":"Unified cockpit aggregation validation listing",
+                                  "price":25.00,
+                                  "originalPrice":30.00,
+                                  "platform":"amazon",
+                                  "marketplace":"AMAZON-US",
+                                  "marketplaceListingId":"LISTING-COCKPIT-100"
+                                }
+                                """.formatted(storeId)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String listingId = objectMapper.readTree(listingResponse).at("/data/listingId").asText();
+
+        mockMvc.perform(patch("/som/api/in/v1/listings/" + listingId + "/publish")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/som/api/in/v1/channel-skus")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "productSku":"PROD-COCKPIT-100",
+                                  "channel":"amazon",
+                                  "channelSku":"SKU-COCKPIT-100",
+                                  "storeId":"%s",
+                                  "marketplaceId":"AMAZON-US"
+                                }
+                                """.formatted(storeId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.channelSku").value("SKU-COCKPIT-100"));
+
+        mockMvc.perform(post("/som/api/in/v1/listings/" + listingId + "/performance")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "storeId":"%s",
+                                  "platform":"amazon",
+                                  "marketplace":"AMAZON-US",
+                                  "impressions":2100,
+                                  "clicks":75,
+                                  "ctr":3.57,
+                                  "spend":42.10,
+                                  "sales":350.00,
+                                  "acos":12.03,
+                                  "orders":7,
+                                  "conversionRate":9.33,
+                                  "periodStart":"2026-05-01T00:00:00Z",
+                                  "periodEnd":"2026-05-07T23:59:59Z"
+                                }
+                                """.formatted(storeId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sales").value(350.0))
+                .andExpect(jsonPath("$.data.orders").value(7));
+
+        String warehouseResponse = mockMvc.perform(post("/wms/api/in/v1/warehouses")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "code":"WH-COCKPIT-US",
+                                  "name":"Cockpit Warehouse US",
+                                  "type":"SELF",
+                                  "countryCode":"US",
+                                  "address":"Los Angeles",
+                                  "contactPerson":"cockpit-ops",
+                                  "phone":"123456789"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String warehouseId = objectMapper.readTree(warehouseResponse).at("/data/warehouseId").asText();
+
+        mockMvc.perform(post("/wms/api/in/v1/inventory/receive")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "warehouseId":"%s",
+                                  "sellerSku":"SKU-COCKPIT-100",
+                                  "quantity":4
+                                }
+                                """.formatted(warehouseId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(4));
+
+        String shipmentResponse = mockMvc.perform(post("/fba/api/in/v1/shipments")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "amazonShipmentId":"FBA-COCKPIT-100",
+                                  "destinationFc":"ONT8",
+                                  "carrier":"UPS",
+                                  "plannedQuantity":5,
+                                  "items":[
+                                    {
+                                      "productId":"PROD-COCKPIT-100",
+                                      "sellerSku":"SKU-COCKPIT-100",
+                                      "fnsku":"FNSKU-COCKPIT-100",
+                                      "quantity":5,
+                                      "boxQuantity":2
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String shipmentId = objectMapper.readTree(shipmentResponse).at("/data/fbaShipmentId").asText();
+
+        mockMvc.perform(patch("/fba/api/in/v1/shipments/" + shipmentId + "/submit")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/fba/api/in/v1/shipments/" + shipmentId + "/pack")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "cartonCount":2,
+                                  "totalWeight":12.50,
+                                  "carrier":"UPS"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/fba/api/in/v1/shipments/" + shipmentId + "/ship")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "carrier":"UPS",
+                                  "trackingNo":"1Z-COCKPIT-100"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("SHIPPED"));
+
+        mockMvc.perform(get("/bi/api/v1/cockpit")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.tenantId").value(tenantId))
+                .andExpect(jsonPath("$.data.metrics.totalOrders").value(7))
+                .andExpect(jsonPath("$.data.metrics.totalRevenue").value(350.0))
+                .andExpect(jsonPath("$.data.metrics.pendingShipments").value(1))
+                .andExpect(jsonPath("$.data.metrics.activeListings").value(1))
+                .andExpect(jsonPath("$.data.metrics.lowStockSkus").value(1))
+                .andExpect(jsonPath("$.data.metrics.openTickets").value(1))
+                .andExpect(jsonPath("$.data.alerts.length()").value(1));
+
+        mockMvc.perform(get("/bi/api/v1/cockpit")
+                        .header("X-Tenant-Id", otherTenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metrics.totalOrders").value(0))
+                .andExpect(jsonPath("$.data.metrics.totalRevenue").value(0))
+                .andExpect(jsonPath("$.data.metrics.pendingShipments").value(0))
+                .andExpect(jsonPath("$.data.metrics.activeListings").value(0))
+                .andExpect(jsonPath("$.data.metrics.lowStockSkus").value(0))
+                .andExpect(jsonPath("$.data.metrics.openTickets").value(0))
+                .andExpect(jsonPath("$.data.alerts.length()").value(0));
+    }
+
+    @Test
+    void exposeUnifiedV1DataAnalysisCrossAndExportLifecycle() throws Exception {
+        String tenantId = uniqueTenant("analysis-v1");
+        String otherTenantId = uniqueTenant("analysis-v1-other");
+
+        mockMvc.perform(post("/bi/api/v1/analysis/cross")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "analysisName":"Unified Cross Analysis",
+                                  "rowDimensions":["channel"],
+                                  "columnDimensions":["marketplace"],
+                                  "metrics":["gross_profit"]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.analysisName").value("Unified Cross Analysis"))
+                .andExpect(jsonPath("$.data.rows.length()").value(12))
+                .andExpect(jsonPath("$.data.totals.gross_profit").isNumber());
+
+        String exportResponse = mockMvc.perform(post("/bi/api/v1/analysis/exports")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "exportName":"Unified Analysis Export",
+                                  "exportType":"CROSS_ANALYSIS",
+                                  "format":"CSV"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.exportName").value("Unified Analysis Export"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andReturn().getResponse().getContentAsString();
+        String taskId = objectMapper.readTree(exportResponse).at("/data/taskId").asText();
+
+        mockMvc.perform(post("/bi/api/v1/analysis/exports/" + taskId + "/execute")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.taskId").value(taskId))
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.fileUrl").value(containsString("/exports/" + tenantId + "/" + taskId)));
+
+        mockMvc.perform(get("/bi/api/v1/analysis/exports/" + taskId)
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.taskId").value(taskId))
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"));
+
+        mockMvc.perform(get("/bi/api/v1/analysis/exports")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("status", "COMPLETED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].taskId").value(taskId));
+
+        mockMvc.perform(get("/bi/api/v1/analysis/exports")
+                        .header("X-Tenant-Id", otherTenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+
+        mockMvc.perform(get("/bi/api/v1/analysis/exports/" + taskId)
+                        .header("X-Tenant-Id", otherTenantId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("EXPORT_TASK_NOT_FOUND"));
+    }
+
+    @Test
     void manageMetricCaliberAndKpiAssessmentLifecycle() throws Exception {
         String tenantId = uniqueTenant("caliber-kpi");
         String otherTenantId = uniqueTenant("caliber-kpi-isolation");
@@ -421,6 +975,175 @@ class BiApiTests {
                         .header("X-Tenant-Id", otherTenantId))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("TARGET_NOT_FOUND"));
+    }
+
+    @Test
+    void exposeUnifiedV1MetricCaliberAndKpiStatistics() throws Exception {
+        String tenantId = uniqueTenant("kpi-stats");
+        String otherTenantId = uniqueTenant("kpi-stats-other");
+
+        String caliberResponse = mockMvc.perform(post("/bi/api/v1/metrics/calibers")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "metricCode":"inventory_turnover_stat",
+                                  "metricName":"Inventory Turnover Stat",
+                                  "category":"inventory",
+                                  "caliberType":"RATIO",
+                                  "formula":"{numerator}/{denominator}",
+                                  "formulaDescription":"Inventory turnover ratio for KPI statistics",
+                                  "numeratorMetric":"inventory_outbound_qty",
+                                  "denominatorMetric":"average_inventory_qty",
+                                  "unit":"PERCENT",
+                                  "dataSource":"wms_inventory_fact",
+                                  "calculationScope":"WAREHOUSE",
+                                  "dimensions":["warehouse_id"],
+                                  "excludeConditions":["status=FREEZE"],
+                                  "permissionCode":"bi:inventory:read",
+                                  "dataLevel":"SUMMARY",
+                                  "description":"Inventory turnover caliber for unified v1 statistics"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metricCode").value("inventory_turnover_stat"))
+                .andReturn().getResponse().getContentAsString();
+        String caliberId = objectMapper.readTree(caliberResponse).at("/data/caliberId").asText();
+
+        mockMvc.perform(get("/bi/api/v1/metrics/calibers")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("category", "inventory"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].caliberId").value(caliberId));
+
+        String managerTargetResponse = mockMvc.perform(post("/bi/api/v1/kpis/targets")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "kpiCode":"warehouse_turnover_manager",
+                                  "kpiName":"Warehouse Turnover Manager KPI",
+                                  "department":"WMS",
+                                  "role":"MANAGER",
+                                  "period":"2026-05",
+                                  "targetValue":300.00,
+                                  "warningValue":240.00,
+                                  "excellentValue":360.00,
+                                  "unit":"PERCENT",
+                                  "metricCode":"inventory_turnover_stat",
+                                  "caliberId":"%s",
+                                  "applicableRoles":["WMS_MANAGER"],
+                                  "scoringRule":"LINEAR",
+                                  "weight":60.00
+                                }
+                                """.formatted(caliberId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kpiCode").value("warehouse_turnover_manager"))
+                .andReturn().getResponse().getContentAsString();
+        String managerTargetId = objectMapper.readTree(managerTargetResponse).at("/data/targetId").asText();
+
+        String operatorTargetResponse = mockMvc.perform(post("/bi/api/v1/kpis/targets")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "kpiCode":"warehouse_turnover_operator",
+                                  "kpiName":"Warehouse Turnover Operator KPI",
+                                  "department":"WMS",
+                                  "role":"OPERATOR",
+                                  "period":"2026-05",
+                                  "targetValue":100.00,
+                                  "warningValue":80.00,
+                                  "excellentValue":120.00,
+                                  "unit":"PERCENT",
+                                  "metricCode":"inventory_turnover_stat",
+                                  "caliberId":"%s",
+                                  "applicableRoles":["WMS_OPERATOR"],
+                                  "scoringRule":"LINEAR",
+                                  "weight":40.00
+                                }
+                                """.formatted(caliberId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kpiCode").value("warehouse_turnover_operator"))
+                .andReturn().getResponse().getContentAsString();
+        String operatorTargetId = objectMapper.readTree(operatorTargetResponse).at("/data/targetId").asText();
+
+        mockMvc.perform(post("/bi/api/v1/kpis/targets/" + managerTargetId + "/assess")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userId":"wms-manager-001",
+                                  "actualValue":360.00,
+                                  "assessorId":"bi-director-001",
+                                  "comment":"Manager target reached excellent line"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("EXCELLENT"))
+                .andExpect(jsonPath("$.data.score").value(120.0));
+
+        mockMvc.perform(post("/bi/api/v1/kpis/targets/" + operatorTargetId + "/assess")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userId":"wms-operator-001",
+                                  "actualValue":75.00,
+                                  "assessorId":"bi-director-001",
+                                  "comment":"Operator target below warning line"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CRITICAL"))
+                .andExpect(jsonPath("$.data.score").value(75.0));
+
+        mockMvc.perform(get("/bi/api/v1/kpis/statistics")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("period", "2026-05"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.targetCount").value(2))
+                .andExpect(jsonPath("$.data.assessedCount").value(2))
+                .andExpect(jsonPath("$.data.assessedTargetCount").value(2))
+                .andExpect(jsonPath("$.data.completionRate").value(100.0))
+                .andExpect(jsonPath("$.data.avgAchievementRate").value(97.5))
+                .andExpect(jsonPath("$.data.avgScore").value(97.5))
+                .andExpect(jsonPath("$.data.statusCounts.EXCELLENT").value(1))
+                .andExpect(jsonPath("$.data.statusCounts.CRITICAL").value(1))
+                .andExpect(jsonPath("$.data.departmentStats.length()").value(1))
+                .andExpect(jsonPath("$.data.departmentStats[0].dimensionValue").value("WMS"))
+                .andExpect(jsonPath("$.data.departmentStats[0].avgScore").value(97.5))
+                .andExpect(jsonPath("$.data.teamStats[0].dimensionValue").value("WMS"))
+                .andExpect(jsonPath("$.data.roleStats.length()").value(2))
+                .andExpect(jsonPath("$.data.roleStats[0].dimensionValue").value("MANAGER"))
+                .andExpect(jsonPath("$.data.roleStats[0].avgScore").value(120.0))
+                .andExpect(jsonPath("$.data.roleStats[1].dimensionValue").value("OPERATOR"))
+                .andExpect(jsonPath("$.data.roleStats[1].avgScore").value(75.0))
+                .andExpect(jsonPath("$.data.userStats.length()").value(2))
+                .andExpect(jsonPath("$.data.userStats[0].dimensionValue").value("wms-manager-001"))
+                .andExpect(jsonPath("$.data.userStats[0].avgScore").value(120.0))
+                .andExpect(jsonPath("$.data.userStats[1].dimensionValue").value("wms-operator-001"))
+                .andExpect(jsonPath("$.data.userStats[1].avgScore").value(75.0));
+
+        mockMvc.perform(get("/bi/api/v1/kpis/statistics")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("period", "2026-05")
+                        .param("role", "MANAGER"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.targetCount").value(1))
+                .andExpect(jsonPath("$.data.avgScore").value(120.0))
+                .andExpect(jsonPath("$.data.roleStats.length()").value(1))
+                .andExpect(jsonPath("$.data.roleStats[0].dimensionValue").value("MANAGER"));
+
+        mockMvc.perform(get("/bi/api/v1/kpis/statistics")
+                        .header("X-Tenant-Id", otherTenantId)
+                        .param("period", "2026-05"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.targetCount").value(0))
+                .andExpect(jsonPath("$.data.assessedCount").value(0))
+                .andExpect(jsonPath("$.data.departmentStats.length()").value(0))
+                .andExpect(jsonPath("$.data.userStats.length()").value(0));
     }
 
     @Test

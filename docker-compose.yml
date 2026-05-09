@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: erp
       POSTGRES_USER: erp
-      POSTGRES_PASSWORD: ${ERP_POSTGRES_PASSWORD:-erp}
+      POSTGRES_PASSWORD: ${ERP_POSTGRES_PASSWORD:-changeme}
     ports:
       - "5432:5432"
     volumes:
@@ -73,8 +73,8 @@ services:
     image: minio/minio:RELEASE.2024-04-18T19-09-19Z
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${ERP_MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${ERP_MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${ERP_MINIO_ACCESS_KEY:-changeme}
+      MINIO_ROOT_PASSWORD: ${ERP_MINIO_SECRET_KEY:-changeme}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -108,7 +108,7 @@ services:
       MODE: standalone
       SPRING_DATASOURCE_PLATFORM: embedded
       NACOS_AUTH_ENABLE: "true"
-      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:-SecretKey012345678901234567890123456789012345678901234567890123456789}
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:-changeme-must-be-at-least-32-chars-long}
       NACOS_AUTH_IDENTITY_KEY: serverIdentity
       NACOS_AUTH_IDENTITY_VALUE: security
     ports:
@@ -125,7 +125,7 @@ services:
     environment:
       POSTGRES_DB: kong
       POSTGRES_USER: kong
-      POSTGRES_PASSWORD: ${KONG_DB_PASSWORD:-kong}
+      POSTGRES_PASSWORD: ${KONG_DB_PASSWORD:-changeme}
     ports:
       - "5433:5432"
     volumes:
@@ -146,7 +146,7 @@ services:
       KONG_PG_HOST: kong-db
       KONG_PG_PORT: 5432
       KONG_PG_USER: kong
-      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD:-kong}
+      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD:-changeme}
       KONG_PG_DATABASE: kong
     command: kong migrations bootstrap
 
@@ -160,7 +160,7 @@ services:
       KONG_PG_HOST: kong-db
       KONG_PG_PORT: 5432
       KONG_PG_USER: kong
-      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD:-kong}
+      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD:-changeme}
       KONG_PG_DATABASE: kong
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout

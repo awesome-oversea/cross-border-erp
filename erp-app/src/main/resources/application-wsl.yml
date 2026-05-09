@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:25432/erp
     username: erp
-    password: erp
+    password: ${ERP_DATASOURCE_PASSWORD:changeme}
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-init-sql: SET search_path TO platform, iam, pdm, som, ads, oms, scm, wms, fba, tms, crm, fms, bi, sys, dashboard, public
@@ -38,8 +38,8 @@ spring:
 erp:
   minio:
     endpoint: http://localhost:19000
-    access-key: minioadmin
-    secret-key: minioadmin
+    access-key: ${ERP_MINIO_ACCESS_KEY:changeme}
+    secret-key: ${ERP_MINIO_SECRET_KEY:changeme}
     default-bucket: erp-files
   elasticsearch:
     host: localhost

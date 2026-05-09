@@ -102,7 +102,7 @@ export default function OrdersPage() {
           <Button type="link" size="small" icon={<RollbackOutlined />} onClick={() => { setRefundOrderId(record.orderId); refundForm.resetFields(); setRefundOpen(true); }}>退款</Button>
         )}
         <Button type="link" size="small" onClick={() => {
-          window.location.href = `/pdm/products?productId=${record.items?.[0]?.productId}`;
+          window.location.href = `/pdm/products?keyword=${record.items?.[0]?.sellerSku}`;
         }}>查看商品</Button>
       </Space>
     )},

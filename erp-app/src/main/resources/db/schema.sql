@@ -3200,21 +3200,22 @@ CREATE INDEX idx_fms_fr_tenant_currency ON fms_forex_rate(tenant_id, from_curren
 
 -- 外汇交易表: 外汇兑换交易记录
 CREATE TABLE IF NOT EXISTS fms_forex_transaction (
-    transaction_id  VARCHAR(64)  NOT NULL,
-    tenant_id       VARCHAR(64)  NOT NULL,
-    from_currency   VARCHAR(8)   NOT NULL,
-    to_currency     VARCHAR(8)   NOT NULL,
-    from_amount     DECIMAL(18,4) NOT NULL,
-    to_amount       DECIMAL(18,4) NOT NULL,
-    rate            DECIMAL(18,6) NOT NULL,
-    fee             DECIMAL(18,4),
-    reference_type  VARCHAR(64),
-    reference_id    VARCHAR(64),
-    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (transaction_id)
+    forex_id         VARCHAR(64)   NOT NULL,
+    tenant_id        VARCHAR(64)   NOT NULL,
+    from_currency    VARCHAR(8)    NOT NULL,
+    to_currency      VARCHAR(8)    NOT NULL,
+    amount           DECIMAL(18,4) NOT NULL,
+    rate             DECIMAL(18,6) NOT NULL,
+    fee              DECIMAL(18,4) NOT NULL DEFAULT 0,
+    converted_amount DECIMAL(18,4) NOT NULL,
+    ref_type         VARCHAR(64),
+    ref_id           VARCHAR(64),
+    created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (forex_id)
 );
 
 CREATE INDEX idx_fms_ft_tenant ON fms_forex_transaction(tenant_id, created_at DESC);
+CREATE INDEX idx_fms_ft_tenant_ref ON fms_forex_transaction(tenant_id, ref_type, ref_id, created_at DESC);
 
 -- 发票表: 发票管理
 CREATE TABLE IF NOT EXISTS fms_invoice (
@@ -3339,8 +3340,9 @@ CREATE TABLE IF NOT EXISTS fms_currency_rate_sync_log (
     tenant_id       VARCHAR(64)  NOT NULL,
     source          VARCHAR(32)  NOT NULL,
     status          VARCHAR(32)  NOT NULL,
-    synced_count    INT          NOT NULL DEFAULT 0,
-    failed_count    INT          NOT NULL DEFAULT 0,
+    total_rates     INT          NOT NULL DEFAULT 0,
+    success_count   INT          NOT NULL DEFAULT 0,
+    fail_count      INT          NOT NULL DEFAULT 0,
     error_message   CLOB,
     started_at      TIMESTAMP,
     completed_at    TIMESTAMP,

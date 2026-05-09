@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Card, Typography, Table, Tag, Input, Space, Button, Modal, Form, Select, message, Tabs } from 'antd';
-import { SearchOutlined, EditOutlined, SendOutlined, ApiOutlined, ThunderboltOutlined, SafetyOutlined } from '@ant-design/icons';
+import { SearchOutlined, EditOutlined, SendOutlined, ApiOutlined, ThunderboltOutlined, SafetyOutlined, PlusOutlined } from '@ant-design/icons';
 import { usePageApi } from '@/lib/hooks';
 import { sysApi } from '@/lib/api';
 import type { SysConfig, WebhookEndpoint, BusinessRule, Connector, ComplianceRule, PageParams } from '@/types';
@@ -87,15 +87,15 @@ export default function ConfigsPage() {
   ];
 
   const webhookColumns = [
-    { title: '名称', dataIndex: 'endpointName', key: 'endpointName' },
+    { title: '名称', dataIndex: 'name', key: 'name' },
     { title: 'URL', dataIndex: 'url', key: 'url', ellipsis: true },
-    { title: '事件', dataIndex: 'events', key: 'events', render: (v: string[]) => v?.map((e: string) => <Tag key={e}>{e}</Tag>) },
-    { title: '状态', dataIndex: 'active', key: 'active', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '启用' : '停用'}</Tag> },
+    { title: '事件', dataIndex: 'eventType', key: 'eventType', render: (v: string) => <Tag>{v}</Tag> },
+    { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => <Tag color={v === 'ACTIVE' ? 'green' : 'default'}>{v}</Tag> },
     { title: '操作', key: 'action', render: (_: unknown, r: WebhookEndpoint) => (
       <Space>
-        <Button type="link" size="small" icon={<SendOutlined />} onClick={() => handleTestWebhook(r.webhookId)}>测试</Button>
+        <Button type="link" size="small" icon={<SendOutlined />} onClick={() => handleTestWebhook(r.endpointId)}>测试</Button>
         <Button type="link" size="small" danger onClick={async () => {
-          await sysApi.deleteWebhookEndpoint(r.webhookId);
+          await sysApi.deleteWebhookEndpoint(r.endpointId);
           mutateWebhooks();
         }}>删除</Button>
       </Space>
@@ -173,7 +173,7 @@ export default function ConfigsPage() {
                   <Title level={4} style={{ margin: 0 }}>Webhook管理</Title>
                   <Button type="primary" icon={<PlusOutlined />} onClick={() => { webhookForm.resetFields(); setWebhookModalOpen(true); }}>创建Webhook</Button>
                 </div>
-                <Table rowKey="webhookId" columns={webhookColumns} dataSource={webhooks?.list || []}
+                <Table rowKey="endpointId" columns={webhookColumns} dataSource={webhooks?.list || []}
                   pagination={{ current: webhookParams.page, pageSize: webhookParams.size, total: webhooks?.total || 0, onChange: (page, size) => setWebhookParams({ ...webhookParams, page, size }) }} />
               </>
             ),

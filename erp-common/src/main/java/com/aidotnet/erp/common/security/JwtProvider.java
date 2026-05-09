@@ -18,7 +18,7 @@ public class JwtProvider {
     private final long expirationSeconds;
 
     public JwtProvider(
-            @Value("${erp.jwt.secret:${jwt.secret:default-secret-key-for-development-only-must-be-at-least-256-bits-long}}")
+            @Value("${erp.jwt.secret:${jwt.secret:changeme-must-be-at-least-256-bits-long}}")
             String secret,
             @Value("${erp.jwt.expiration-seconds:${jwt.expiration-seconds:7200}}") long expirationSeconds) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));

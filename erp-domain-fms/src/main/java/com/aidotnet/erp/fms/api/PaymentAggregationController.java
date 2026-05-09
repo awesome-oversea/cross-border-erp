@@ -32,7 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
  *       提供支付请求、支付审批、支付记录查询等操作。
  * </p>
  * <p>
- * 路径规范: /fms/api/in/v1/payment — 内部方向(in)，v1版本
+ * 路径规范: /fms/api/in/v1/payment 与 /fms/api/v1/payment
+ * 描述: 保留原有 in 路径兼容，同时为 ERP 内部 14 域直连提供统一 v1 路径。
  * </p>
  *
  * @author ERP系统
@@ -40,7 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see ExternalFinanceSyncService
  */
 @RestController("fmsPaymentAggregationController")
-@RequestMapping("/fms/api/in/v1/payment")
+@RequestMapping({"/fms/api/in/v1/payment", "/fms/api/v1/payment"})
 public class PaymentAggregationController {
 
     private final PaymentAggregationService paymentService;

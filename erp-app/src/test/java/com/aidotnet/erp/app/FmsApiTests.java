@@ -1037,6 +1037,459 @@ class FmsApiTests {
     }
 
     @Test
+    void exposeUnifiedV1ForexSnapshotsHistoryAndBatchConversion() throws Exception {
+        String tenantId = "tenant-fms-forex-center-" + java.util.UUID.randomUUID();
+        String otherTenantId = "tenant-fms-forex-center-other-" + java.util.UUID.randomUUID();
+
+        mockMvc.perform(post("/fms/api/in/v1/forex-rates")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fromCurrency":"USD",
+                                  "toCurrency":"CNY",
+                                  "rate":7.10,
+                                  "effectiveDate":"2026-05-01",
+                                  "source":"MANUAL"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rate").value(7.10));
+
+        mockMvc.perform(post("/fms/api/in/v1/forex-rates")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fromCurrency":"USD",
+                                  "toCurrency":"CNY",
+                                  "rate":7.50,
+                                  "effectiveDate":"2026-05-02",
+                                  "source":"MANUAL"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rate").value(7.50));
+
+        mockMvc.perform(post("/fms/api/in/v1/forex-rates")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fromCurrency":"EUR",
+                                  "toCurrency":"USD",
+                                  "rate":1.08,
+                                  "effectiveDate":"2026-05-02",
+                                  "source":"ECB"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rate").value(1.08));
+
+        mockMvc.perform(get("/fms/api/v1/forex/rates/USD/CNY")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fromCurrency").value("USD"))
+                .andExpect(jsonPath("$.data.toCurrency").value("CNY"))
+                .andExpect(jsonPath("$.data.rate").value(7.5))
+                .andExpect(jsonPath("$.data.effectiveDate").value("2026-05-02"))
+                .andExpect(jsonPath("$.data.source").value("MANUAL"));
+
+        mockMvc.perform(get("/fms/api/v1/forex/rates/USD/CNY/snapshot")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("effectiveDate", "2026-05-01"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.rate").value(7.1))
+                .andExpect(jsonPath("$.data.effectiveDate").value("2026-05-01"))
+                .andExpect(jsonPath("$.data.source").value("MANUAL"));
+
+        mockMvc.perform(get("/fms/api/v1/forex/history")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("fromCurrency", "USD")
+                        .param("toCurrency", "CNY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].rate").value(7.5))
+                .andExpect(jsonPath("$.data[0].effectiveDate").value("2026-05-02"))
+                .andExpect(jsonPath("$.data[1].rate").value(7.1))
+                .andExpect(jsonPath("$.data[1].effectiveDate").value("2026-05-01"));
+
+        mockMvc.perform(post("/fms/api/v1/forex/convert")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "conversions":[
+                                    {
+                                      "fromCurrency":"USD",
+                                      "toCurrency":"CNY",
+                                      "amount":100.00
+                                    },
+                                    {
+                                      "fromCurrency":"USD",
+                                      "toCurrency":"CNY",
+                                      "amount":50.00,
+                                      "effectiveDate":"2026-05-01"
+                                    },
+                                    {
+                                      "fromCurrency":"EUR",
+                                      "toCurrency":"USD",
+                                      "amount":80.00
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCount").value(3))
+                .andExpect(jsonPath("$.data.conversions[0].rate").value(7.5))
+                .andExpect(jsonPath("$.data.conversions[0].convertedAmount").value(750.0))
+                .andExpect(jsonPath("$.data.conversions[0].effectiveDate").value("2026-05-02"))
+                .andExpect(jsonPath("$.data.conversions[1].rate").value(7.1))
+                .andExpect(jsonPath("$.data.conversions[1].convertedAmount").value(355.0))
+                .andExpect(jsonPath("$.data.conversions[1].effectiveDate").value("2026-05-01"))
+                .andExpect(jsonPath("$.data.conversions[2].rate").value(1.08))
+                .andExpect(jsonPath("$.data.conversions[2].convertedAmount").value(86.4))
+                .andExpect(jsonPath("$.data.conversions[2].effectiveDate").value("2026-05-02"));
+
+        mockMvc.perform(get("/fms/api/v1/forex/history")
+                        .header("X-Tenant-Id", otherTenantId)
+                        .param("fromCurrency", "USD")
+                        .param("toCurrency", "CNY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void exposeUnifiedV1ForexSyncAndGainLossCalculation() throws Exception {
+        String tenantId = "tenant-fms-forex-sync-" + java.util.UUID.randomUUID();
+
+        mockMvc.perform(post("/fms/api/v1/forex/gain-loss/calculate")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "baseCurrency":"CNY",
+                                  "transactionCurrency":"USD",
+                                  "transactionAmount":100.00,
+                                  "transactionRate":7.10,
+                                  "settlementRate":7.50
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.baseCurrency").value("CNY"))
+                .andExpect(jsonPath("$.data.transactionCurrency").value("USD"))
+                .andExpect(jsonPath("$.data.transactionAmount").value(100.0))
+                .andExpect(jsonPath("$.data.transactionRate").value(7.1))
+                .andExpect(jsonPath("$.data.settlementRate").value(7.5))
+                .andExpect(jsonPath("$.data.transactionInBase").value(710.0))
+                .andExpect(jsonPath("$.data.settlementInBase").value(750.0))
+                .andExpect(jsonPath("$.data.gainLoss").value(40.0))
+                .andExpect(jsonPath("$.data.direction").value("GAIN"));
+
+        mockMvc.perform(post("/fms/api/v1/forex/rates/sync")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "source":"MANUAL_SYNC"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.syncId", Matchers.not(Matchers.isEmptyOrNullString())))
+                .andExpect(jsonPath("$.data.source").value("MANUAL_SYNC"))
+                .andExpect(jsonPath("$.data.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.totalRates").value(0))
+                .andExpect(jsonPath("$.data.successCount").value(0))
+                .andExpect(jsonPath("$.data.failCount").value(0))
+                .andExpect(jsonPath("$.data.startedAt", Matchers.not(Matchers.isEmptyOrNullString())))
+                .andExpect(jsonPath("$.data.completedAt", Matchers.not(Matchers.isEmptyOrNullString())));
+    }
+
+    @Test
+    void exposeUnifiedV1ForexRateCreateAndList() throws Exception {
+        String tenantId = "tenant-fms-forex-rate-list-" + java.util.UUID.randomUUID();
+        String otherTenantId = "tenant-fms-forex-rate-list-other-" + java.util.UUID.randomUUID();
+
+        mockMvc.perform(post("/fms/api/v1/forex/rates")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fromCurrency":"usd",
+                                  "toCurrency":"cny",
+                                  "rate":7.30,
+                                  "effectiveDate":"2026-05-03",
+                                  "source":"manual"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fromCurrency").value("USD"))
+                .andExpect(jsonPath("$.data.toCurrency").value("CNY"))
+                .andExpect(jsonPath("$.data.rate").value(7.3))
+                .andExpect(jsonPath("$.data.effectiveDate").value("2026-05-03"))
+                .andExpect(jsonPath("$.data.source").value("MANUAL"));
+
+        mockMvc.perform(get("/fms/api/v1/forex/rates")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].fromCurrency").value("USD"))
+                .andExpect(jsonPath("$.data[0].toCurrency").value("CNY"))
+                .andExpect(jsonPath("$.data[0].rate").value(7.3))
+                .andExpect(jsonPath("$.data[0].source").value("MANUAL"));
+
+        mockMvc.perform(get("/fms/api/v1/forex/rates")
+                        .header("X-Tenant-Id", otherTenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void exposeUnifiedV1ForexTransactionsAndReferenceQueries() throws Exception {
+        String tenantId = "tenant-fms-forex-tx-" + java.util.UUID.randomUUID();
+        String otherTenantId = "tenant-fms-forex-tx-other-" + java.util.UUID.randomUUID();
+
+        mockMvc.perform(post("/fms/api/v1/forex/transactions")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fromCurrency":"usd",
+                                  "toCurrency":"cny",
+                                  "amount":100.00,
+                                  "rate":7.20,
+                                  "fee":2.50,
+                                  "refType":"SETTLEMENT",
+                                  "refId":"ST-FOREX-100"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fromCurrency").value("USD"))
+                .andExpect(jsonPath("$.data.toCurrency").value("CNY"))
+                .andExpect(jsonPath("$.data.amount").value(100.0))
+                .andExpect(jsonPath("$.data.rate").value(7.2))
+                .andExpect(jsonPath("$.data.fee").value(2.5))
+                .andExpect(jsonPath("$.data.convertedAmount").value(720.0))
+                .andExpect(jsonPath("$.data.refType").value("SETTLEMENT"))
+                .andExpect(jsonPath("$.data.refId").value("ST-FOREX-100"));
+
+        mockMvc.perform(get("/fms/api/v1/forex/transactions")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].fromCurrency").value("USD"))
+                .andExpect(jsonPath("$.data[0].toCurrency").value("CNY"))
+                .andExpect(jsonPath("$.data[0].convertedAmount").value(720.0));
+
+        mockMvc.perform(get("/fms/api/v1/forex/transactions/by-ref")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("refType", "SETTLEMENT")
+                        .param("refId", "ST-FOREX-100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].fee").value(2.5))
+                .andExpect(jsonPath("$.data[0].refType").value("SETTLEMENT"))
+                .andExpect(jsonPath("$.data[0].refId").value("ST-FOREX-100"));
+
+        mockMvc.perform(get("/fms/api/v1/forex/transactions")
+                        .header("X-Tenant-Id", otherTenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void exposeUnifiedV1ProfitDetailTrendStatisticsAndOrders() throws Exception {
+        String tenantId = "tenant-fms-profit-center-" + java.util.UUID.randomUUID();
+        String otherTenantId = "tenant-fms-profit-center-other-" + java.util.UUID.randomUUID();
+        String sellerSku = "SKU-PROFIT-400";
+        String storeId = "store-profit-center-1";
+        String marketplaceId = "AMAZON-US";
+
+        String costEventOneResponse = mockMvc.perform(post("/fms/api/in/v1/cost-events")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "costType":"PRODUCT_COST",
+                                  "sourceType":"OMS_ORDER",
+                                  "sourceId":"ORD-PROFIT-401",
+                                  "sellerSku":"SKU-PROFIT-400",
+                                  "storeId":"store-profit-center-1",
+                                  "channelCode":"AMAZON",
+                                  "marketplaceId":"AMAZON-US",
+                                  "currency":"USD",
+                                  "amount":30.00
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String costEventOneId = objectMapper.readTree(costEventOneResponse).at("/data/costEventId").asText();
+
+        String costEventTwoResponse = mockMvc.perform(post("/fms/api/in/v1/cost-events")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "costType":"PRODUCT_COST",
+                                  "sourceType":"OMS_ORDER",
+                                  "sourceId":"ORD-PROFIT-402",
+                                  "sellerSku":"SKU-PROFIT-400",
+                                  "storeId":"store-profit-center-1",
+                                  "channelCode":"AMAZON",
+                                  "marketplaceId":"AMAZON-US",
+                                  "currency":"USD",
+                                  "amount":40.00
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String costEventTwoId = objectMapper.readTree(costEventTwoResponse).at("/data/costEventId").asText();
+
+        mockMvc.perform(post("/fms/api/in/v1/engine/cost-rules")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ruleName":"profit-center-order-rule",
+                                  "costSource":"PRODUCT_COST",
+                                  "allocationMethod":"DIRECT",
+                                  "targetDimension":"ORDER",
+                                  "priority":100
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/fms/api/in/v1/engine/cost-events/" + costEventOneId + "/aggregate")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].targetDimension").value("ORDER"))
+                .andExpect(jsonPath("$.data[0].targetId").value("ORD-PROFIT-401"));
+
+        mockMvc.perform(post("/fms/api/in/v1/engine/cost-events/" + costEventTwoId + "/aggregate")
+                        .header("X-Tenant-Id", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].targetDimension").value("ORDER"))
+                .andExpect(jsonPath("$.data[0].targetId").value("ORD-PROFIT-402"));
+
+        mockMvc.perform(post("/fms/api/in/v1/engine/profit-results")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "dimensionType":"ORDER",
+                                  "dimensionId":"ORD-PROFIT-401",
+                                  "sellerSku":"SKU-PROFIT-400",
+                                  "orderId":"ORD-PROFIT-401",
+                                  "storeId":"store-profit-center-1",
+                                  "marketplaceId":"AMAZON-US",
+                                  "revenue":100.00,
+                                  "currency":"USD"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCost").value(30.0))
+                .andExpect(jsonPath("$.data.grossProfit").value(70.0));
+
+        mockMvc.perform(post("/fms/api/in/v1/engine/profit-results")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "dimensionType":"ORDER",
+                                  "dimensionId":"ORD-PROFIT-402",
+                                  "sellerSku":"SKU-PROFIT-400",
+                                  "orderId":"ORD-PROFIT-402",
+                                  "storeId":"store-profit-center-1",
+                                  "marketplaceId":"AMAZON-US",
+                                  "revenue":150.00,
+                                  "currency":"USD"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCost").value(40.0))
+                .andExpect(jsonPath("$.data.grossProfit").value(110.0));
+
+        mockMvc.perform(post("/fms/api/in/v1/engine/profit-deviation-alerts/detect")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "threshold":0.80
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2));
+
+        mockMvc.perform(get("/fms/api/v1/profit/statistics")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("sellerSku", sellerSku)
+                        .param("storeId", storeId)
+                        .param("marketplaceId", marketplaceId)
+                        .param("currency", "USD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sellerSku").value(sellerSku))
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.totalRevenue").value(250.0))
+                .andExpect(jsonPath("$.data.totalCost").value(70.0))
+                .andExpect(jsonPath("$.data.totalGrossProfit").value(180.0))
+                .andExpect(jsonPath("$.data.avgGrossMargin").value(0.72))
+                .andExpect(jsonPath("$.data.alertCount").value(2))
+                .andExpect(jsonPath("$.data.openAlertCount").value(2));
+
+        mockMvc.perform(get("/fms/api/v1/profit/orders")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("sellerSku", sellerSku)
+                        .param("storeId", storeId)
+                        .param("marketplaceId", marketplaceId)
+                        .param("currency", "USD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.dimensionType").value("ORDER"))
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.totalRevenue").value(250.0))
+                .andExpect(jsonPath("$.data.totalCost").value(70.0))
+                .andExpect(jsonPath("$.data.totalGrossProfit").value(180.0))
+                .andExpect(jsonPath("$.data.results[*].orderId",
+                        Matchers.containsInAnyOrder("ORD-PROFIT-401", "ORD-PROFIT-402")));
+
+        mockMvc.perform(get("/fms/api/v1/profit/" + sellerSku)
+                        .header("X-Tenant-Id", tenantId)
+                        .param("storeId", storeId)
+                        .param("marketplaceId", marketplaceId)
+                        .param("currency", "USD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sellerSku").value(sellerSku))
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.totalRevenue").value(250.0))
+                .andExpect(jsonPath("$.data.totalCost").value(70.0))
+                .andExpect(jsonPath("$.data.totalGrossProfit").value(180.0))
+                .andExpect(jsonPath("$.data.alertCount").value(2))
+                .andExpect(jsonPath("$.data.results[*].orderId",
+                        Matchers.containsInAnyOrder("ORD-PROFIT-401", "ORD-PROFIT-402")));
+
+        mockMvc.perform(get("/fms/api/v1/profit/" + sellerSku + "/trend")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("storeId", storeId)
+                        .param("marketplaceId", marketplaceId)
+                        .param("currency", "USD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sellerSku").value(sellerSku))
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.points.length()").value(1))
+                .andExpect(jsonPath("$.data.points[0].pointDate").value(LocalDate.now().toString()))
+                .andExpect(jsonPath("$.data.points[0].totalCount").value(2))
+                .andExpect(jsonPath("$.data.points[0].totalRevenue").value(250.0))
+                .andExpect(jsonPath("$.data.points[0].totalCost").value(70.0))
+                .andExpect(jsonPath("$.data.points[0].totalGrossProfit").value(180.0))
+                .andExpect(jsonPath("$.data.points[0].avgGrossMargin").value(0.72));
+
+        mockMvc.perform(get("/fms/api/v1/profit/" + sellerSku)
+                        .header("X-Tenant-Id", otherTenantId)
+                        .param("storeId", storeId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCount").value(0));
+    }
+
+    @Test
     void managePaymentRequestWriteOffAndReconciliation() throws Exception {
         mockMvc.perform(post("/fms/api/in/v1/payment-requests")
                         .header("X-Tenant-Id", "tenant-fms-p2-042")
@@ -1405,6 +1858,75 @@ class FmsApiTests {
                 .andExpect(jsonPath("$.data[0].voucherId").value(voucherId))
                 .andExpect(jsonPath("$.data[0].referenceType").value("PURCHASE_INBOUND"))
                 .andExpect(jsonPath("$.data[0].referenceId").value("PO-IN-100"));
+    }
+
+    @Test
+    void exposeUnifiedV1VoucherTemplateAndInventoryVoucherRoutes() throws Exception {
+        String tenantId = "tenant-fms-voucher-v1";
+
+        String templateResponse = mockMvc.perform(post("/fms/api/v1/voucher-templates")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "templateName":"统一路径采购入库凭证模板",
+                                  "businessType":"PURCHASE_INBOUND",
+                                  "debitAccount":"1405",
+                                  "creditAccount":"2202",
+                                  "description":"统一v1库存凭证模板"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.templateName").value("统一路径采购入库凭证模板"))
+                .andExpect(jsonPath("$.data.businessType").value("PURCHASE_INBOUND"))
+                .andReturn().getResponse().getContentAsString();
+        String templateId = objectMapper.readTree(templateResponse).at("/data/templateId").asText();
+
+        mockMvc.perform(get("/fms/api/v1/voucher-templates")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("businessType", "PURCHASE_INBOUND"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].templateId").value(templateId));
+
+        String voucherResponse = mockMvc.perform(post("/fms/api/v1/inventory-vouchers/auto-generate")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "businessType":"PURCHASE_INBOUND",
+                                  "voucherType":"INVENTORY",
+                                  "sourceId":"PO-IN-V1-100",
+                                  "amount":228.50,
+                                  "currency":"USD",
+                                  "sellerSku":"SKU-V1-100"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("DRAFT"))
+                .andExpect(jsonPath("$.data.referenceId").value("PO-IN-V1-100"))
+                .andReturn().getResponse().getContentAsString();
+        String voucherId = objectMapper.readTree(voucherResponse).at("/data/voucherId").asText();
+
+        mockMvc.perform(get("/fms/api/v1/inventory-vouchers")
+                        .header("X-Tenant-Id", tenantId)
+                        .param("voucherType", "INVENTORY")
+                        .param("status", "DRAFT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].voucherId").value(voucherId));
+
+        mockMvc.perform(post("/fms/api/v1/vouchers/" + voucherId + "/approve")
+                        .header("X-Tenant-Id", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "approvedBy":"finance.v1.manager"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("POSTED"))
+                .andExpect(jsonPath("$.data.postedBy").value("finance.v1.manager"));
     }
 
     @Test
@@ -2013,7 +2535,7 @@ class FmsApiTests {
                                   "accountName":"Stripe USD Account",
                                   "currency":"USD",
                                   "credentials":{
-                                    "apiKey":"sk-test-100"
+                                    "apiKey":"${TEST_API_KEY}"
                                   }
                                 }
                                 """.formatted(tenantId)))
@@ -2302,8 +2824,8 @@ class FmsApiTests {
                                       "tenantId":"%s",
                                       "financeSystem":"YONYOU",
                                       "apiUrl":"%s",
-                                      "apiKey":"platform-key",
-                                      "apiSecret":"platform-secret",
+                                      "apiKey":"${TEST_API_KEY}",
+                                      "apiSecret":"${TEST_API_SECRET}",
                                       "accountSet":"U8-PLATFORM",
                                       "enabled":true,
                                       "mappingRules":{
@@ -2458,8 +2980,8 @@ class FmsApiTests {
                                       "tenantId":"%s",
                                       "financeSystem":"YONYOU",
                                       "apiUrl":"%s",
-                                      "apiKey":"retry-key",
-                                      "apiSecret":"retry-secret",
+                                      "apiKey":"${TEST_API_KEY}",
+                                      "apiSecret":"${TEST_API_SECRET}",
                                       "accountSet":"U8-RETRY",
                                       "enabled":true,
                                       "mappingRules":{
@@ -2593,8 +3115,8 @@ class FmsApiTests {
                                     {
                                       "financeSystem":"YONYOU",
                                       "apiUrl":"%s",
-                                      "apiKey":"test-key",
-                                      "apiSecret":"test-secret",
+                                      "apiKey":"${TEST_API_KEY}",
+                                      "apiSecret":"${TEST_API_SECRET}",
                                       "accountSet":"U8-TEST",
                                       "enabled":true,
                                       "mappingRules":{
@@ -2847,6 +3369,118 @@ class FmsApiTests {
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].erpReferenceId").value(erpReferenceId))
                 .andExpect(jsonPath("$.data[0].executionStatus").value("EXECUTED"));
+    }
+
+    @Test
+    void exposeUnifiedV1PaymentInvoiceTaxAndFinanceSyncRoutes() throws Exception {
+        String tenantId = "tenant-fms-unified-v1";
+        HttpServer server = createYonyouStubServer();
+        server.start();
+        try {
+
+            mockMvc.perform(post("/fms/api/v1/payment/channels/register")
+                            .header("X-Tenant-Id", tenantId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "channelCode":"STRIPE",
+                                      "channelName":"Stripe Global",
+                                      "channelType":"CARD",
+                                      "config":{
+                                        "apiKey":"sk_test_unified_v1"
+                                      }
+                                    }
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.channelCode").value("STRIPE"));
+
+            mockMvc.perform(get("/fms/api/v1/payment/channels")
+                            .header("X-Tenant-Id", tenantId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0].channelCode").value("STRIPE"));
+
+            String invoiceResponse = mockMvc.perform(post("/fms/api/v1/invoices")
+                            .header("X-Tenant-Id", tenantId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "invoiceType":"SALES",
+                                      "customerId":"CUST-UNIFIED-001",
+                                      "customerName":"Unified Route Customer",
+                                      "countryCode":"DE",
+                                      "currency":"EUR",
+                                      "subtotalAmount":100.00,
+                                      "taxAmount":19.00,
+                                      "taxIdNumber":"DE123456789",
+                                      "remark":"Unified v1 invoice route"
+                                    }
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.invoiceType").value("SALES"))
+                    .andExpect(jsonPath("$.data.status").value("DRAFT"))
+                    .andReturn().getResponse().getContentAsString();
+            String invoiceId = objectMapper.readTree(invoiceResponse).at("/data/invoiceId").asText();
+
+            mockMvc.perform(get("/fms/api/v1/invoices")
+                            .header("X-Tenant-Id", tenantId)
+                            .param("countryCode", "DE"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0].invoiceId").value(invoiceId));
+
+            mockMvc.perform(post("/fms/api/v1/tax-invoice/tax-rates")
+                            .header("X-Tenant-Id", tenantId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "country":"DE",
+                                      "region":"BE",
+                                      "taxType":"VAT",
+                                      "rate":19.00
+                                    }
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.country").value("DE"))
+                    .andExpect(jsonPath("$.data.taxType").value("VAT"))
+                    .andExpect(jsonPath("$.data.rate").value(19.0));
+
+            mockMvc.perform(get("/fms/api/v1/tax-invoice/tax-rates")
+                            .header("X-Tenant-Id", tenantId)
+                            .param("country", "DE"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0].region").value("BE"));
+
+            String apiUrl = "http://127.0.0.1:" + server.getAddress().getPort();
+            mockMvc.perform(post("/fms/api/v1/finance-sync-configs")
+                            .header("X-Tenant-Id", tenantId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "financeSystem":"YONYOU",
+                                      "apiUrl":"%s",
+                                      "apiKey":"api-key-unified-v1",
+                                      "apiSecret":"api-secret-unified-v1",
+                                      "accountSet":"primary",
+                                      "enabled":true,
+                                      "mappingRules":{
+                                        "voucherType":"INVENTORY"
+                                      }
+                                    }
+                                    """.formatted(apiUrl)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.financeSystem").value("YONYOU"))
+                    .andExpect(jsonPath("$.data.enabled").value(true));
+
+            mockMvc.perform(get("/fms/api/v1/finance-sync-configs")
+                            .header("X-Tenant-Id", tenantId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0].financeSystem").value("YONYOU"));
+        } finally {
+            server.stop(0);
+        }
     }
 
     private static MockHttpServletRequestBuilder pmsHeaders(MockHttpServletRequestBuilder builder, String tenantId, String idempotencyKey) {

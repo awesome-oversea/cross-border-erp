@@ -2,8 +2,10 @@ package com.aidotnet.erp.fms.api;
 
 import com.aidotnet.erp.common.api.Result;
 import com.aidotnet.erp.common.exception.BizException;
+import com.aidotnet.erp.common.forex.ForexService;
 import com.aidotnet.erp.common.tenant.TenantContext;
 import com.aidotnet.erp.fms.application.FinanceService.ApprovePaymentRequestCommand;
+import com.aidotnet.erp.fms.application.CurrencyExchangeService;
 import com.aidotnet.erp.fms.application.FinanceService;
 import com.aidotnet.erp.fms.application.FinanceService.ApproveWriteOffCommand;
 import com.aidotnet.erp.fms.application.FinanceService.CalculateProfitCommand;
@@ -14,6 +16,9 @@ import com.aidotnet.erp.fms.application.FinanceService.CreateReceivableCommand;
 import com.aidotnet.erp.fms.application.FinanceService.CreateReconciliationCommand;
 import com.aidotnet.erp.fms.application.FinanceService.CreateWriteOffCommand;
 import com.aidotnet.erp.fms.application.FinanceService.DisputeReconciliationCommand;
+import com.aidotnet.erp.fms.application.FinanceService.ForexConversionBatchCommand;
+import com.aidotnet.erp.fms.application.FinanceService.ForexConversionBatchResult;
+import com.aidotnet.erp.fms.application.FinanceService.ForexConversionCommand;
 import com.aidotnet.erp.fms.application.FinanceService.ImportPlatformBillCommand;
 import com.aidotnet.erp.fms.application.FinanceService.PayPaymentRequestCommand;
 import com.aidotnet.erp.fms.application.FinanceService.ReceivePaymentCommand;
@@ -26,7 +31,12 @@ import com.aidotnet.erp.fms.application.FinanceService.UpdatePlatformSettlementW
 import com.aidotnet.erp.fms.application.FmsOutboundService;
 import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitReportQuery;
 import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitReportResult;
+import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitStatisticsQuery;
+import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitStatisticsResult;
+import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitTrendQuery;
+import com.aidotnet.erp.fms.application.FmsOutboundService.ProfitTrendResult;
 import com.aidotnet.erp.fms.domain.CostEvent;
+import com.aidotnet.erp.fms.domain.CurrencyRateSyncLog;
 import com.aidotnet.erp.fms.domain.ForexRate;
 import com.aidotnet.erp.fms.domain.ForexRiskAlert;
 import com.aidotnet.erp.fms.domain.ForexTransaction;
@@ -42,6 +52,7 @@ import com.aidotnet.erp.fms.domain.WriteOff;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
@@ -49,6 +60,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -85,11 +97,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequestMapping({"/fms/api/in/v1", "/fms/api/v1"})
 public class FinanceController {
 
+    private static final String DEFAULT_FOREX_SYNC_SOURCE = "MANUAL_TRIGGER";
+
     private final FinanceService financeService;
+    private final CurrencyExchangeService currencyExchangeService;
     private final FmsOutboundService fmsOutboundService;
 
-    public FinanceController(FinanceService financeService, FmsOutboundService fmsOutboundService) {
+    public FinanceController(FinanceService financeService,
+                             CurrencyExchangeService currencyExchangeService,
+                             FmsOutboundService fmsOutboundService) {
         this.financeService = financeService;
+        this.currencyExchangeService = currencyExchangeService;
         this.fmsOutboundService = fmsOutboundService;
     }
 
@@ -384,6 +402,47 @@ public class FinanceController {
         return Result.ok(buildProfitReport("MARKETPLACE", marketplaceId, sellerSku, storeId, marketplaceId, currency, alertStatus));
     }
 
+    @GetMapping("/profit/statistics")
+    public Result<ProfitStatisticsResult> getProfitStatistics(@RequestParam(required = false) String sellerSku,
+                                                              @RequestParam(required = false) String storeId,
+                                                              @RequestParam(required = false) String marketplaceId,
+                                                              @RequestParam(required = false) String currency,
+                                                              @RequestParam(required = false) String alertStatus) {
+        return Result.ok(fmsOutboundService.buildProfitStatistics(currentTenant(),
+                new ProfitStatisticsQuery(sellerSku, storeId, marketplaceId, currency, alertStatus)));
+    }
+
+    @GetMapping("/profit/orders")
+    public Result<ProfitReportResult> getProfitOrders(@RequestParam(required = false) String sellerSku,
+                                                      @RequestParam(required = false) String storeId,
+                                                      @RequestParam(required = false) String marketplaceId,
+                                                      @RequestParam(required = false) String currency,
+                                                      @RequestParam(required = false) String alertStatus) {
+        return Result.ok(fmsOutboundService.buildOrderProfitReport(currentTenant(), sellerSku, storeId, marketplaceId, currency, alertStatus));
+    }
+
+    @GetMapping("/profit/{asin}/trend")
+    public Result<ProfitTrendResult> getProfitTrend(@PathVariable String asin,
+                                                    @RequestParam(required = false) String storeId,
+                                                    @RequestParam(required = false) String marketplaceId,
+                                                    @RequestParam(required = false) String currency,
+                                                    @RequestParam(required = false) String alertStatus) {
+        return Result.ok(fmsOutboundService.buildProfitTrend(currentTenant(),
+                new ProfitTrendQuery(asin, storeId, marketplaceId, currency, alertStatus)));
+    }
+
+    /**
+     * 设计文档使用asin命名，但域内利润结果当前以sellerSku进行利润追溯，这里保持路径兼容并映射到统一SKU利润视图。
+     */
+    @GetMapping("/profit/{asin}")
+    public Result<ProfitReportResult> getProfitByAsin(@PathVariable String asin,
+                                                      @RequestParam(required = false) String storeId,
+                                                      @RequestParam(required = false) String marketplaceId,
+                                                      @RequestParam(required = false) String currency,
+                                                      @RequestParam(required = false) String alertStatus) {
+        return Result.ok(fmsOutboundService.buildSkuProfitReport(currentTenant(), asin, storeId, marketplaceId, currency, alertStatus));
+    }
+
     @PostMapping("/forex-rates")
     public Result<ForexRate> saveForexRate(@Valid @RequestBody SaveForexRateRequest request) {
         return Result.ok(financeService.saveForexRate(currentTenant(), new SaveForexRateCommand(
@@ -422,21 +481,77 @@ public class FinanceController {
         return Result.ok(financeService.checkForexRisk(currentTenant(), fromCurrency, toCurrency));
     }
 
-    @PostMapping("/forex-transactions")
+    /**
+     * FMS统一外汇中心接口，面向财务域内部能力聚合，兼容 /fms/api/v1 直连读取。
+     */
+    @PostMapping("/forex/rates")
+    public Result<ForexRate> saveUnifiedForexRate(@Valid @RequestBody SaveForexRateRequest request) {
+        return Result.ok(financeService.saveForexRate(currentTenant(), new SaveForexRateCommand(
+                request.fromCurrency(), request.toCurrency(), request.rate(),
+                request.effectiveDate(), request.source())));
+    }
+
+    @GetMapping("/forex/rates")
+    public Result<List<ForexRate>> listUnifiedForexRates() {
+        return Result.ok(financeService.listForexRates(currentTenant()));
+    }
+
+    @GetMapping("/forex/rates/{fromCurrency}/{toCurrency}")
+    public Result<ForexRate> getUnifiedLatestForexRate(@PathVariable String fromCurrency, @PathVariable String toCurrency) {
+        return Result.ok(financeService.getLatestForexRate(currentTenant(), fromCurrency, toCurrency).orElse(null));
+    }
+
+    @GetMapping("/forex/rates/{fromCurrency}/{toCurrency}/snapshot")
+    public Result<ForexRate> getUnifiedForexRateSnapshot(@PathVariable String fromCurrency,
+                                                         @PathVariable String toCurrency,
+                                                         @RequestParam
+                                                         @NotNull
+                                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveDate) {
+        return Result.ok(financeService.getForexRateAsOf(currentTenant(), fromCurrency, toCurrency, effectiveDate).orElse(null));
+    }
+
+    @GetMapping("/forex/history")
+    public Result<List<ForexRate>> getUnifiedForexHistory(@RequestParam String fromCurrency, @RequestParam String toCurrency) {
+        return Result.ok(financeService.listForexRateHistory(currentTenant(), fromCurrency, toCurrency));
+    }
+
+    @PostMapping("/forex/convert")
+    public Result<ForexConversionBatchResult> convertUnifiedForex(@Valid @RequestBody BatchForexConversionRequest request) {
+        return Result.ok(financeService.convertForexBatch(currentTenant(), new ForexConversionBatchCommand(
+                request.conversions().stream()
+                        .map(item -> new ForexConversionCommand(item.fromCurrency(), item.toCurrency(), item.amount(), item.effectiveDate()))
+                        .toList())));
+    }
+
+    @PostMapping("/forex/gain-loss/calculate")
+    public Result<ForexService.GainLossResult> calculateUnifiedForexGainLoss(@Valid @RequestBody CalculateForexGainLossRequest request) {
+        return Result.ok(currencyExchangeService.calculateGainLoss(currentTenant(), request.baseCurrency(),
+                request.transactionCurrency(), request.transactionAmount(), request.transactionRate(), request.settlementRate()));
+    }
+
+    @PostMapping({"/forex-transactions", "/forex/transactions"})
     public Result<ForexTransaction> createForexTransaction(@Valid @RequestBody CreateForexTransactionRequest request) {
         return Result.ok(financeService.createForexTransaction(currentTenant(), new CreateForexTransactionCommand(
                 request.fromCurrency(), request.toCurrency(), request.amount(), request.rate(),
                 request.fee(), request.refType(), request.refId())));
     }
 
-    @GetMapping("/forex-transactions")
+    @GetMapping({"/forex-transactions", "/forex/transactions"})
     public Result<List<ForexTransaction>> listForexTransactions() {
         return Result.ok(financeService.listForexTransactions(currentTenant()));
     }
 
-    @GetMapping("/forex-transactions/by-ref")
+    @GetMapping({"/forex-transactions/by-ref", "/forex/transactions/by-ref"})
     public Result<List<ForexTransaction>> listForexTransactionsByRef(@NotBlank String refType, @NotBlank String refId) {
         return Result.ok(financeService.listForexTransactionsByRef(currentTenant(), refType, refId));
+    }
+
+    @PostMapping("/forex/rates/sync")
+    public Result<CurrencyRateSyncLog> syncUnifiedForexRates(@RequestBody(required = false) SyncForexRatesRequest request) {
+        String source = request != null && request.source() != null && !request.source().isBlank()
+                ? request.source().trim()
+                : DEFAULT_FOREX_SYNC_SOURCE;
+        return Result.ok(currencyExchangeService.syncRates(currentTenant(), source));
     }
 
     private ProfitReportResult buildProfitReport(String dimensionType,
@@ -533,6 +648,21 @@ public class FinanceController {
     public record SaveForexRateRequest(@NotBlank String fromCurrency, @NotBlank String toCurrency,
                                        @Positive BigDecimal rate, @NotNull LocalDate effectiveDate,
                                        String source) {}
+
+    public record CalculateForexGainLossRequest(@NotBlank String baseCurrency,
+                                                @NotBlank String transactionCurrency,
+                                                @Positive BigDecimal transactionAmount,
+                                                @Positive BigDecimal transactionRate,
+                                                @Positive BigDecimal settlementRate) {}
+
+    public record SyncForexRatesRequest(String source) {}
+
+    public record BatchForexConversionRequest(@NotEmpty List<@Valid ForexConversionRequest> conversions) {}
+
+    public record ForexConversionRequest(@NotBlank String fromCurrency,
+                                         @NotBlank String toCurrency,
+                                         @Positive BigDecimal amount,
+                                         LocalDate effectiveDate) {}
 
     public record CreateForexTransactionRequest(@NotBlank String fromCurrency, @NotBlank String toCurrency,
                                                 @Positive BigDecimal amount, @Positive BigDecimal rate,

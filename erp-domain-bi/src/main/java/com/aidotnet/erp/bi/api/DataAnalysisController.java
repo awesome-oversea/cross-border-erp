@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/bi/api/in/v1/analysis")
+@RequestMapping({"/bi/api/in/v1/analysis", "/bi/api/v1/analysis"})
 public class DataAnalysisController {
 
     private final DataAnalysisService analysisService;

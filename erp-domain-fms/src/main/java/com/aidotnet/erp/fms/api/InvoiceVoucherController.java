@@ -31,7 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
  *       凭证过账、凭证导出等操作。
  * </p>
  * <p>
- * 路径规范: /fms/api/in/v1 — 内部方向(in)，v1版本
+ * 路径规范: /fms/api/in/v1 与 /fms/api/v1
+ * 描述: 保留原有 in 路径兼容，同时为 ERP 内部域间调用提供统一 v1 入口。
  * </p>
  *
  * @author ERP系统
@@ -39,7 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see InventoryVoucherEngine
  */
 @RestController
-@RequestMapping("/fms/api/in/v1")
+@RequestMapping({"/fms/api/in/v1", "/fms/api/v1"})
 public class InvoiceVoucherController {
 
     private final InvoiceVoucherService service;

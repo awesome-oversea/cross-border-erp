@@ -767,4 +767,23 @@
         ORDER BY detected_at DESC, alert_id DESC
     </select>
 
+    <insert id="insertCurrencyRateSyncLog" parameterType="com.aidotnet.erp.fms.infrastructure.data.CurrencyRateSyncLogDO">
+        INSERT INTO fms_currency_rate_sync_log (
+            sync_id, tenant_id, source, status, total_rates,
+            success_count, fail_count, error_message, started_at, completed_at
+        )
+        VALUES (
+            #{syncId}, #{tenantId}, #{source}, #{status}, #{totalRates},
+            #{successCount}, #{failCount}, #{errorMessage}, #{startedAt}, #{completedAt}
+        )
+    </insert>
+
+    <select id="selectCurrencyRateSyncLogs" resultType="com.aidotnet.erp.fms.infrastructure.data.CurrencyRateSyncLogDO">
+        SELECT sync_id, tenant_id, source, status, total_rates,
+               success_count, fail_count, error_message, started_at, completed_at
+        FROM fms_currency_rate_sync_log
+        WHERE tenant_id = #{tenantId}
+        ORDER BY started_at DESC, sync_id DESC
+    </select>
+
 </mapper>

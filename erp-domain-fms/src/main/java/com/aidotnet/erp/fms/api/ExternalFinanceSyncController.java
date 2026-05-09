@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author ERP绯荤粺
  */
 @RestController
-@RequestMapping("/fms/api/in/v1")
+@RequestMapping({"/fms/api/in/v1", "/fms/api/v1"})
 public class ExternalFinanceSyncController {
 
     private final ExternalFinanceSyncService externalFinanceSyncService;

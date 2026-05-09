@@ -30,7 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
  * 描述: 财务域税务管理接口，提供VAT计算、税务合规检测、税率查询等操作。
  * </p>
  * <p>
- * 路径规范: /fms/api/in/v1/tax-invoice — 内部方向(in)，v1版本
+ * 路径规范: /fms/api/in/v1/tax-invoice 与 /fms/api/v1/tax-invoice
+ * 描述: 保留原有 in 路径兼容，同时为 ERP 内部域服务调用提供统一 v1 入口。
  * </p>
  *
  * @author ERP系统
@@ -38,7 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see ComplianceRiskService
  */
 @RestController
-@RequestMapping("/fms/api/in/v1/tax-invoice")
+@RequestMapping({"/fms/api/in/v1/tax-invoice", "/fms/api/v1/tax-invoice"})
 public class TaxInvoiceController {
 
     private final InvoiceTaxService invoiceTaxService;

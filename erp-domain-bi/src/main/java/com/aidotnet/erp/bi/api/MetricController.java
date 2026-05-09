@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * </p>
  */
 @RestController
-@RequestMapping("/bi/api/in/v1/metrics")
+@RequestMapping({"/bi/api/in/v1/metrics", "/bi/api/v1/metrics"})
 public class MetricController {
 
     private final MetricCaliberService metricCaliberService;

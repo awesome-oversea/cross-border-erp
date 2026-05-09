@@ -57,10 +57,10 @@ export default function TrackingPage() {
     { title: '操作', key: 'action', render: (_: unknown, r: ShipmentTracking) => (
       <Space>
         <Button type="link" size="small" icon={<EnvironmentOutlined />} onClick={() => showDetail(r.trackingNo)}>详情</Button>
-        {r.shipmentId && (
+        {r.orderId && (
           <Button type="link" size="small" onClick={() => {
-            window.location.href = `/fba/shipments?shipmentId=${r.shipmentId}`;
-          }}>关联货件</Button>
+            window.location.href = `/oms/orders?orderId=${r.orderId}`;
+          }}>关联订单</Button>
         )}
       </Space>
     )},
@@ -106,7 +106,7 @@ export default function TrackingPage() {
           <>
             <Descriptions bordered column={2} size="small" style={{ marginBottom: 24 }}>
               <Descriptions.Item label="运单号">{selectedTracking.trackingNo}</Descriptions.Item>
-              <Descriptions.Item label="物流商">{selectedTracking.carrierName}</Descriptions.Item>
+              <Descriptions.Item label="物流商">{selectedTracking.carrier}</Descriptions.Item>
               <Descriptions.Item label="始发地">{selectedTracking.origin}</Descriptions.Item>
               <Descriptions.Item label="目的地">{selectedTracking.destination}</Descriptions.Item>
               <Descriptions.Item label="状态">
@@ -116,11 +116,11 @@ export default function TrackingPage() {
             </Descriptions>
             <Title level={5}>物流轨迹</Title>
             <Timeline
-              items={(selectedTracking.events || []).map((e: { eventTime: string; location: string; description: string }) => ({
+              items={(selectedTracking.events || []).map((e: { timestamp: string; location: string; description: string }) => ({
                 children: (
                   <div>
                     <div style={{ fontWeight: 500 }}>{e.description}</div>
-                    <div style={{ fontSize: 12, color: '#999' }}>{e.location} · {new Date(e.eventTime).toLocaleString()}</div>
+                    <div style={{ fontSize: 12, color: '#999' }}>{e.location} · {new Date(e.timestamp).toLocaleString()}</div>
                   </div>
                 ),
               }))}

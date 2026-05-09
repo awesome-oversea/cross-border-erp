@@ -54,7 +54,7 @@ export default function ListingsPage() {
   const columns = [
     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 140 },
     { title: '标题', dataIndex: 'title', key: 'title', ellipsis: true, width: 280, render: (v: string, r: Listing) => (
-      <a href={`/pdm/products?productId=${r.productId}`}>{v}</a>
+      <a href={`/pdm/products?keyword=${r.sellerSku}`}>{v}</a>
     )},
     { title: '平台', dataIndex: 'platform', key: 'platform', render: (v: string) => <Tag color="blue">{v}</Tag> },
     { title: 'ASIN', dataIndex: 'asin', key: 'asin', width: 120 },

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * </p>
  */
 @RestController
-@RequestMapping({"/bi/api/in/v1/kpi", "/bi/api/in/v1/kpis"})
+@RequestMapping({"/bi/api/in/v1/kpi", "/bi/api/in/v1/kpis", "/bi/api/v1/kpi", "/bi/api/v1/kpis"})
 public class KpiController {
 
     private final KpiAssessmentService kpiAssessmentService;
@@ -89,6 +89,14 @@ public class KpiController {
     public Result<BigDecimal> departmentScore(@PathVariable String department,
                                               @RequestParam String period) {
         return Result.ok(kpiAssessmentService.calculateDepartmentScore(currentTenant(), department, period));
+    }
+
+    @GetMapping("/statistics")
+    public Result<KpiAssessmentService.KpiStatisticsResult> statistics(@RequestParam(required = false) String period,
+                                                                       @RequestParam(required = false) String department,
+                                                                       @RequestParam(required = false) String role,
+                                                                       @RequestParam(required = false) String userId) {
+        return Result.ok(kpiAssessmentService.buildStatistics(currentTenant(), period, department, role, userId));
     }
 
     private String currentTenant() {

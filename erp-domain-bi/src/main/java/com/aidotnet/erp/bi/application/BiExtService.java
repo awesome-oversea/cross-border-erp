@@ -1,5 +1,9 @@
 package com.aidotnet.erp.bi.application;
 
+import com.aidotnet.erp.bi.client.CrmClient;
+import com.aidotnet.erp.bi.client.FbaClient;
+import com.aidotnet.erp.bi.client.SomClient;
+import com.aidotnet.erp.bi.client.WmsClient;
 import com.aidotnet.erp.bi.domain.AlertCondition;
 import com.aidotnet.erp.bi.domain.AlertRule;
 import com.aidotnet.erp.bi.domain.AlertSeverity;
@@ -10,10 +14,13 @@ import com.aidotnet.erp.bi.domain.RankingData;
 import com.aidotnet.erp.bi.domain.RankingData.RankingItem;
 import com.aidotnet.erp.bi.domain.ReportSnapshot;
 import com.aidotnet.erp.bi.infrastructure.BiExtStore;
+import com.aidotnet.erp.common.api.Result;
 import com.aidotnet.erp.common.exception.BizException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,10 +57,27 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class BiExtService {
 
-    private final BiExtStore extStore;
+    private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final String CLOSED_STATUS = "CLOSED";
+    private static final String RECEIVED_STATUS = "RECEIVED";
+    private static final int LOW_STOCK_THRESHOLD = 5;
 
-    public BiExtService(BiExtStore extStore) {
+    private final BiExtStore extStore;
+    private final SomClient somClient;
+    private final WmsClient wmsClient;
+    private final CrmClient crmClient;
+    private final FbaClient fbaClient;
+
+    public BiExtService(BiExtStore extStore,
+                        SomClient somClient,
+                        WmsClient wmsClient,
+                        CrmClient crmClient,
+                        FbaClient fbaClient) {
         this.extStore = extStore;
+        this.somClient = somClient;
+        this.wmsClient = wmsClient;
+        this.crmClient = crmClient;
+        this.fbaClient = fbaClient;
     }
 
     /* ================================ 告警规则 ================================ */
@@ -148,17 +172,61 @@ public class BiExtService {
      * @return 驾驶舱数据Map
      */
     public Map<String, Object> getCockpitData(String tenantId) {
+        List<AlertRule> enabledRules = extStore.listEnabledAlertRules(tenantId);
+        List<SomClient.ListingResponse> activeListings = safeList(requireData(
+                somClient.listListings(ACTIVE_STATUS),
+                "BI_COCKPIT_SOURCE_FAILED",
+                "BI cockpit failed to load active listings"));
+        List<FbaClient.FbaShipmentResponse> shipments = safeList(requireData(
+                fbaClient.listShipments(null),
+                "BI_COCKPIT_SOURCE_FAILED",
+                "BI cockpit failed to load FBA shipments"));
+        List<CrmClient.ServiceTicketResponse> tickets = safeList(requireData(
+                crmClient.listTickets(),
+                "BI_COCKPIT_SOURCE_FAILED",
+                "BI cockpit failed to load CRM service tickets"));
+
+        Map<String, List<SomClient.ListingPerformanceResponse>> performanceCache = new HashMap<>();
+        Map<String, SomClient.ChannelSkuResponse> channelSkuCache = new HashMap<>();
+        Map<String, WmsClient.InventoryAvailabilityResponse> inventoryCache = new HashMap<>();
+
+        int totalOrders = 0;
+        int lowStockSkus = 0;
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        for (SomClient.ListingResponse listing : activeListings) {
+            SomClient.ListingPerformanceResponse latestPerformance = latestPerformance(listing.listingId(), performanceCache);
+            if (latestPerformance != null) {
+                totalOrders += latestPerformance.orders();
+                totalRevenue = totalRevenue.add(defaultDecimal(latestPerformance.sales()));
+            }
+
+            SomClient.ChannelSkuResponse channelSku = resolveChannelSku(listing, channelSkuCache);
+            WmsClient.InventoryAvailabilityResponse inventory = resolveInventory(
+                    channelSku != null ? channelSku.channelSku() : null,
+                    inventoryCache);
+            if (inventory != null && inventory.available() < LOW_STOCK_THRESHOLD) {
+                lowStockSkus++;
+            }
+        }
+
+        int pendingShipments = (int) shipments.stream()
+                .filter(this::isPendingShipment)
+                .count();
+        int openTickets = (int) tickets.stream()
+                .filter(this::isOpenTicket)
+                .count();
+
         Map<String, Object> cockpit = new HashMap<>();
         cockpit.put("tenantId", tenantId);
         cockpit.put("timestamp", Instant.now());
         cockpit.put("metrics", Map.of(
-                "totalOrders", 0,
-                "totalRevenue", BigDecimal.ZERO,
-                "pendingShipments", 0,
-                "activeListings", 0,
-                "lowStockSkus", 0,
-                "openTickets", 0));
-        cockpit.put("alerts", extStore.listEnabledAlertRules(tenantId).stream()
+                "totalOrders", totalOrders,
+                "totalRevenue", scale(totalRevenue),
+                "pendingShipments", pendingShipments,
+                "activeListings", activeListings.size(),
+                "lowStockSkus", lowStockSkus,
+                "openTickets", openTickets));
+        cockpit.put("alerts", enabledRules.stream()
                 .map(rule -> Map.of("ruleId", rule.ruleId(), "ruleName", rule.ruleName(),
                         "metricCode", rule.metricCode(), "severity", rule.severity().name()))
                 .toList());
@@ -166,6 +234,96 @@ public class BiExtService {
     }
 
     /* ================================ KPI模板 ================================ */
+
+    /* ================================ Cockpit Helpers ================================ */
+
+    private SomClient.ListingPerformanceResponse latestPerformance(
+            String listingId,
+            Map<String, List<SomClient.ListingPerformanceResponse>> cache) {
+        List<SomClient.ListingPerformanceResponse> performances = cache.computeIfAbsent(listingId, key -> safeList(requireData(
+                somClient.listPerformances(key, null),
+                "BI_COCKPIT_SOURCE_FAILED",
+                "BI cockpit failed to load listing performance")));
+        return performances.stream()
+                .max(Comparator.comparing(SomClient.ListingPerformanceResponse::periodEnd,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(SomClient.ListingPerformanceResponse::createdAt,
+                                Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElse(null);
+    }
+
+    private SomClient.ChannelSkuResponse resolveChannelSku(
+            SomClient.ListingResponse listing,
+            Map<String, SomClient.ChannelSkuResponse> cache) {
+        String cacheKey = String.join("|",
+                listing.productId(),
+                listing.storeId() != null ? listing.storeId() : "",
+                listing.marketplace() != null ? listing.marketplace() : "");
+        return cache.computeIfAbsent(cacheKey, key -> {
+            List<SomClient.ChannelSkuResponse> channelSkus = safeList(requireData(
+                    somClient.listChannelSkusByProductSku(listing.productId()),
+                    "BI_COCKPIT_SOURCE_FAILED",
+                    "BI cockpit failed to load channel SKU mapping"));
+            return channelSkus.stream()
+                    .filter(item -> ACTIVE_STATUS.equalsIgnoreCase(item.status()))
+                    .filter(item -> item.storeId() == null || item.storeId().equals(listing.storeId()))
+                    .filter(item -> item.marketplaceId() == null || item.marketplaceId().equals(listing.marketplace()))
+                    .findFirst()
+                    .orElseGet(() -> channelSkus.stream()
+                            .filter(item -> ACTIVE_STATUS.equalsIgnoreCase(item.status()))
+                            .findFirst()
+                            .orElse(null));
+        });
+    }
+
+    private WmsClient.InventoryAvailabilityResponse resolveInventory(
+            String sellerSku,
+            Map<String, WmsClient.InventoryAvailabilityResponse> cache) {
+        if (!hasText(sellerSku)) {
+            return null;
+        }
+        return cache.computeIfAbsent(sellerSku, key -> requireData(
+                wmsClient.checkAvailability(key),
+                "BI_COCKPIT_SOURCE_FAILED",
+                "BI cockpit failed to load inventory availability"));
+    }
+
+    private boolean isPendingShipment(FbaClient.FbaShipmentResponse shipment) {
+        if (shipment == null || !hasText(shipment.status())) {
+            return false;
+        }
+        String status = shipment.status().trim().toUpperCase();
+        return !CLOSED_STATUS.equals(status) && !RECEIVED_STATUS.equals(status);
+    }
+
+    private boolean isOpenTicket(CrmClient.ServiceTicketResponse ticket) {
+        return ticket != null && (!hasText(ticket.status()) || !CLOSED_STATUS.equalsIgnoreCase(ticket.status()));
+    }
+
+    private <T> T requireData(Result<T> result, String errorCode, String errorMessage) {
+        if (result == null || !result.success() || result.data() == null) {
+            throw new BizException(errorCode, errorMessage);
+        }
+        return result.data();
+    }
+
+    private <T> List<T> safeList(List<T> source) {
+        return source != null ? source : List.of();
+    }
+
+    private BigDecimal defaultDecimal(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private BigDecimal scale(BigDecimal value) {
+        return defaultDecimal(value).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    /* ================================ KPI妯℃澘 ================================ */
 
     @Transactional
     public KpiTemplate createKpiTemplate(String tenantId, CreateKpiTemplateCommand command) {

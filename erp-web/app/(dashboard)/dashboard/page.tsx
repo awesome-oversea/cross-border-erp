@@ -29,8 +29,8 @@ export default function DashboardPage() {
 
   const stats = [
     { title: '今日订单', value: metrics?.todayOrders ?? 0, prefix: <ShoppingOutlined />, suffix: '单', trend: metrics?.orderTrend ?? 0, color: '#1890ff' },
-    { title: '销售额', value: metrics?.todaySales ?? 0, prefix: <DollarOutlined />, suffix: 'USD', trend: metrics?.salesTrend ?? 0, color: '#52c41a' },
-    { title: '库存预警', value: metrics?.inventoryAlerts ?? 0, prefix: <HomeOutlined />, suffix: 'SKU', trend: metrics?.inventoryAlertTrend ?? 0, color: '#faad14' },
+    { title: '销售额', value: metrics?.todayRevenue ?? 0, prefix: <DollarOutlined />, suffix: 'USD', trend: metrics?.revenueTrend ?? 0, color: '#52c41a' },
+    { title: '库存预警', value: metrics?.inventoryAlerts ?? 0, prefix: <HomeOutlined />, suffix: 'SKU', trend: metrics?.inventoryTrend ?? 0, color: '#faad14' },
     { title: '待处理工单', value: metrics?.pendingTickets ?? 0, prefix: <CustomerServiceOutlined />, suffix: '件', trend: metrics?.ticketTrend ?? 0, color: '#ff4d4f' },
   ];
 

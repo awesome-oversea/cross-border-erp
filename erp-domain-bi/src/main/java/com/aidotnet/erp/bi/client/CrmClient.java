@@ -16,8 +16,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "erp-app", contextId = "bi-crm-client", path = "/crm/api/in/v1")
 public interface CrmClient {
 
+    @GetMapping("/tickets")
+    Result<List<ServiceTicketResponse>> listTickets();
+
     @GetMapping("/review-analyses/by-sku")
     Result<List<ReviewAnalysisResponse>> listReviewAnalysesBySku(@RequestParam String sellerSku);
+
+    record ServiceTicketResponse(String ticketId, String tenantId, String customerId, String subject,
+                                 String description, String assignee, String status,
+                                 String resolution, Instant createdAt, Instant updatedAt) {}
 
     record ReviewAnalysisResponse(String analysisId, String tenantId, String sellerSku,
                                   String marketplaceId, double averageRating, int totalReviews,

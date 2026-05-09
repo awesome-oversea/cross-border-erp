@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Table, Card, Typography, Tag, Space, Select, Badge } from 'antd';
+import { Table, Card, Typography, Tag, Space, Select } from 'antd';
 import { usePageApi } from '@/lib/hooks';
 import type { CostEvent, PageParams } from '@/types';
 
@@ -18,12 +18,16 @@ export default function CostEventsPage() {
   const { data } = usePageApi<CostEvent>('/fms/api/in/v1/cost-events', params);
 
   const columns = [
-    { title: '费用编号', dataIndex: 'costEventId', key: 'costEventId' },
-    { title: '类型', dataIndex: 'costType', key: 'costType', render: (v: string) => <Tag color={typeMap[v]?.color || 'default'}>{typeMap[v]?.text || v}</Tag> },
+    { title: '费用编号', dataIndex: 'eventId', key: 'eventId' },
+    { title: '类型', dataIndex: 'eventType', key: 'eventType', render: (v: string) => <Tag color={typeMap[v]?.color || 'default'}>{typeMap[v]?.text || v}</Tag> },
     { title: '金额', dataIndex: 'amount', key: 'amount', render: (v: number, r: CostEvent) => `${r.currency} ${v?.toFixed(2)}` },
-    { title: '关联订单', dataIndex: 'orderId', key: 'orderId', render: (v: string) => v ? <a href={`/oms/orders?orderId=${v}`}>{v}</a> : '-' },
-    { title: '关联广告', dataIndex: 'campaignId', key: 'campaignId', render: (v: string) => v ? <a href={`/ads/campaigns?campaignId=${v}`}>{v}</a> : '-' },
-    { title: '日期', dataIndex: 'eventDate', key: 'eventDate', render: (v: string) => v ? new Date(v).toLocaleDateString() : '-' },
+    { title: '来源类型', dataIndex: 'sourceType', key: 'sourceType', render: (v: string) => <Tag>{v}</Tag> },
+    { title: '来源ID', dataIndex: 'sourceId', key: 'sourceId', render: (v: string, r: CostEvent) => {
+      if (r.sourceType === 'ORDER') return <a href={`/oms/orders?orderId=${v}`}>{v}</a>;
+      if (r.sourceType === 'CAMPAIGN') return <a href={`/ads/campaigns?campaignId=${v}`}>{v}</a>;
+      return v;
+    }},
+    { title: '日期', dataIndex: 'occurredAt', key: 'occurredAt', render: (v: string) => v ? new Date(v).toLocaleDateString() : '-' },
   ];
 
   return (
@@ -33,11 +37,11 @@ export default function CostEventsPage() {
         <Space>
           <Select placeholder="费用类型" allowClear style={{ width: 140 }}
             options={Object.entries(typeMap).map(([k, v]) => ({ value: k, label: v.text }))}
-            onChange={(v) => setParams({ ...params, costType: v })} />
+            onChange={(v) => setParams({ ...params, eventType: v })} />
         </Space>
       </div>
       <Card style={{ borderRadius: 8 }}>
-        <Table rowKey="costEventId" columns={columns} dataSource={data?.list || []} size="middle"
+        <Table rowKey="eventId" columns={columns} dataSource={data?.list || []} size="middle"
           pagination={{ current: params.page, pageSize: params.size, total: data?.total || 0, onChange: (page, size) => setParams({ ...params, page, size }) }} />
       </Card>
     </div>

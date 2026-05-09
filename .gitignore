@@ -30,7 +30,11 @@ logs/
 # === Environment / Secrets ===
 .env
 .env.local
+.env.*.local
 *.local
+
+# === Backup ===
+backup/
 
 # === Local Tools & Cache ===
 .tools/
@@ -48,3 +52,46 @@ logs/
 
 # === Build Artifacts ===
 build-output.txt
+
+# === Sensitive / Internal Documents ===
+docs/跨境电商ERP-技术实现方案V3.md
+跨境电商ERP-技术实现方案V3.md
+docs/跨境电商ERP系统——任务清单-验收标准.md
+docs/跨境电商ERP系统——任务清单.md
+docs/跨境电商ERP-竞品需求说明书.md
+docs/跨境电商ERP系统——需求规格说明书V4.md
+跨境电商ERP系统——需求规格说明书V4.md
+docs/跨境电商ERP系统详细设计说明书V11.md
+ERP_MidPlatform_Design_Full.pdf
+ERP中台模块与开源项目可视化架构图.png
+JAVA生态全周期技术选型方案.md
+OpenSourceERP.md
+count_lines.ps1
+
+# === CLAUDE.md (AI tool config, not for public) ===
+CLAUDE.md
+
+# === Local dev environment configs ===
+env/windows-dev.shared
+
+# === GitHub publish credentials ===
+.github-publish.env
+
+# === Production deployment configs ===
+deploy/helm/values.prod.yaml
+deploy/helm/values.prod.shared.yaml
+
+# === Internal docs - superpower specs/plans ===
+docs/superpowers/
+docs/acceptance/
+
+# === Internal docs - operational (not for public showcase) ===
+docs/跨境电商ERP-变更管理规范.md
+docs/跨境电商ERP-培训计划.md
+docs/跨境电商ERP-性能测试方案.md
+docs/跨境电商ERP-本地迭代记录.md
+docs/跨境电商ERP-灾备恢复方案.md
+docs/跨境电商ERP-风险管理登记册.md
+docs/跨境电商ERP-前后端联调测试报告.md
+docs/跨境电商ERP-GitHub发布准备与运营指南.md
+docs/跨境电商ERP-版本发布说明模板.md
